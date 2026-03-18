@@ -30,7 +30,7 @@ Admin     : Full access + Reports + Staff management
 1. .ai/CODING_RULES.md
 2. .ai/PROJECT_CONTEXT.md
 3. .ai/SYSTEM_ARCHITECTURE.md  ← Role-based auth, data always fresh
-4. .ai/UI_DESIGN_SYSTEM.md     ← Admin violet theme + DM Sans
+4. .ai/DESIGN_SYSTEM.md     ← Admin violet theme + DM Sans
 5. .ai/ICON_SYSTEM.md          ← Admin icon rules
 6. .ai/COMPONENT_GUIDELINES.md ← DataTable, StatCard patterns
 7. .ai/FEATURE_SPEC.md
