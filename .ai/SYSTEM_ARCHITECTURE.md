@@ -53,22 +53,55 @@ No SSG/ISR: Admin pages always server-rendered fresh (no cache)
 ## Component Architecture
 
 ┌─────────────────────────────────────────────────────────┐
-│              @computer-store/ui (SHARED PACKAGE)         │
-│  Button, Input, Modal, Badge, Alert, Toast, Skeleton      │
-│  DataTable, StatCard, ChartWidget, FileUpload             │
-│  Tabs, Accordion, Tooltip, ConfirmDialog, EmptyState      │
+│       src/components/ui/  (LOCAL UI PRIMITIVES)          │
+│  Button, Input, Select, Modal, Drawer, Tabs, Badge        │
+│  Alert, Toast, Skeleton, Spinner, Tooltip, Popover        │
+│  Accordion, Checkbox, Toggle, Radio, Slider, Textarea     │
+│  Avatar, DateInput, PasswordInput, Lightbox, Image        │
 └────────────────┬────────────────────────────────────────┘
-                 │ imported by admin repo
+                 │ composed by
 ┌────────────────▼────────────────────────────────────────┐
-│         computer-store-admin LOCAL COMPONENTS             │
-│  layout/     : AdminShell, AdminSidebar, AdminHeader     │
-│  dashboard/  : RevenueChart, OrderStatusChart, Alerts    │
-│  products/   : ProductForm, VariantBuilder, ImageUploader│
-│  orders/     : OrderStatusSelect, OrderDetail            │
-│  inventory/  : ImportForm, StockHistoryTable             │
-│  promotions/ : PromotionForm, DateRangePicker            │
-│  support/    : TicketThread, InternalNote, AssignStaff   │
+│      src/components/admin/  (ADMIN-SPECIFIC)             │
+│                                                          │
+│  [root primitives]                                       │
+│    AdminSidebar   ConfirmDialog   DataTable              │
+│    FileUpload     FilterDropdown  StatCard  StatusBadge  │
+│                                                          │
+│  layout/                                                 │
+│    SidebarContext  AdminLayout    AdminHeader             │
+│    AdminBreadcrumb AdminUserMenu  NotificationBell        │
+│    AdminPageWrapper AdminDetailLayout                    │
+│                                                          │
+│  shared/                                                 │
+│    AdminSearchBar  TableToolbar   BulkActionBar           │
+│    AdminDateRangePicker  AdminEmptyState  ExportButton    │
+│    ImportModal  InlineEditField  MediaUploadPanel         │
+│    AuditLogViewer  RolePermissionSelector  ColumnConfigurator │
+│                                                          │
+│  dashboard/   reports/   products/   catalog/            │
+│  orders/      users/     inventory/  promotions/         │
+│  support/     settings/                                  │
 └─────────────────────────────────────────────────────────┘
+
+## Layout Shell Structure
+
+  AdminLayout (src/app/(dashboard)/layout.tsx)
+  ├── SidebarContext.Provider  (collapse state + localStorage)
+  │   ├── AdminSidebar         (fixed left, violet-700, 10 domains)
+  │   │   └── <Link> nav items with usePathname() active detection
+  │   └── <div> right column
+  │       ├── AdminHeader      (sticky top, bg-violet-700)
+  │       │   ├── hamburger toggle  → toggles SidebarContext.open
+  │       │   ├── AdminBreadcrumb  → derives from usePathname()
+  │       │   ├── NotificationBell → unread badge + panel drawer
+  │       │   └── AdminUserMenu    → avatar + role + sign out
+  │       └── <main>
+  │           └── AdminPageWrapper (per-page title + CTA slot)
+  │               └── page content / AdminDetailLayout
+
+  AdminDetailLayout (detail/edit pages)
+  ├── left column (1fr)  — form, content, tabs
+  └── right column (320px) — status panel, metadata, audit log
 
 ## Data Fetching Strategy (Admin-specific)
 
@@ -106,3 +139,7 @@ No SSG/ISR: Admin pages always server-rendered fresh (no cache)
 5. All forms: react-hook-form + Zod validation
 6. Real-time notifications: Server-Sent Events (SSE) from backend
 7. Report export: trigger backend endpoint → download file response
+8. UI primitives: imported from src/components/ui/ (local) NOT @computer-store/ui
+9. Sidebar collapse: persisted in localStorage("admin_sidebar_collapsed")
+10. Admin accent color: violet-700 (sidebar + header ONLY; content area uses primary-600)
+11. All admin components live under src/components/admin/ (not src/components/layout/)

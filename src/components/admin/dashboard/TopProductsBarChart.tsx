@@ -33,13 +33,29 @@ export function TopProductsBarChart({ data }: TopProductsBarChartProps) {
 
   const xTickFormatter =
     metric === "units"
-      ? (v: number) => v.toLocaleString("vi-VN")
-      : (v: number) => (v / 1_000_000).toFixed(1) + "M";
+      ? (v?: number) => (v ?? 0).toLocaleString("vi-VN")
+      : (v?: number) => ((v ?? 0) / 1_000_000).toFixed(1) + "M";
 
   const tooltipFormatter =
     metric === "units"
-      ? (v: number) => [v.toLocaleString("vi-VN") + " sản phẩm", "Số lượng"]
-      : (v: number) => [v.toLocaleString("vi-VN") + "₫", "Doanh thu"];
+      ? (v: unknown): [string, string] => {
+          const num =
+            typeof v === "number"
+              ? v
+              : Number.isFinite(Number(v))
+                ? Number(v)
+                : 0;
+          return [num.toLocaleString("vi-VN") + " sản phẩm", "Số lượng"];
+        }
+      : (v: unknown): [string, string] => {
+          const num =
+            typeof v === "number"
+              ? v
+              : Number.isFinite(Number(v))
+                ? Number(v)
+                : 0;
+          return [num.toLocaleString("vi-VN") + "₫", "Doanh thu"];
+        };
 
   return (
     <div className="bg-white rounded-2xl border border-secondary-100 p-5 shadow-sm">
@@ -99,7 +115,7 @@ export function TopProductsBarChart({ data }: TopProductsBarChartProps) {
             axisLine={false}
           />
           <Tooltip
-            formatter={(v: number) => tooltipFormatter(v)}
+            formatter={(v) => tooltipFormatter(v)}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #e2e8f0",

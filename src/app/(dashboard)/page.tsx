@@ -13,141 +13,17 @@ import { TopProductsBarChart } from "@/src/components/admin/dashboard/TopProduct
 import { OrdersByStatusDonut } from "@/src/components/admin/dashboard/OrdersByStatusDonut";
 import { RecentOrdersTable } from "@/src/components/admin/dashboard/RecentOrdersTable";
 import { LowStockAlertList } from "@/src/components/admin/dashboard/LowStockAlertList";
+import {
+  REVENUE_DATA,
+  TOP_PRODUCTS_DATA,
+  ORDERS_BY_STATUS_DATA,
+  RECENT_ORDERS_DATA,
+  LOW_STOCK_DATA,
+} from "./_mock";
 
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = { title: "Dashboard" };
-
-// ─── Mock Data ────────────────────────────────────────────────────────────────
-
-// 90 days of revenue data starting 2026-01-01
-const REVENUE_DATA: { date: string; revenue: number }[] = [
-  { date: "2026-01-01", revenue: 42_500_000 },
-  { date: "2026-01-02", revenue: 38_200_000 },
-  { date: "2026-01-03", revenue: 55_700_000 },
-  { date: "2026-01-04", revenue: 31_400_000 },
-  { date: "2026-01-05", revenue: 47_800_000 },
-  { date: "2026-01-06", revenue: 59_300_000 },
-  { date: "2026-01-07", revenue: 28_900_000 },
-  { date: "2026-01-08", revenue: 43_600_000 },
-  { date: "2026-01-09", revenue: 52_100_000 },
-  { date: "2026-01-10", revenue: 36_700_000 },
-  { date: "2026-01-11", revenue: 61_400_000 },
-  { date: "2026-01-12", revenue: 44_200_000 },
-  { date: "2026-01-13", revenue: 33_800_000 },
-  { date: "2026-01-14", revenue: 57_900_000 },
-  { date: "2026-01-15", revenue: 48_300_000 },
-  { date: "2026-01-16", revenue: 29_600_000 },
-  { date: "2026-01-17", revenue: 65_100_000 },
-  { date: "2026-01-18", revenue: 41_500_000 },
-  { date: "2026-01-19", revenue: 53_800_000 },
-  { date: "2026-01-20", revenue: 37_200_000 },
-  { date: "2026-01-21", revenue: 46_700_000 },
-  { date: "2026-01-22", revenue: 58_400_000 },
-  { date: "2026-01-23", revenue: 32_100_000 },
-  { date: "2026-01-24", revenue: 49_900_000 },
-  { date: "2026-01-25", revenue: 44_600_000 },
-  { date: "2026-01-26", revenue: 63_200_000 },
-  { date: "2026-01-27", revenue: 35_800_000 },
-  { date: "2026-01-28", revenue: 51_400_000 },
-  { date: "2026-01-29", revenue: 40_700_000 },
-  { date: "2026-01-30", revenue: 28_300_000 },
-  { date: "2026-01-31", revenue: 55_900_000 },
-  { date: "2026-02-01", revenue: 47_400_000 },
-  { date: "2026-02-02", revenue: 34_800_000 },
-  { date: "2026-02-03", revenue: 60_200_000 },
-  { date: "2026-02-04", revenue: 42_900_000 },
-  { date: "2026-02-05", revenue: 53_500_000 },
-  { date: "2026-02-06", revenue: 38_700_000 },
-  { date: "2026-02-07", revenue: 67_100_000 },
-  { date: "2026-02-08", revenue: 45_300_000 },
-  { date: "2026-02-09", revenue: 31_600_000 },
-  { date: "2026-02-10", revenue: 56_800_000 },
-  { date: "2026-02-11", revenue: 43_200_000 },
-  { date: "2026-02-12", revenue: 49_700_000 },
-  { date: "2026-02-13", revenue: 36_400_000 },
-  { date: "2026-02-14", revenue: 72_300_000 },
-  { date: "2026-02-15", revenue: 48_100_000 },
-  { date: "2026-02-16", revenue: 33_500_000 },
-  { date: "2026-02-17", revenue: 59_600_000 },
-  { date: "2026-02-18", revenue: 44_900_000 },
-  { date: "2026-02-19", revenue: 52_700_000 },
-  { date: "2026-02-20", revenue: 39_300_000 },
-  { date: "2026-02-21", revenue: 64_800_000 },
-  { date: "2026-02-22", revenue: 46_100_000 },
-  { date: "2026-02-23", revenue: 30_900_000 },
-  { date: "2026-02-24", revenue: 57_400_000 },
-  { date: "2026-02-25", revenue: 43_700_000 },
-  { date: "2026-02-26", revenue: 51_200_000 },
-  { date: "2026-02-27", revenue: 37_600_000 },
-  { date: "2026-02-28", revenue: 66_500_000 },
-  { date: "2026-03-01", revenue: 48_800_000 },
-  { date: "2026-03-02", revenue: 35_200_000 },
-  { date: "2026-03-03", revenue: 61_700_000 },
-  { date: "2026-03-04", revenue: 44_400_000 },
-  { date: "2026-03-05", revenue: 54_100_000 },
-  { date: "2026-03-06", revenue: 40_800_000 },
-  { date: "2026-03-07", revenue: 68_900_000 },
-  { date: "2026-03-08", revenue: 46_600_000 },
-  { date: "2026-03-09", revenue: 32_300_000 },
-  { date: "2026-03-10", revenue: 58_500_000 },
-  { date: "2026-03-11", revenue: 45_700_000 },
-  { date: "2026-03-12", revenue: 50_900_000 },
-  { date: "2026-03-13", revenue: 38_100_000 },
-  { date: "2026-03-14", revenue: 73_200_000 },
-  { date: "2026-03-15", revenue: 49_400_000 },
-  { date: "2026-03-16", revenue: 34_700_000 },
-  { date: "2026-03-17", revenue: 62_300_000 },
-  { date: "2026-03-18", revenue: 47_000_000 },
-  { date: "2026-03-19", revenue: 55_600_000 },
-  { date: "2026-03-20", revenue: 41_200_000 },
-  { date: "2026-03-21", revenue: 69_800_000 },
-  { date: "2026-03-22", revenue: 47_500_000 },
-  { date: "2026-03-23", revenue: 33_900_000 },
-  { date: "2026-03-24", revenue: 59_100_000 },
-  { date: "2026-03-25", revenue: 46_300_000 },
-  { date: "2026-03-26", revenue: 53_000_000 },
-  { date: "2026-03-27", revenue: 39_700_000 },
-  { date: "2026-03-28", revenue: 67_400_000 },
-  { date: "2026-03-29", revenue: 48_200_000 },
-  { date: "2026-03-30", revenue: 36_800_000 },
-];
-
-const TOP_PRODUCTS_DATA = [
-  { productId: "p1", name: "RTX 4090 Gaming OC", unitsSold: 142, revenue: 284_000_000 },
-  { productId: "p2", name: "Intel Core i9-14900K", unitsSold: 238, revenue: 178_500_000 },
-  { productId: "p3", name: "Samsung 990 Pro 2TB", unitsSold: 415, revenue: 124_500_000 },
-  { productId: "p4", name: "Corsair Vengeance 32GB", unitsSold: 521, revenue: 104_200_000 },
-  { productId: "p5", name: "ASUS ROG Strix Z790-E", unitsSold: 187, revenue: 93_500_000 },
-];
-
-const ORDERS_BY_STATUS_DATA = [
-  { status: "pending", count: 214 },
-  { status: "confirmed", count: 387 },
-  { status: "processing", count: 156 },
-  { status: "shipped", count: 423 },
-  { status: "delivered", count: 589 },
-  { status: "cancelled", count: 48 },
-  { status: "returned", count: 25 },
-];
-
-const RECENT_ORDERS_DATA = [
-  { id: "ORD-20260001", customerName: "Nguyễn Văn An", total: 42_500_000, status: "pending", date: "2026-03-25" },
-  { id: "ORD-20260002", customerName: "Trần Thị Bình", total: 15_200_000, status: "confirmed", date: "2026-03-25" },
-  { id: "ORD-20260003", customerName: "Lê Hoàng Cường", total: 8_750_000, status: "shipped", date: "2026-03-24" },
-  { id: "ORD-20260004", customerName: "Phạm Minh Đức", total: 63_900_000, status: "delivered", date: "2026-03-24" },
-  { id: "ORD-20260005", customerName: "Hoàng Thu Hà", total: 12_300_000, status: "processing", date: "2026-03-23" },
-  { id: "ORD-20260006", customerName: "Vũ Thanh Long", total: 28_600_000, status: "cancelled", date: "2026-03-23" },
-  { id: "ORD-20260007", customerName: "Đặng Quốc Tuấn", total: 54_100_000, status: "delivered", date: "2026-03-22" },
-];
-
-const LOW_STOCK_DATA = [
-  { productId: "p12", name: "RTX 4090 Founders Edition", sku: "GPU-RTX4090-FE", currentStock: 3, threshold: 10 },
-  { productId: "p23", name: "Intel Core i9-14900KS", sku: "CPU-I9-14900KS", currentStock: 5, threshold: 15 },
-  { productId: "p34", name: "ASUS ROG SWIFT PG27AQDM", sku: "MON-ROGSWIFT-27", currentStock: 2, threshold: 8 },
-  { productId: "p45", name: "Corsair MP700 Pro 2TB", sku: "SSD-MP700P-2TB", currentStock: 7, threshold: 20 },
-  { productId: "p56", name: "NZXT Kraken Z73 360mm", sku: "COOL-NZXT-Z73", currentStock: 4, threshold: 12 },
-];
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
@@ -195,18 +71,21 @@ export default function DashboardPage() {
       </div>
 
       {/* Row 2: Revenue chart + Orders donut */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <RevenueLineChart data={REVENUE_DATA} defaultPeriod="30d" />
         <OrdersByStatusDonut data={ORDERS_BY_STATUS_DATA} />
       </div>
 
       {/* Row 3: Top products + Low stock */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
         <TopProductsBarChart data={TOP_PRODUCTS_DATA} />
         <LowStockAlertList items={LOW_STOCK_DATA} />
       </div>
 
       {/* Row 4: Recent orders (full width) */}
+      <h2 className="text-sm font-semibold text-secondary-500 uppercase tracking-wide mb-3">
+        Đơn hàng gần đây
+      </h2>
       <RecentOrdersTable orders={RECENT_ORDERS_DATA} />
     </AdminPageWrapper>
   );

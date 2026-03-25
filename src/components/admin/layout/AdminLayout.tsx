@@ -19,6 +19,7 @@ import { AdminSidebar, type AdminNavItem } from "@/src/components/admin/AdminSid
 import { AdminHeader } from "@/src/components/admin/layout/AdminHeader";
 import type { AdminUser } from "@/src/components/admin/layout/AdminUserMenu";
 import type { AdminNotification } from "@/src/components/admin/layout/NotificationBell";
+import { ToastProvider } from "@/src/components/ui/Toast";
 
 // ─── Mock data (replace with real auth + SSE) ─────────────────────────────────
 
@@ -69,6 +70,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     label: "Inventory",
     href: "/admin/inventory",
     icon: <ArchiveBoxIcon className="w-5 h-5" />,
+    requiredRoles: ["admin", "warehouse"],
   },
   {
     value: "promotions",
@@ -82,12 +84,14 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     label: "Reports",
     href: "/admin/reports",
     icon: <ChartBarIcon className="w-5 h-5" />,
+    requiredRoles: ["admin"],
   },
   {
     value: "support",
     label: "Support",
     href: "/admin/support",
     icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
+    requiredRoles: ["admin", "cskh"],
   },
   {
     value: "settings",
@@ -171,8 +175,10 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
   return (
-    <SidebarProvider>
-      <AdminLayoutInner>{children}</AdminLayoutInner>
-    </SidebarProvider>
+    <ToastProvider>
+      <SidebarProvider>
+        <AdminLayoutInner>{children}</AdminLayoutInner>
+      </SidebarProvider>
+    </ToastProvider>
   );
 }

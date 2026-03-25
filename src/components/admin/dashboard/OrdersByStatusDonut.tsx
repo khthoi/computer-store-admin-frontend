@@ -103,10 +103,15 @@ export function OrdersByStatusDonut({ data }: OrdersByStatusDonutProps) {
             ))}
           </Pie>
           <Tooltip
-            formatter={(v: number, name: string) => [
-              v.toLocaleString("vi-VN") + " đơn",
-              STATUS_LABELS[name] ?? name,
-            ]}
+            formatter={(value, name) => {
+              const count = typeof value === "number" ? value : 0;
+              const statusKey = typeof name === "string" ? name : String(name ?? "");
+
+              return [
+                count.toLocaleString("vi-VN") + " đơn",
+                STATUS_LABELS[statusKey] ?? statusKey,
+              ];
+            }}
             contentStyle={{
               borderRadius: "8px",
               border: "1px solid #e2e8f0",
