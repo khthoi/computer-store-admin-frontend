@@ -23,7 +23,7 @@ export type { AdminUser, AdminNotification };
 
 /**
  * AdminHeader — sticky top bar with hamburger (mobile), breadcrumb,
- * notification bell, and user menu. Background uses bg-violet-700 per RULE 7.
+ * notification bell, and user menu. Background matches the sidebar (bg-secondary-900).
  */
 export function AdminHeader({
   user,
@@ -35,13 +35,13 @@ export function AdminHeader({
   const { toggleMobile } = useSidebar();
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 bg-violet-700 px-4 text-white shadow-sm">
+    <header className="sticky top-0 z-30 flex h-16 items-center gap-3 bg-secondary-800 border-b border-secondary-700/60 px-4 text-white shadow-sm">
       {/* Mobile hamburger — hidden on lg+ */}
       <button
         type="button"
         aria-label="Open navigation menu"
         onClick={toggleMobile}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-white transition-colors hover:bg-violet-600/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70 lg:hidden"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-secondary-300 transition-colors hover:bg-white/[0.06] hover:text-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 lg:hidden"
       >
         <Bars3Icon className="w-5 h-5" aria-hidden="true" />
       </button>

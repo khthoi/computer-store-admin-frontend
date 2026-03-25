@@ -1,18 +1,23 @@
 "use client";
 
 import {
+  Fragment,
   useCallback,
+  useEffect,
   useId,
   useRef,
   useState,
   type ChangeEvent,
   type ReactNode,
 } from "react";
+import { Checkbox } from "@/src/components/ui/Checkbox";
+import { Select } from "@/src/components/ui/Select";
 import {
   MagnifyingGlassIcon,
   ChevronUpDownIcon,
   ChevronUpIcon,
   ChevronDownIcon,
+  ChevronRightIcon,
   InboxIcon,
   XMarkIcon,
   ArrowPathIcon,
@@ -89,6 +94,39 @@ export interface DataTableProps<T extends Record<string, unknown>> {
   /** CTA rendered beneath empty state message */
   emptyAction?: ReactNode;
 
+  // ── Controlled selection ───────────────────────────────────────────────────
+  /**
+   * Externally controlled selected keys. When provided, the DataTable will
+   * sync its internal selection state whenever this array changes — useful for
+   * resetting selection from a parent (e.g. when switching between product/variant
+   * selection modes). Does NOT fire `onSelectionChange` when syncing.
+   */
+  selectedKeys?: string[];
+
+  // ── Expandable rows ────────────────────────────────────────────────────────
+  /**
+   * If provided, each parent row can expand to reveal sub-rows.
+   * Return `undefined` or an empty array to indicate no sub-rows for a row.
+   * Sub-rows are typed as `Record<string, unknown>` to support heterogeneous
+   * child data (e.g. Product → ProductVariant).
+   *
+   * Omitting this prop keeps the DataTable fully backward-compatible.
+   */
+  getSubRows?: (row: T) => Record<string, unknown>[] | undefined;
+  /**
+   * Custom renderer for each sub-row. Must return a complete `<tr>` element
+   * (with all `<td>` cells) to maintain column alignment.
+   *
+   * When omitted, sub-rows fall back to the same column definitions as
+   * parent rows with a left-indent on the first data cell.
+   */
+  renderSubRow?: (subRow: Record<string, unknown>, parentRow: T) => ReactNode;
+  /**
+   * When `true`, all expandable rows start expanded.
+   * @default false
+   */
+  expandedByDefault?: boolean;
+
   className?: string;
 }
 
@@ -114,9 +152,11 @@ function cellValue<T extends Record<string, unknown>>(
 function SkeletonRow({
   colCount,
   selectable,
+  expandable,
 }: {
   colCount: number;
   selectable: boolean;
+  expandable: boolean;
 }) {
   return (
     <tr aria-hidden="true">
@@ -125,6 +165,7 @@ function SkeletonRow({
           <div className="h-4 w-4 rounded animate-pulse bg-secondary-200" />
         </td>
       )}
+      {expandable && <td className="w-8 px-2 py-3" />}
       {Array.from({ length: colCount }, (_, i) => (
         <td key={i} className="px-4 py-3">
           <div
@@ -144,27 +185,28 @@ function SkeletonRow({
  *
  * Features: sortable columns (server-side), row selection + bulk actions,
  * debounced search, toolbar slot, pagination with page-size selector,
- * loading skeleton, empty state, responsive horizontal scroll.
+ * loading skeleton, empty state, responsive horizontal scroll,
+ * **expandable sub-rows** (opt-in via `getSubRows`).
  *
  * ```tsx
+ * // Basic usage (unchanged from before)
  * <DataTable
  *   data={products}
  *   keyField="id"
  *   columns={[
- *     { key: "name",     header: "Product",  sortable: true },
- *     { key: "price",    header: "Price",    sortable: true, align: "right",
- *       render: (v) => formatVND(v as number) },
- *     { key: "status",   header: "Status",
+ *     { key: "name",   header: "Product", sortable: true },
+ *     { key: "status", header: "Status",
  *       render: (v) => <StatusBadge status={v as AdminStatus} /> },
  *   ]}
- *   selectable
- *   bulkActions={[{ id: "delete", label: "Delete", isDanger: true, onClick: handleBulkDelete }]}
- *   sortKey={sort.key}  sortDir={sort.dir}  onSortChange={setSort}
- *   searchQuery={search}  onSearchChange={setSearch}
  *   page={page}  pageSize={pageSize}  totalRows={total}
  *   onPageChange={setPage}  onPageSizeChange={setPageSize}
- *   isLoading={isLoading}
- *   toolbarActions={<FilterDropdown ... />}
+ * />
+ *
+ * // With expandable sub-rows
+ * <DataTable
+ *   ...
+ *   getSubRows={(row) => row.variants.length ? row.variants : undefined}
+ *   renderSubRow={(sub, parent) => <tr>...</tr>}
  * />
  * ```
  */
@@ -174,6 +216,7 @@ export function DataTable<T extends Record<string, unknown>>({
   keyField,
   selectable = false,
   onSelectionChange,
+  selectedKeys: externalSelectedKeys,
   bulkActions = [],
   sortKey,
   sortDir,
@@ -192,12 +235,64 @@ export function DataTable<T extends Record<string, unknown>>({
   emptyMessage = "No results found.",
   emptyIcon,
   emptyAction,
+  getSubRows,
+  renderSubRow,
+  expandedByDefault = false,
   className = "",
 }: DataTableProps<T>) {
   const searchId = useId();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [localSearch, setLocalSearch] = useState(searchQuery);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  // Keep a synchronous ref so handleSelectRow can read the current set without
+  // the functional-updater form (which caused the "setState during render" error
+  // when onSelectionChange called ProductsTable's setSelectedProductIds inside it).
+  const selectedRef = useRef(selected);
+  selectedRef.current = selected;
+
+  // Sync when parent resets selection (e.g. switching between product/variant mode).
+  // Deliberately does NOT call onSelectionChange — this is an external override.
+  useEffect(() => {
+    if (externalSelectedKeys !== undefined) {
+      setSelected(new Set(externalSelectedKeys));
+    }
+  }, [externalSelectedKeys]);
+
+  // ── Expanded rows state ────────────────────────────────────────────────────
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(() => {
+    if (!expandedByDefault || !getSubRows) return new Set<string>();
+    return new Set(data.map((row) => String(cellValue(row, keyField))));
+  });
+
+  // Clean up expanded state when rows are removed from data
+  useEffect(() => {
+    if (!getSubRows) return;
+    const currentKeys = new Set(data.map((row) => String(cellValue(row, keyField))));
+    setExpandedRows((prev) => {
+      let changed = false;
+      const next = new Set(prev);
+      for (const k of prev) {
+        if (!currentKeys.has(k)) {
+          next.delete(k);
+          changed = true;
+        }
+      }
+      return changed ? next : prev;
+    });
+  }, [data, keyField, getSubRows]);
+
+  const toggleExpanded = useCallback((key: string) => {
+    setExpandedRows((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  }, []);
+
+  // ── Column span calculation ────────────────────────────────────────────────
+  const extraCols = (selectable ? 1 : 0) + (getSubRows ? 1 : 0);
+  const totalColSpan = columns.length + extraCols;
 
   const allKeys = data.map((row) => String(cellValue(row, keyField)));
   const allSelected = allKeys.length > 0 && allKeys.every((k) => selected.has(k));
@@ -217,12 +312,13 @@ export function DataTable<T extends Record<string, unknown>>({
 
   const handleSelectRow = useCallback(
     (key: string, checked: boolean) => {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        checked ? next.add(key) : next.delete(key);
-        onSelectionChange?.(Array.from(next));
-        return next;
-      });
+      // Build next set from the ref (synchronous snapshot) — avoids the functional
+      // updater form, which would call onSelectionChange inside a state setter and
+      // trigger React's "setState during render" warning.
+      const next = new Set(selectedRef.current);
+      checked ? next.add(key) : next.delete(key);
+      setSelected(next);
+      onSelectionChange?.(Array.from(next));
     },
     [onSelectionChange]
   );
@@ -286,7 +382,7 @@ export function DataTable<T extends Record<string, unknown>>({
       {/* ── Toolbar ── */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary-200 px-4 py-3">
         {/* Search */}
-        <div className="relative w-full sm:w-64">
+        <div className="relative w-full sm:w-120">
           <label htmlFor={searchId} className="sr-only">
             {searchPlaceholder}
           </label>
@@ -374,21 +470,23 @@ export function DataTable<T extends Record<string, unknown>>({
           {/* Header */}
           <thead className="bg-secondary-50">
             <tr className="border-b border-secondary-200">
-              {/* Select-all */}
+              {/* Select-all checkbox */}
               {selectable && (
                 <th scope="col" className="w-10 px-4 py-3">
-                  <input
-                    type="checkbox"
-                    aria-label="Select all rows"
-                    checked={allSelected}
-                    ref={(el) => {
-                      if (el) el.indeterminate = someSelected;
-                    }}
-                    onChange={handleSelectAll}
-                    className="h-4 w-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
-                  />
+                  <div className="flex items-center justify-center">
+                    <Checkbox
+                      size="sm"
+                      aria-label="Select all rows"
+                      checked={allSelected}
+                      indeterminate={someSelected}
+                      onChange={handleSelectAll}
+                    />
+                  </div>
                 </th>
               )}
+
+              {/* Expand column header — no label, reserved for chevron toggles */}
+              {getSubRows && <th scope="col" className="w-8 px-2 py-3" aria-label="Expand" />}
 
               {columns.map((col) => (
                 <th
@@ -443,11 +541,12 @@ export function DataTable<T extends Record<string, unknown>>({
                     key={i}
                     colCount={columns.length}
                     selectable={selectable}
+                    expandable={!!getSubRows}
                   />
                 ))}
                 <tr>
                   <td
-                    colSpan={columns.length + (selectable ? 1 : 0)}
+                    colSpan={totalColSpan}
                     className="sr-only"
                     aria-busy="true"
                   >
@@ -458,7 +557,7 @@ export function DataTable<T extends Record<string, unknown>>({
             ) : data.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + (selectable ? 1 : 0)}
+                  colSpan={totalColSpan}
                   className="px-4 py-16 text-center"
                 >
                   <div className="flex flex-col items-center gap-3">
@@ -477,51 +576,125 @@ export function DataTable<T extends Record<string, unknown>>({
                 const key = String(cellValue(row, keyField));
                 const isSelected = selected.has(key);
 
+                // ── Expandable row logic ─────────────────────────────────────
+                const subRows = getSubRows ? getSubRows(row) : undefined;
+                const hasSubRows = !!subRows?.length;
+                const isExpanded = expandedRows.has(key);
+
                 return (
-                  <tr
-                    key={key}
-                    className={[
-                      "transition-colors",
-                      isSelected
-                        ? "bg-primary-50"
-                        : "hover:bg-secondary-50/70",
-                    ].join(" ")}
-                  >
-                    {selectable && (
-                      <td className="w-10 px-4 py-3">
-                        <input
-                          type="checkbox"
-                          aria-label={`Select row ${key}`}
-                          checked={isSelected}
-                          onChange={(e) =>
-                            handleSelectRow(key, e.target.checked)
-                          }
-                          className="h-4 w-4 rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
-                        />
-                      </td>
-                    )}
-
-                    {columns.map((col) => {
-                      const raw = cellValue(row, col.key);
-                      const display = col.render
-                        ? col.render(raw, row)
-                        : raw == null
-                        ? "—"
-                        : String(raw);
-
-                      return (
-                        <td
-                          key={col.key}
-                          className={[
-                            "px-4 py-3 text-secondary-700",
-                            ALIGN[col.align ?? "left"],
-                          ].join(" ")}
-                        >
-                          {display}
+                  <Fragment key={key}>
+                    {/* ── Parent row ── */}
+                    <tr
+                      className={[
+                        "transition-colors",
+                        isSelected
+                          ? "bg-primary-50"
+                          : "hover:bg-secondary-50/70",
+                      ].join(" ")}
+                    >
+                      {/* Select checkbox */}
+                      {selectable && (
+                        <td className="w-10 px-4 py-3">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              size="sm"
+                              aria-label={`Select row ${key}`}
+                              checked={isSelected}
+                              onChange={(e) =>
+                                handleSelectRow(key, e.target.checked)
+                              }
+                            />
+                          </div>
                         </td>
-                      );
-                    })}
-                  </tr>
+                      )}
+
+                      {/* Expand toggle */}
+                      {getSubRows && (
+                        <td className="w-8 px-2 py-3">
+                          {hasSubRows ? (
+                            <button
+                              type="button"
+                              aria-expanded={isExpanded}
+                              aria-label={isExpanded ? "Collapse row" : "Expand row"}
+                              onClick={() => toggleExpanded(key)}
+                              className="flex h-6 w-6 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                            >
+                              <ChevronRightIcon
+                                className={[
+                                  "w-4 h-4 transition-transform duration-150",
+                                  isExpanded ? "rotate-90" : "",
+                                ].join(" ")}
+                                aria-hidden="true"
+                              />
+                            </button>
+                          ) : null}
+                        </td>
+                      )}
+
+                      {/* Data cells */}
+                      {columns.map((col) => {
+                        const raw = cellValue(row, col.key);
+                        const display = col.render
+                          ? col.render(raw, row)
+                          : raw == null
+                          ? "—"
+                          : String(raw);
+
+                        return (
+                          <td
+                            key={col.key}
+                            className={[
+                              "px-4 py-3 text-secondary-700",
+                              ALIGN[col.align ?? "left"],
+                            ].join(" ")}
+                          >
+                            {display}
+                          </td>
+                        );
+                      })}
+                    </tr>
+
+                    {/* ── Sub-rows (only when expanded) ── */}
+                    {hasSubRows &&
+                      isExpanded &&
+                      subRows!.map((subRow, idx) => (
+                        <Fragment key={`${key}-sub-${idx}`}>
+                          {renderSubRow ? (
+                            // Custom renderer returns a complete <tr>
+                            renderSubRow(subRow, row)
+                          ) : (
+                            // Default: same columns with first cell indented
+                            <tr className="bg-secondary-50">
+                              {selectable && <td className="w-10 px-4 py-2" />}
+                              {getSubRows && <td className="w-8 px-2 py-2" />}
+                              {columns.map((col, colIdx) => {
+                                const raw = cellValue(
+                                  subRow as unknown as T,
+                                  col.key
+                                );
+                                const display = col.render
+                                  ? col.render(raw, subRow as unknown as T)
+                                  : raw == null
+                                  ? "—"
+                                  : String(raw);
+                                return (
+                                  <td
+                                    key={col.key}
+                                    className={[
+                                      colIdx === 0 ? "pl-10 pr-4" : "px-4",
+                                      "py-2 text-sm text-secondary-600",
+                                      ALIGN[col.align ?? "left"],
+                                    ].join(" ")}
+                                  >
+                                    {display}
+                                  </td>
+                                );
+                              })}
+                            </tr>
+                          )}
+                        </Fragment>
+                      ))}
+                  </Fragment>
                 );
               })
             )}
@@ -542,17 +715,17 @@ export function DataTable<T extends Record<string, unknown>>({
           {/* Page size */}
           <div className="flex items-center gap-2 text-xs text-secondary-600">
             <span>Rows per page:</span>
-            <select
-              value={pageSize}
-              onChange={(e) => onPageSizeChange(parseInt(e.target.value, 10))}
-              className="rounded border border-secondary-200 bg-white py-1 pl-2 pr-6 text-xs focus:outline-none focus:ring-1 focus:ring-primary-400"
-            >
-              {pageSizeOptions.map((opt) => (
-                <option key={opt} value={opt}>
-                  {opt}
-                </option>
-              ))}
-            </select>
+            <div className="w-20">
+              <Select
+                size="sm"
+                options={pageSizeOptions.map((opt) => ({
+                  value: String(opt),
+                  label: String(opt),
+                }))}
+                value={String(pageSize)}
+                onChange={(v) => onPageSizeChange(parseInt(v as string, 10))}
+              />
+            </div>
           </div>
 
           {/* Page nav */}
@@ -627,5 +800,8 @@ export function DataTable<T extends Record<string, unknown>>({
  * emptyMessage       string                            "No results found." Empty state label
  * emptyIcon          ReactNode                         InboxIcon Empty state icon
  * emptyAction        ReactNode                         —         CTA beneath empty message
+ * getSubRows         (row: T) => Record<string,unknown>[] | undefined  —  Returns sub-rows for a row
+ * renderSubRow       (sub, parent) => ReactNode        —         Custom sub-row renderer (full <tr>)
+ * expandedByDefault  boolean                           false     Start all rows expanded
  * className          string                            ""        Extra classes on root div
  */

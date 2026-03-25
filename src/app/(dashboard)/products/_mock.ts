@@ -1,0 +1,321 @@
+import type { Product } from "@/src/types/product.types";
+
+// ─── Dashboard product mock data ──────────────────────────────────────────────
+// 8 products across varied categories with 2–4 variants each.
+// Pricing in Vietnamese Dong (VND). At least 2 products have stock ≤ 5.
+//
+// Data model notes:
+//   • Products carry no thumbnailUrl — images live on individual variants.
+//   • Each variant has its own updatedAt timestamp and optional thumbnailUrl.
+//   • thumbnailUrl is absent here (real URLs come from the API/storage layer).
+
+export const MOCK_PRODUCTS: Product[] = [
+  // ── 1. GPU ────────────────────────────────────────────────────────────────
+  {
+    id: "prod-001",
+    name: "ASUS ROG Strix GeForce RTX 4090 OC Edition",
+    slug: "asus-rog-strix-rtx-4090-oc",
+    category: "GPU",
+    brand: "ASUS",
+    basePrice: 46_900_000,
+    totalStock: 14,
+    status: "published",
+    hasActiveOrders: true, // cannot be deleted
+    createdAt: "2026-01-10T07:00:00Z",
+    updatedAt: "2026-03-18T09:30:00Z",
+    variants: [
+      {
+        id: "var-001-a",
+        sku: "ROG-RTX4090-OC-24G",
+        name: "24GB GDDR6X — Standard",
+        price: 46_900_000,
+        stock: 9,
+        status: "active",
+        updatedAt: "2026-03-18T09:30:00Z",
+      },
+      {
+        id: "var-001-b",
+        sku: "ROG-RTX4090-OC-24G-WB",
+        name: "24GB GDDR6X — White Edition",
+        price: 48_500_000,
+        stock: 5,
+        status: "active",
+        updatedAt: "2026-03-15T16:00:00Z",
+      },
+    ],
+  },
+
+  // ── 2. CPU ────────────────────────────────────────────────────────────────
+  {
+    id: "prod-002",
+    name: "Intel Core i9-14900K Processor",
+    slug: "intel-core-i9-14900k",
+    category: "CPU",
+    brand: "Intel",
+    basePrice: 14_900_000,
+    totalStock: 38,
+    status: "published",
+    createdAt: "2026-01-12T08:00:00Z",
+    updatedAt: "2026-03-20T11:00:00Z",
+    variants: [
+      {
+        id: "var-002-a",
+        sku: "INTEL-I9-14900K-BOX",
+        name: "Box — with heatspreader",
+        price: 14_900_000,
+        stock: 22,
+        status: "active",
+        updatedAt: "2026-03-20T11:00:00Z",
+      },
+      {
+        id: "var-002-b",
+        sku: "INTEL-I9-14900K-TRAY",
+        name: "Tray — OEM, no box",
+        price: 14_200_000,
+        stock: 16,
+        status: "active",
+        updatedAt: "2026-03-18T08:30:00Z",
+      },
+      {
+        id: "var-002-c",
+        sku: "INTEL-I9-14900KS-BOX",
+        name: "i9-14900KS Special Edition",
+        price: 17_500_000,
+        stock: 0,
+        status: "inactive",
+        updatedAt: "2026-02-10T10:00:00Z",
+      },
+    ],
+  },
+
+  // ── 3. SSD ────────────────────────────────────────────────────────────────
+  {
+    id: "prod-003",
+    name: "Samsung 990 Pro NVMe M.2 SSD",
+    slug: "samsung-990-pro-nvme-m2",
+    category: "SSD",
+    brand: "Samsung",
+    basePrice: 2_190_000,
+    totalStock: 82,
+    status: "published",
+    createdAt: "2026-01-15T06:00:00Z",
+    updatedAt: "2026-03-22T10:00:00Z",
+    variants: [
+      {
+        id: "var-003-a",
+        sku: "SAM-990PRO-1TB",
+        name: "1TB",
+        price: 2_190_000,
+        stock: 45,
+        status: "active",
+        updatedAt: "2026-03-22T10:00:00Z",
+      },
+      {
+        id: "var-003-b",
+        sku: "SAM-990PRO-2TB",
+        name: "2TB",
+        price: 3_790_000,
+        stock: 37,
+        status: "active",
+        updatedAt: "2026-03-20T09:15:00Z",
+      },
+    ],
+  },
+
+  // ── 4. RAM ────────────────────────────────────────────────────────────────
+  {
+    id: "prod-004",
+    name: "G.Skill Trident Z5 RGB DDR5 RAM",
+    slug: "gskill-trident-z5-rgb-ddr5",
+    category: "RAM",
+    brand: "G.Skill",
+    basePrice: 2_490_000,
+    totalStock: 67,
+    status: "published",
+    createdAt: "2026-01-20T09:00:00Z",
+    updatedAt: "2026-03-24T14:00:00Z",
+    variants: [
+      {
+        id: "var-004-a",
+        sku: "GS-TZ5RGB-16G-6400",
+        name: "16GB (2×8GB) DDR5-6400",
+        price: 2_490_000,
+        stock: 28,
+        status: "active",
+        updatedAt: "2026-03-24T14:00:00Z",
+      },
+      {
+        id: "var-004-b",
+        sku: "GS-TZ5RGB-32G-6400",
+        name: "32GB (2×16GB) DDR5-6400",
+        price: 4_290_000,
+        stock: 21,
+        status: "active",
+        updatedAt: "2026-03-24T14:00:00Z",
+      },
+      {
+        id: "var-004-c",
+        sku: "GS-TZ5RGB-64G-6400",
+        name: "64GB (2×32GB) DDR5-6400",
+        price: 8_190_000,
+        stock: 12,
+        status: "active",
+        updatedAt: "2026-03-22T11:30:00Z",
+      },
+      {
+        id: "var-004-d",
+        sku: "GS-TZ5RGB-32G-7200",
+        name: "32GB (2×16GB) DDR5-7200",
+        price: 5_490_000,
+        stock: 6,
+        status: "active",
+        updatedAt: "2026-03-21T08:00:00Z",
+      },
+    ],
+  },
+
+  // ── 5. Monitor ────────────────────────────────────────────────────────────
+  {
+    id: "prod-005",
+    name: "ASUS ROG Swift Pro PG248QP Gaming Monitor",
+    slug: "asus-rog-swift-pro-pg248qp",
+    category: "Monitor",
+    brand: "ASUS",
+    basePrice: 28_900_000,
+    totalStock: 7,
+    status: "draft",
+    createdAt: "2026-02-01T07:00:00Z",
+    updatedAt: "2026-03-25T08:00:00Z",
+    variants: [
+      {
+        id: "var-005-a",
+        sku: "ROG-PG248QP-24",
+        name: '24" 540Hz — Black',
+        price: 28_900_000,
+        stock: 4,
+        status: "active",
+        updatedAt: "2026-03-25T08:00:00Z",
+      },
+      {
+        id: "var-005-b",
+        sku: "ROG-PG248QP-24-WHT",
+        name: '24" 540Hz — White',
+        price: 29_500_000,
+        stock: 3,
+        status: "active",
+        updatedAt: "2026-03-23T12:00:00Z",
+      },
+    ],
+  },
+
+  // ── 6. Cooling ────────────────────────────────────────────────────────────
+  {
+    id: "prod-006",
+    name: "Noctua NH-D15 G2 CPU Air Cooler",
+    slug: "noctua-nh-d15-g2",
+    category: "Cooling",
+    brand: "Noctua",
+    basePrice: 2_490_000,
+    totalStock: 19,
+    status: "published",
+    createdAt: "2026-02-05T10:00:00Z",
+    updatedAt: "2026-03-23T12:00:00Z",
+    variants: [
+      {
+        id: "var-006-a",
+        sku: "NOCTUA-NHD15G2-STD",
+        name: "Standard — LGA1700 / AM5",
+        price: 2_490_000,
+        stock: 16,
+        status: "active",
+        updatedAt: "2026-03-23T12:00:00Z",
+      },
+      {
+        id: "var-006-b",
+        sku: "NOCTUA-NHD15G2-HDT",
+        name: "Heatpipe Direct Touch Edition",
+        price: 2_890_000,
+        stock: 3,   // ≤ 5 — low stock
+        status: "active",
+        updatedAt: "2026-03-20T15:45:00Z",
+      },
+    ],
+  },
+
+  // ── 7. Motherboard ────────────────────────────────────────────────────────
+  {
+    id: "prod-007",
+    name: "ASUS ROG Maximus Z790 Apex Motherboard",
+    slug: "asus-rog-maximus-z790-apex",
+    category: "Motherboard",
+    brand: "ASUS",
+    basePrice: 22_500_000,
+    totalStock: 8,
+    status: "archived",
+    createdAt: "2025-11-10T09:00:00Z",
+    updatedAt: "2026-02-14T16:00:00Z",
+    variants: [
+      {
+        id: "var-007-a",
+        sku: "ROG-Z790-APEX-DDR5",
+        name: "DDR5 Edition",
+        price: 22_500_000,
+        stock: 4,
+        status: "active",
+        updatedAt: "2026-02-14T16:00:00Z",
+      },
+      {
+        id: "var-007-b",
+        sku: "ROG-Z790-APEX-DDR4",
+        name: "DDR4 Edition",
+        price: 21_200_000,
+        stock: 2,   // ≤ 5 — low stock
+        status: "inactive",
+        updatedAt: "2026-01-20T10:00:00Z",
+      },
+      {
+        id: "var-007-c",
+        sku: "ROG-Z790-APEX-EVO",
+        name: "Apex Extreme EVO",
+        price: 31_000_000,
+        stock: 2,   // ≤ 5 — low stock
+        status: "inactive",
+        updatedAt: "2026-01-20T10:00:00Z",
+      },
+    ],
+  },
+
+  // ── 8. Case ───────────────────────────────────────────────────────────────
+  {
+    id: "prod-008",
+    name: "Lian Li O11 Dynamic EVO XL Mid-Tower",
+    slug: "lian-li-o11-dynamic-evo-xl",
+    category: "Case",
+    brand: "Lian Li",
+    basePrice: 4_290_000,
+    totalStock: 31,
+    status: "published",
+    createdAt: "2026-01-25T08:00:00Z",
+    updatedAt: "2026-03-21T13:00:00Z",
+    variants: [
+      {
+        id: "var-008-a",
+        sku: "LIANLI-O11EVOXL-BLK",
+        name: "Black",
+        price: 4_290_000,
+        stock: 18,
+        status: "active",
+        updatedAt: "2026-03-21T13:00:00Z",
+      },
+      {
+        id: "var-008-b",
+        sku: "LIANLI-O11EVOXL-WHT",
+        name: "White",
+        price: 4_390_000,
+        stock: 13,
+        status: "active",
+        updatedAt: "2026-03-19T10:30:00Z",
+      },
+    ],
+  },
+];

@@ -12,6 +12,20 @@ import {
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
   Cog6ToothIcon,
+  // Sub-item icons
+  PlusIcon,
+  ListBulletIcon,
+  ArrowPathIcon,
+  UserGroupIcon,
+  BuildingStorefrontIcon,
+  ArrowUpTrayIcon,
+  AdjustmentsHorizontalIcon,
+  GlobeAltIcon,
+  CreditCardIcon,
+  TruckIcon,
+  BellIcon,
+  ReceiptPercentIcon,
+  PuzzlePieceIcon,
 } from "@heroicons/react/24/outline";
 
 import { SidebarProvider, useSidebar } from "@/src/components/admin/layout/SidebarContext";
@@ -32,72 +46,228 @@ const MOCK_USER: AdminUser = {
 const MOCK_NOTIFICATIONS: AdminNotification[] = [];
 
 // ─── Navigation items ─────────────────────────────────────────────────────────
+//
+// Structure rules:
+//   - Top-level items with children render as collapsible groups (no href needed,
+//     or add href for a "section overview" link — but NOT both).
+//   - Leaf items (no children) must have href.
+//   - requiredRoles restricts visibility to listed roles; omit to show to all.
+//   - dividerAfter draws a separator below the item/group.
+//   - Active state is derived automatically from usePathname() — never hardcode.
 
 const ADMIN_NAV_ITEMS: AdminNavItem[] = [
+  // ── Dashboard ───────────────────────────────────────────────────────────────
   {
     value: "dashboard",
     label: "Dashboard",
-    href: "/admin",
+    href: "/",
     icon: <HomeIcon className="w-5 h-5" />,
     dividerAfter: true,
   },
+
+  // ── Products ─────────────────────────────────────────────────────────────────
   {
     value: "products",
     label: "Products",
-    href: "/admin/products",
     icon: <CubeIcon className="w-5 h-5" />,
+    children: [
+      {
+        value: "products-list",
+        label: "All Products",
+        href: "/products",
+        icon: <ListBulletIcon className="w-4 h-4" />,
+      },
+      {
+        value: "products-new",
+        label: "Add Product",
+        href: "/products/new",
+        icon: <PlusIcon className="w-4 h-4" />,
+      },
+    ],
   },
+
+  // ── Categories & Brands ──────────────────────────────────────────────────────
   {
     value: "categories",
     label: "Categories & Brands",
-    href: "/admin/categories",
     icon: <TagIcon className="w-5 h-5" />,
+    children: [
+      {
+        value: "categories-list",
+        label: "Categories",
+        href: "/categories",
+        icon: <ListBulletIcon className="w-4 h-4" />,
+      },
+      {
+        value: "brands-list",
+        label: "Brands",
+        href: "/brands",
+        icon: <BuildingStorefrontIcon className="w-4 h-4" />,
+      },
+    ],
   },
+
+  // ── Orders ───────────────────────────────────────────────────────────────────
   {
     value: "orders",
     label: "Orders",
-    href: "/admin/orders",
     icon: <ShoppingBagIcon className="w-5 h-5" />,
+    children: [
+      {
+        value: "orders-list",
+        label: "All Orders",
+        href: "/orders",
+        icon: <ListBulletIcon className="w-4 h-4" />,
+      },
+      {
+        value: "orders-returns",
+        label: "Returns",
+        href: "/orders/returns",
+        icon: <ArrowPathIcon className="w-4 h-4" />,
+      },
+    ],
   },
+
+  // ── Users ────────────────────────────────────────────────────────────────────
   {
     value: "users",
     label: "Users",
-    href: "/admin/users",
     icon: <UsersIcon className="w-5 h-5" />,
+    children: [
+      {
+        value: "customers",
+        label: "Customers",
+        href: "/customers",
+        icon: <UserGroupIcon className="w-4 h-4" />,
+      },
+      {
+        value: "staff",
+        label: "Staff",
+        href: "/staff",
+        icon: <UsersIcon className="w-4 h-4" />,
+        requiredRoles: ["admin"],
+      },
+    ],
   },
+
+  // ── Inventory ────────────────────────────────────────────────────────────────
   {
     value: "inventory",
     label: "Inventory",
-    href: "/admin/inventory",
     icon: <ArchiveBoxIcon className="w-5 h-5" />,
     requiredRoles: ["admin", "warehouse"],
+    children: [
+      {
+        value: "inventory-overview",
+        label: "Stock Overview",
+        href: "/inventory",
+        icon: <ListBulletIcon className="w-4 h-4" />,
+      },
+      {
+        value: "inventory-import",
+        label: "Import Stock",
+        href: "/inventory/import",
+        icon: <ArrowUpTrayIcon className="w-4 h-4" />,
+      },
+      {
+        value: "inventory-rules",
+        label: "Low Stock Rules",
+        href: "/inventory/rules",
+        icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
+      },
+    ],
   },
+
+  // ── Promotions ───────────────────────────────────────────────────────────────
   {
     value: "promotions",
     label: "Promotions",
-    href: "/admin/promotions",
     icon: <TicketIcon className="w-5 h-5" />,
     dividerAfter: true,
+    children: [
+      {
+        value: "promotions-list",
+        label: "Promotions",
+        href: "/promotions",
+        icon: <ListBulletIcon className="w-4 h-4" />,
+      },
+      {
+        value: "coupons",
+        label: "Coupons",
+        href: "/promotions/coupons",
+        icon: <ReceiptPercentIcon className="w-4 h-4" />,
+      },
+    ],
   },
+
+  // ── Reports ──────────────────────────────────────────────────────────────────
   {
     value: "reports",
     label: "Reports",
-    href: "/admin/reports",
+    href: "/reports",
     icon: <ChartBarIcon className="w-5 h-5" />,
     requiredRoles: ["admin"],
   },
+
+  // ── Support ──────────────────────────────────────────────────────────────────
   {
     value: "support",
     label: "Support",
-    href: "/admin/support",
+    href: "/support",
     icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
     requiredRoles: ["admin", "cskh"],
   },
+
+  // ── Settings ─────────────────────────────────────────────────────────────────
   {
     value: "settings",
     label: "Settings",
-    href: "/admin/settings",
     icon: <Cog6ToothIcon className="w-5 h-5" />,
+    requiredRoles: ["admin"],
+    children: [
+      {
+        value: "settings-general",
+        label: "General",
+        href: "/settings/general",
+        icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
+      },
+      {
+        value: "settings-payments",
+        label: "Payments",
+        href: "/settings/payments",
+        icon: <CreditCardIcon className="w-4 h-4" />,
+      },
+      {
+        value: "settings-shipping",
+        label: "Shipping",
+        href: "/settings/shipping",
+        icon: <TruckIcon className="w-4 h-4" />,
+      },
+      {
+        value: "settings-notifications",
+        label: "Notifications",
+        href: "/settings/notifications",
+        icon: <BellIcon className="w-4 h-4" />,
+      },
+      {
+        value: "settings-tax",
+        label: "Tax",
+        href: "/settings/tax",
+        icon: <ReceiptPercentIcon className="w-4 h-4" />,
+      },
+      {
+        value: "settings-integrations",
+        label: "Integrations",
+        href: "/settings/integrations",
+        icon: <PuzzlePieceIcon className="w-4 h-4" />,
+      },
+      {
+        value: "settings-staff",
+        label: "Staff & Roles",
+        href: "/staff",
+        icon: <GlobeAltIcon className="w-4 h-4" />,
+      },
+    ],
   },
 ];
 
@@ -169,9 +339,15 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
 
 /**
  * AdminLayout — root layout wrapper for the admin dashboard.
- * Wraps children in SidebarProvider for cross-component sidebar state.
  *
- * Used by `src/app/(dashboard)/layout.tsx`.
+ * Provides:
+ *   - ToastProvider  — useToast() available to all admin components
+ *   - SidebarProvider — collapse state + localStorage persistence
+ *   - AdminSidebar   — left navigation
+ *   - AdminHeader    — sticky top bar
+ *   - <main>         — scrollable content area
+ *
+ * Mounted in `src/app/layout.tsx` so the shell is shared by every admin route.
  */
 export function AdminLayout({ children }: { children: ReactNode }) {
   return (
