@@ -97,3 +97,127 @@ export async function bulkUpdateVariantStatus(
   await new Promise<void>((resolve) => setTimeout(resolve, 400));
   void variantIds; void status;
 }
+
+/**
+ * Fetch a single product by ID.
+ * Mock implementation — replace with real GET /admin/products/:id
+ */
+export async function getProductById(id: string): Promise<Product | null> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  return MOCK_PRODUCTS.find((p) => p.id === id) ?? null;
+}
+
+// ─── Payloads ──────────────────────────────────────────────────────────────────
+
+export interface VariantPayload {
+  /** Present only when updating an existing variant */
+  id?: string;
+  name: string;
+  sku: string;
+  price: number;
+  stock: number;
+  status: ProductVariant["status"];
+}
+
+export interface CreateProductPayload {
+  name: string;
+  slug: string;
+  category: string;
+  brand: string;
+  status: Product["status"];
+  variants: VariantPayload[];
+}
+
+export interface UpdateProductPayload {
+  name?: string;
+  slug?: string;
+  category?: string;
+  brand?: string;
+  basePrice?: number;
+  status?: Product["status"];
+  variants?: VariantPayload[];
+}
+
+/**
+ * Create a new product.
+ * Mock implementation — replace with real POST /admin/products
+ */
+export async function createProduct(data: CreateProductPayload): Promise<Product> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 600));
+  const now = new Date().toISOString();
+  const variants: ProductVariant[] = data.variants.map((v, i) => ({
+    id: `var-new-${Date.now()}-${i}`,
+    name: v.name,
+    sku: v.sku,
+    price: v.price,
+    stock: v.stock,
+    status: v.status,
+    updatedAt: now,
+  }));
+  return {
+    id: `prod-${Date.now()}`,
+    name: data.name,
+    slug: data.slug,
+    category: data.category,
+    brand: data.brand,
+    totalStock: variants.reduce((s, v) => s + v.stock, 0),
+    status: data.status,
+    variants,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Update an existing product and its variants.
+ * Mock implementation — replace with real PUT /admin/products/:id
+ */
+export async function updateProduct(
+  id: string,
+  data: UpdateProductPayload
+): Promise<Product> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 600));
+  const existing = MOCK_PRODUCTS.find((p) => p.id === id);
+  if (!existing) throw new Error(`Product ${id} not found`);
+  const now = new Date().toISOString();
+  const variants: ProductVariant[] = (data.variants ?? existing.variants).map((v, i) => {
+    const existingVariant = existing.variants.find((ev) => ev.id === v.id);
+    return {
+      id: v.id ?? `var-new-${Date.now()}-${i}`,
+      name: v.name,
+      sku: v.sku,
+      price: v.price,
+      stock: v.stock,
+      status: v.status,
+      thumbnailUrl: existingVariant?.thumbnailUrl,
+      updatedAt: now,
+    };
+  });
+  return {
+    ...existing,
+    name: data.name ?? existing.name,
+    slug: data.slug ?? existing.slug,
+    category: data.category ?? existing.category,
+    brand: data.brand ?? existing.brand,
+    status: data.status ?? existing.status,
+    variants,
+    totalStock: variants.reduce((s, v) => s + v.stock, 0),
+    updatedAt: now,
+  };
+}
+
+/**
+ * Returns the distinct product categories from the current dataset.
+ * Replace with GET /admin/products/categories when backend is ready.
+ */
+export function getProductCategories(): string[] {
+  return [...new Set(MOCK_PRODUCTS.map((p) => p.category))].sort();
+}
+
+/**
+ * Returns the distinct product brands from the current dataset.
+ * Replace with GET /admin/products/brands when backend is ready.
+ */
+export function getProductBrands(): string[] {
+  return [...new Set(MOCK_PRODUCTS.map((p) => p.brand))].sort();
+}

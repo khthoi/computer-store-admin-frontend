@@ -13,6 +13,7 @@ import {
 import { Checkbox } from "@/src/components/ui/Checkbox";
 import { Select } from "@/src/components/ui/Select";
 import { Tooltip } from "@/src/components/ui/Tooltip";
+import Link from "next/link";
 import {
   MagnifyingGlassIcon,
   ChevronUpDownIcon,
@@ -22,6 +23,9 @@ import {
   InboxIcon,
   XMarkIcon,
   ArrowPathIcon,
+  EyeIcon,
+  PencilSquareIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -824,6 +828,80 @@ export function DataTable<T extends Record<string, unknown>>({
         </div>
       </div>}
     </div>
+  );
+}
+
+// ─── Row action components ────────────────────────────────────────────────────
+
+const ROW_ACTION_BASE =
+  "flex h-7 w-7 items-center justify-center rounded text-secondary-400 " +
+  "transition-colors hover:bg-secondary-100 hover:text-secondary-700 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500";
+
+const ROW_ACTION_DANGER =
+  "flex h-7 w-7 items-center justify-center rounded text-secondary-400 " +
+  "transition-colors hover:bg-error-50 hover:text-error-600 " +
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500";
+
+/** Flex container that groups row action buttons with consistent spacing. */
+export function RowActions({ children }: { children: ReactNode }) {
+  return <div className="flex items-center justify-end gap-1">{children}</div>;
+}
+
+/** View-detail link button (renders as `<a>`). */
+export function RowActionView({
+  href,
+  ariaLabel = "Xem chi tiết",
+}: {
+  href: string;
+  ariaLabel?: string;
+}) {
+  return (
+    <Link href={href} aria-label={ariaLabel} className={ROW_ACTION_BASE}>
+      <EyeIcon className="h-4 w-4" aria-hidden="true" />
+    </Link>
+  );
+}
+
+/**
+ * Edit action — renders as `<Link>` when `href` is provided, otherwise `<button>`.
+ * Pass exactly one of `href` or `onClick`.
+ */
+export function RowActionEdit({
+  href,
+  onClick,
+  ariaLabel = "Chỉnh sửa",
+}: {
+  href?: string;
+  onClick?: () => void;
+  ariaLabel?: string;
+}) {
+  if (href) {
+    return (
+      <Link href={href} aria-label={ariaLabel} className={ROW_ACTION_BASE}>
+        <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+      </Link>
+    );
+  }
+  return (
+    <button type="button" aria-label={ariaLabel} onClick={onClick} className={ROW_ACTION_BASE}>
+      <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+/** Delete action button (danger hover style). */
+export function RowActionDelete({
+  onClick,
+  ariaLabel = "Xóa",
+}: {
+  onClick: () => void;
+  ariaLabel?: string;
+}) {
+  return (
+    <button type="button" aria-label={ariaLabel} onClick={onClick} className={ROW_ACTION_DANGER}>
+      <TrashIcon className="h-4 w-4" aria-hidden="true" />
+    </button>
   );
 }
 

@@ -13,6 +13,7 @@ import {
   ChevronDownIcon,
   XMarkIcon,
   CheckIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -80,6 +81,19 @@ export interface SelectProps {
   required?: boolean;
   id?: string;
   className?: string;
+  /**
+   * Allow the user to create a new option by typing a value with no match.
+   * Requires `searchable` to be enabled.
+   * When a new option is created it is immediately selectable and visually
+   * distinguished with a "Mới" badge in the list.
+   * @default false
+   */
+  creatable?: boolean;
+  /**
+   * Called when the user confirms creation of a new option.
+   * Use this to persist the new value to the server and update `options`.
+   */
+  onCreateOption?: (label: string) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -125,6 +139,10 @@ interface OptionItemProps {
   isActive: boolean;
   multiple: boolean;
   onSelect: (o: SelectOption) => void;
+  /** True when this option was created locally (shows a "Mới" badge + remove button) */
+  isNew?: boolean;
+  /** Called when the user clicks × on a locally-created option row */
+  onRemoveCreated?: () => void;
 }
 
 function OptionItem({
@@ -133,6 +151,8 @@ function OptionItem({
   isActive,
   multiple,
   onSelect,
+  isNew = false,
+  onRemoveCreated,
 }: OptionItemProps) {
   return (
     <li
@@ -168,6 +188,26 @@ function OptionItem({
         </span>
       )}
       <span className="flex-1 truncate">{option.label}</span>
+
+      {/* "Mới" badge + optional × for locally-created options */}
+      {isNew && (
+        <span className="shrink-0 inline-flex items-center gap-1">
+          <span className="rounded-full bg-success-100 px-1.5 py-0.5 text-[10px] font-semibold leading-none text-success-700 border border-success-200">
+            Mới
+          </span>
+          {onRemoveCreated && (
+            <button
+              type="button"
+              aria-label={`Xóa lựa chọn "${option.label}"`}
+              onClick={(e) => { e.stopPropagation(); onRemoveCreated(); }}
+              className="flex h-4 w-4 items-center justify-center rounded text-secondary-400 hover:bg-error-50 hover:text-error-600 transition-colors"
+            >
+              <XMarkIcon className="size-3" aria-hidden="true" />
+            </button>
+          )}
+        </span>
+      )}
+
       {/* Single select: trailing checkmark */}
       {!multiple && isSelected && (
         <CheckIcon className="size-4 shrink-0 text-primary-600" aria-hidden="true" />
@@ -176,10 +216,42 @@ function OptionItem({
   );
 }
 
+// ─── CreateOptionItem sub-component ───────────────────────────────────────────
+
+interface CreateOptionItemProps {
+  label: string;
+  isActive: boolean;
+  onCreate: () => void;
+}
+
+function CreateOptionItem({ label, isActive, onCreate }: CreateOptionItemProps) {
+  return (
+    <li
+      role="option"
+      aria-selected={false}
+      onClick={onCreate}
+      className={[
+        "flex cursor-pointer select-none items-center gap-2 px-3 py-2 text-sm outline-none transition-colors",
+        "border-t border-secondary-100",
+        isActive
+          ? "bg-primary-50 text-primary-700"
+          : "text-primary-600 hover:bg-primary-50",
+      ].join(" ")}
+    >
+      <PlusIcon className="size-4 shrink-0 opacity-70" aria-hidden="true" />
+      <span>
+        Tạo{" "}
+        <span className="font-semibold">&ldquo;{label}&rdquo;</span>
+      </span>
+    </li>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
- * Select — custom dropdown with search, multi-select, and option groups.
+ * Select — custom dropdown with search, multi-select, option groups,
+ * and optional inline creation of new options.
  *
  * ```tsx
  * // Single select
@@ -199,6 +271,17 @@ function OptionItem({
  *   clearable
  *   value={selected}
  *   onChange={(v) => setSelected(v as string[])}
+ * />
+ *
+ * // Creatable single select — user can type a new value and create it inline
+ * <Select
+ *   label="Brand"
+ *   options={brands}
+ *   searchable
+ *   creatable
+ *   value={brand}
+ *   onChange={(v) => setBrand(v as string)}
+ *   onCreateOption={(label) => handleCreateBrand(label)}
  * />
  * ```
  */
@@ -220,6 +303,8 @@ export function Select({
   required,
   id: idProp,
   className = "",
+  creatable = false,
+  onCreateOption,
 }: SelectProps) {
   const generatedId = useId();
   const id = idProp ?? generatedId;
@@ -239,26 +324,32 @@ export function Select({
     flipUp: boolean;
   } | null>(null);
 
+  // Locally-created options — stored until the parent updates `options` with the real entry
+  const [createdOptions, setCreatedOptions] = useState<SelectOption[]>([]);
+  // Fast lookup: which values were created locally
+  const createdValueSet = new Set(createdOptions.map((o) => o.value));
+
   const containerRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Merge prop options with locally-created options for display and lookup
+  const allFlat = [...flatOptions(options), ...createdOptions];
 
   // Normalise value to array for uniform internal handling
   const selectedValues: string[] = multiple
     ? Array.isArray(value) ? value : []
     : value !== undefined && value !== "" ? [value as string] : [];
 
-  const flat = flatOptions(options);
-
   const filtered =
     searchable && query
-      ? flat.filter((o) =>
+      ? allFlat.filter((o) =>
           o.label.toLowerCase().includes(query.toLowerCase())
         )
-      : flat;
+      : allFlat;
 
-  // Rebuild grouped display list from filtered flat
+  // Rebuild grouped display list from filtered flat (created options have no group)
   const displayOptions: SelectOptions = isGrouped(options)
     ? (options as SelectOptionGroup[])
         .map((g) => ({
@@ -270,8 +361,25 @@ export function Select({
         .filter((g) => g.options.length > 0)
     : filtered;
 
+  // For grouped mode: created options aren't in any group — render them separately
+  const filteredCreated: SelectOption[] = isGrouped(options)
+    ? createdOptions.filter(
+        (o) =>
+          !searchable ||
+          !query ||
+          o.label.toLowerCase().includes(query.toLowerCase())
+      )
+    : [];
+
+  // "Create" row: shown when creatable + searchable + typed something + no exact match
+  const trimmedQuery = query.trim();
+  const exactMatch =
+    trimmedQuery !== "" &&
+    allFlat.some((o) => o.label.toLowerCase() === trimmedQuery.toLowerCase());
+  const showCreateRow = !!(creatable && searchable && trimmedQuery && !exactMatch);
+
   const triggerLabel = !multiple
-    ? flat.find((o) => o.value === selectedValues[0])?.label ?? placeholder
+    ? allFlat.find((o) => o.value === selectedValues[0])?.label ?? placeholder
     : null;
 
   // ── Open / close ──────────────────────────────────────────────────────────
@@ -363,6 +471,31 @@ export function Select({
     onChange?.(multiple ? [] : "");
   };
 
+  // ── Create new option ──────────────────────────────────────────────────────
+
+  function handleCreate() {
+    if (!trimmedQuery) return;
+    const newOpt: SelectOption = { value: trimmedQuery, label: trimmedQuery };
+    setCreatedOptions((prev) => [...prev, newOpt]);
+    onCreateOption?.(trimmedQuery);
+    selectOption(newOpt);
+    // For multiple: selectOption stays open; clear the search manually
+    setQuery("");
+    setActiveIndex(-1);
+  }
+
+  // ── Remove a locally-created option (deselects + purges from createdOptions) ──
+
+  const handleRemoveCreated = useCallback(
+    (value: string) => {
+      setCreatedOptions((prev) => prev.filter((o) => o.value !== value));
+      if (selectedValues.includes(value)) {
+        onChange?.(multiple ? selectedValues.filter((v) => v !== value) : "");
+      }
+    },
+    [selectedValues, multiple, onChange]
+  );
+
   // ── Keyboard navigation ───────────────────────────────────────────────────
 
   const handleTriggerKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
@@ -377,16 +510,22 @@ export function Select({
       closeDropdown();
       return;
     }
+    // The navigable list length includes the create row (if shown)
+    const listLength = filtered.length + (showCreateRow ? 1 : 0);
     if (e.key === "ArrowDown") {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, filtered.length - 1));
+      setActiveIndex((i) => Math.min(i + 1, listLength - 1));
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
     } else if (e.key === "Enter" && activeIndex >= 0) {
       e.preventDefault();
-      const opt = filtered[activeIndex];
-      if (opt) selectOption(opt);
+      if (showCreateRow && activeIndex === filtered.length) {
+        handleCreate();
+      } else {
+        const opt = filtered[activeIndex];
+        if (opt) selectOption(opt);
+      }
     }
   };
 
@@ -438,7 +577,7 @@ export function Select({
           <span className="flex min-w-0 flex-1 flex-wrap gap-1">
             {showSelectedInTrigger && multiple && selectedValues.length > 0 ? (
               selectedValues.map((v) => {
-                const opt = flat.find((o) => o.value === v);
+                const opt = allFlat.find((o) => o.value === v);
                 if (!opt) return null;
 
                 const removeValue = () => {
@@ -448,7 +587,12 @@ export function Select({
                 return (
                   <span
                     key={v}
-                    className="inline-flex items-center gap-1 rounded-sm bg-primary-100 px-1.5 py-0.5 text-xs font-medium text-primary-700"
+                    className={[
+                      "inline-flex items-center gap-1 rounded-sm px-1.5 py-0.5 text-xs font-medium",
+                      createdValueSet.has(v)
+                        ? "bg-success-100 text-success-700"
+                        : "bg-primary-100 text-primary-700",
+                    ].join(" ")}
                   >
                     {opt.label}
                     <span
@@ -466,7 +610,7 @@ export function Select({
                           removeValue();
                         }
                       }}
-                      className="rounded hover:text-primary-900 focus:outline-none"
+                      className="rounded hover:opacity-70 focus:outline-none"
                     >
                       <XMarkIcon className="size-3" aria-hidden="true" />
                     </span>
@@ -481,9 +625,6 @@ export function Select({
                     : ""
                 }
               >
-                {/* When showSelectedInTrigger=false: always show placeholder.
-                    When multiple + nothing selected: placeholder.
-                    When single: show selected label or placeholder. */}
                 {!showSelectedInTrigger
                   ? placeholder
                   : multiple
@@ -555,48 +696,84 @@ export function Select({
                       setActiveIndex(-1);
                     }}
                     onKeyDown={(e) => e.stopPropagation()}
-                    placeholder="Search…"
+                    placeholder={creatable ? "Tìm hoặc tạo mới…" : "Search…"}
                     className="w-full rounded border border-secondary-200 bg-secondary-50 px-2 py-1.5 text-sm placeholder:text-secondary-400 focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-500/15"
                   />
                 </div>
               )}
 
               <ul role="presentation" className="max-h-60 overflow-auto">
-                {filtered.length === 0 ? (
+                {/* Empty state — only shown when no options AND no create row */}
+                {filtered.length === 0 && filteredCreated.length === 0 && !showCreateRow && (
                   <li className="px-3 py-2 text-sm text-secondary-400">
-                    No results found
+                    Không tìm thấy kết quả
                   </li>
-                ) : isGrouped(displayOptions) ? (
-                  (displayOptions as SelectOptionGroup[]).map((group) => (
-                    <li key={group.label} role="presentation">
-                      <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-secondary-400">
-                        {group.label}
-                      </p>
-                      <ul>
-                        {group.options.map((opt) => (
-                          <OptionItem
-                            key={opt.value}
-                            option={opt}
-                            isSelected={selectedValues.includes(opt.value)}
-                            isActive={activeIndex === filtered.indexOf(opt)}
-                            multiple={multiple}
-                            onSelect={selectOption}
-                          />
-                        ))}
-                      </ul>
-                    </li>
-                  ))
-                ) : (
-                  (displayOptions as SelectOption[]).map((opt) => (
-                    <OptionItem
-                      key={opt.value}
-                      option={opt}
-                      isSelected={selectedValues.includes(opt.value)}
-                      isActive={activeIndex === filtered.indexOf(opt)}
-                      multiple={multiple}
-                      onSelect={selectOption}
-                    />
-                  ))
+                )}
+
+                {/* Main options: grouped */}
+                {filtered.length > 0 && isGrouped(displayOptions)
+                  ? (displayOptions as SelectOptionGroup[]).map((group) => (
+                      <li key={group.label} role="presentation">
+                        <p className="px-3 pb-1 pt-2 text-xs font-semibold uppercase tracking-wide text-secondary-400">
+                          {group.label}
+                        </p>
+                        <ul>
+                          {group.options.map((opt) => (
+                            <OptionItem
+                              key={opt.value}
+                              option={opt}
+                              isSelected={selectedValues.includes(opt.value)}
+                              isActive={activeIndex === filtered.indexOf(opt)}
+                              multiple={multiple}
+                              onSelect={selectOption}
+                            />
+                          ))}
+                        </ul>
+                      </li>
+                    ))
+                  : null}
+
+                {/* For grouped mode: render created options below the groups */}
+                {filteredCreated.map((opt) => (
+                  <OptionItem
+                    key={opt.value}
+                    option={opt}
+                    isSelected={selectedValues.includes(opt.value)}
+                    isActive={activeIndex === filtered.indexOf(opt)}
+                    multiple={multiple}
+                    onSelect={selectOption}
+                    isNew
+                    onRemoveCreated={() => handleRemoveCreated(opt.value)}
+                  />
+                ))}
+
+                {/* Main options: flat (includes created options already) */}
+                {filtered.length > 0 && !isGrouped(displayOptions)
+                  ? (displayOptions as SelectOption[]).map((opt) => (
+                      <OptionItem
+                        key={opt.value}
+                        option={opt}
+                        isSelected={selectedValues.includes(opt.value)}
+                        isActive={activeIndex === filtered.indexOf(opt)}
+                        multiple={multiple}
+                        onSelect={selectOption}
+                        isNew={createdValueSet.has(opt.value)}
+                        onRemoveCreated={
+                          createdValueSet.has(opt.value)
+                            ? () => handleRemoveCreated(opt.value)
+                            : undefined
+                        }
+                      />
+                    ))
+                  : null}
+
+                {/* Create row — always at the bottom, separated by a border */}
+                {showCreateRow && (
+                  <CreateOptionItem
+                    label={trimmedQuery}
+                    isActive={activeIndex === filtered.length}
+                    onCreate={handleCreate}
+                  />
                 )}
               </ul>
             </div>,
@@ -621,22 +798,24 @@ export function Select({
 /*
  * ─── Prop Table ───────────────────────────────────────────────────────────────
  *
- * Name          Type                         Default     Description
+ * Name                  Type                         Default          Description
  * ──────────────────────────────────────────────────────────────────────────────
- * options       SelectOptions                required    Flat or grouped option list
- * value         string | string[]            —           Controlled selected value(s)
- * onChange      (v: string|string[]) => void —           Called on selection change
- * placeholder   string                       "Select…"   Trigger placeholder
- * searchable    boolean                      false       Enable search filtering
- * multiple      boolean                      false       Multi-select mode
- * clearable     boolean                      false       Show × to clear selection
- * disabled      boolean                      false       Disable the control
- * label         string                       —           Label above the trigger
- * helperText    string                       —           Hint below; hidden on error
- * errorMessage  string                       —           Validation error message
- * size                 "sm"|"md"|"lg"     "md"   Trigger height
- * dropdownWidth        string             —      CSS width of the dropdown panel
- * showSelectedInTrigger boolean           true   Display selected values inside trigger
- * id                   string             auto   HTML id for label linkage
- * className            string             ""     Extra classes on trigger
+ * options               SelectOptions                required         Flat or grouped option list
+ * value                 string | string[]            —                Controlled selected value(s)
+ * onChange              (v: string|string[]) => void —                Called on selection change
+ * placeholder           string                       "Select…"        Trigger placeholder
+ * searchable            boolean                      false            Enable search filtering
+ * creatable             boolean                      false            Allow inline option creation (requires searchable)
+ * onCreateOption        (label: string) => void      —                Called when user creates a new option
+ * multiple              boolean                      false            Multi-select mode
+ * clearable             boolean                      false            Show × to clear selection
+ * disabled              boolean                      false            Disable the control
+ * label                 string                       —                Label above the trigger
+ * helperText            string                       —                Hint below; hidden on error
+ * errorMessage          string                       —                Validation error message
+ * size                  "sm"|"md"|"lg"               "md"             Trigger height
+ * dropdownWidth         string                       —                CSS width of the dropdown panel
+ * showSelectedInTrigger boolean                      true             Display selected values inside trigger
+ * id                    string                       auto             HTML id for label linkage
+ * className             string                       ""               Extra classes on trigger
  */

@@ -6,16 +6,22 @@ import Link from "next/link";
 import Image from "next/image";
 import {
   CubeIcon,
-  PencilSquareIcon,
   TrashIcon,
   ArrowDownTrayIcon,
-  EyeIcon,
   GlobeAltIcon,
   ArchiveBoxIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { DataTable, type ColumnDef, type SortDir } from "@/src/components/admin/DataTable";
+import {
+  DataTable,
+  RowActions,
+  RowActionView,
+  RowActionEdit,
+  RowActionDelete,
+  type ColumnDef,
+  type SortDir,
+} from "@/src/components/admin/DataTable";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
@@ -129,8 +135,8 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   const statusOptions = useMemo(
     () => [
       { value: "published", label: "Published", count: products.filter((p) => p.status === "published").length },
-      { value: "draft",     label: "Draft",     count: products.filter((p) => p.status === "draft").length },
-      { value: "archived",  label: "Archived",  count: products.filter((p) => p.status === "archived").length },
+      { value: "draft", label: "Draft", count: products.filter((p) => p.status === "draft").length },
+      { value: "archived", label: "Archived", count: products.filter((p) => p.status === "archived").length },
     ],
     [products]
   );
@@ -360,7 +366,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
     const headers = ["ID", "Name", "Slug", "Category", "Brand", "Base Price", "Total Stock", "Status", "Created At", "Updated At"];
     const rows = sorted.map((p) => [
       p.id, `"${p.name}"`, p.slug, p.category, p.brand,
-      p.basePrice, p.totalStock, p.status, p.createdAt, p.updatedAt,
+      p.variants.length > 0 ? Math.min(...p.variants.map((v) => v.price)) : "", p.totalStock, p.status, p.createdAt, p.updatedAt,
     ]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -403,9 +409,10 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         key: "name",
         header: "Product",
         sortable: true,
+        tooltip: true,
         render: (value, row) => (
           <div className="min-w-0">
-            <p className="font-medium text-secondary-900 truncate max-w-xs">
+            <p className="font-medium text-secondary-900 truncate max-w-lg">
               {value as string}
             </p>
             <p className="text-xs text-secondary-400 truncate max-w-xs mt-0.5">
@@ -419,29 +426,34 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         key: "category",
         header: "Category",
         width: "w-28",
+        align: "center",
         render: (value) => (
           <span className="text-sm text-secondary-600">{value as string}</span>
         ),
       },
-      // col 5 — Base price
+      // col 5 — Base price (derived from variants; no basePrice field on Product)
       {
-        key: "basePrice",
+        key: "variants",
         header: "Base Price",
-        sortable: true,
+        sortable: false,
         align: "right",
         width: "w-36",
-        render: (value) => (
-          <span className="font-medium text-secondary-800 tabular-nums text-sm">
-            {formatVND(value as number)}
-          </span>
-        ),
+        render: (_value, row) => {
+          const prices = (row.variants as ProductVariant[]).map((v) => v.price);
+          const min = prices.length > 0 ? Math.min(...prices) : undefined;
+          return (
+            <span className="font-medium text-secondary-800 tabular-nums text-sm">
+              {min !== undefined ? formatVND(min) : "—"}
+            </span>
+          );
+        },
       },
       // col 6 — Total stock
       {
         key: "totalStock",
         header: "Stock",
         sortable: true,
-        align: "right",
+        align: "center",
         width: "w-20",
         render: (value) => <StockCell stock={value as number} />,
       },
@@ -450,6 +462,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         key: "status",
         header: "Status",
         width: "w-28",
+        align: "center",
         render: (value) => (
           <StatusBadge
             status={value as "published" | "draft" | "archived"}
@@ -462,6 +475,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         key: "updatedAt",
         header: "Updated",
         sortable: true,
+        align: "center",
         width: "w-28",
         render: (value) => (
           <span className="text-xs text-secondary-500 tabular-nums">
@@ -479,30 +493,11 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
           const id = value as string;
           const product = row as unknown as Product;
           return (
-            <div className="flex items-center justify-end gap-0.5">
-              <Link
-                href={`/products/${id}`}
-                aria-label={`View ${row.name as string}`}
-                className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              >
-                <EyeIcon className="w-4 h-4" aria-hidden="true" />
-              </Link>
-              <Link
-                href={`/products/${id}/edit`}
-                aria-label={`Edit ${row.name as string}`}
-                className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              >
-                <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
-              </Link>
-              <button
-                type="button"
-                aria-label={`Delete ${row.name as string}`}
-                onClick={() => handleDeleteClick(product)}
-                className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
-              >
-                <TrashIcon className="w-4 h-4" aria-hidden="true" />
-              </button>
-            </div>
+            <RowActions>
+              <RowActionView href={`/products/${id}`} ariaLabel={`View ${row.name as string}`} />
+              <RowActionEdit href={`/products/${id}/edit`} ariaLabel={`Edit ${row.name as string}`} />
+              <RowActionDelete ariaLabel={`Delete ${row.name as string}`} onClick={() => handleDeleteClick(product)} />
+            </RowActions>
           );
         },
       },
@@ -587,17 +582,17 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
           </td>
 
           {/* col 6 — variant stock */}
-          <td className="w-20 px-4 py-2 text-right">
+          <td className="w-20 px-4 py-2 text-center">
             <StockCell stock={v.stock} />
           </td>
 
           {/* col 7 — variant status */}
-          <td className="w-28 px-4 py-2">
+          <td className="w-28 px-4 py-2 text-center">
             <StatusBadge status={v.status} size="sm" />
           </td>
 
           {/* col 8 — variant updatedAt */}
-          <td className="w-28 px-4 py-2">
+          <td className="w-28 px-4 py-2 text-center">
             <span className="text-xs text-secondary-500 tabular-nums">
               {formatDate(v.updatedAt)}
             </span>
@@ -605,23 +600,11 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
 
           {/* col 9 — variant actions */}
           <td className="w-24 px-4 py-2">
-            <div className="flex items-center justify-end gap-0.5">
-              <Link
-                href={`/products/${productId}/variants/${v.id}/edit`}
-                aria-label={`Edit variant ${v.sku}`}
-                className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              >
-                <PencilSquareIcon className="w-4 h-4" aria-hidden="true" />
-              </Link>
-              <button
-                type="button"
-                aria-label={`Delete variant ${v.sku}`}
-                onClick={() => setDeleteVariantTarget({ id: v.id, name: v.name, sku: v.sku })}
-                className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
-              >
-                <TrashIcon className="w-4 h-4" aria-hidden="true" />
-              </button>
-            </div>
+            <RowActions>
+              <RowActionView href={`/products/${productId}/variants/${v.id}`} ariaLabel={`View variant ${v.sku}`} />
+              <RowActionEdit href={`/products/${productId}/variants/${v.id}/edit`} ariaLabel={`Edit variant ${v.sku}`} />
+              <RowActionDelete ariaLabel={`Delete variant ${v.sku}`} onClick={() => setDeleteVariantTarget({ id: v.id, name: v.name, sku: v.sku })} />
+            </RowActions>
           </td>
         </tr>
       );
@@ -721,7 +704,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       <DataTable<ProductRow>
         data={filteredPage as ProductRow[]}
         columns={columns}
-        
+
         keyField="id"
         selectable
         selectedKeys={selectedProductIds}

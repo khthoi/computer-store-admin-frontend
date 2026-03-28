@@ -2,17 +2,21 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import {
-  PencilSquareIcon,
-  TrashIcon,
-  EyeIcon,
   PlusIcon,
   UserGroupIcon,
   MapPinIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
-import { DataTable, type ColumnDef, type SortDir } from "@/src/components/admin/DataTable";
+import {
+  DataTable,
+  RowActions,
+  RowActionView,
+  RowActionEdit,
+  RowActionDelete,
+  type ColumnDef,
+  type SortDir,
+} from "@/src/components/admin/DataTable";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
@@ -157,6 +161,7 @@ export function CustomersTable({ initialCustomers }: CustomersTableProps) {
         key: "status",
         header: "Trạng thái",
         width: "w-32",
+        align: "center",
         render: (_, row) => <StatusBadge status={row.status as CustomerStatus} />,
       },
       {
@@ -174,8 +179,8 @@ export function CustomersTable({ initialCustomers }: CustomersTableProps) {
       {
         key: "totalSpent",
         header: "Chi tiêu",
-        align: "right",
-        width: "w-36",
+        align: "center",
+        width: "w-33",
         sortable: true,
         render: (_, row) => (
           <span className="text-sm font-medium text-secondary-900">
@@ -188,6 +193,7 @@ export function CustomersTable({ initialCustomers }: CustomersTableProps) {
         header: "Ngày đăng ký",
         sortable: true,
         width: "w-38",
+        align: "center",
         render: (_, row) => (
           <span className="text-sm text-secondary-500">
             {formatDate(row.registeredAt as string)}
@@ -200,31 +206,11 @@ export function CustomersTable({ initialCustomers }: CustomersTableProps) {
         width: "w-24",
         align: "right",
         render: (_, row): ReactNode => (
-          <div className="flex items-center justify-end gap-1">
-            <Link
-              href={`/customers/${row.id}`}
-              aria-label="Xem chi tiết"
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-            >
-              <EyeIcon className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              aria-label="Chỉnh sửa"
-              onClick={() => { setEditCustomer(row as unknown as KhachHang); setModalOpen(true); }}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-            >
-              <PencilSquareIcon className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Xóa khách hàng"
-              onClick={() => setDeleteTarget(row as unknown as KhachHang)}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </div>
+          <RowActions>
+            <RowActionView href={`/customers/${row.id}`} />
+            <RowActionEdit onClick={() => { setEditCustomer(row as unknown as KhachHang); setModalOpen(true); }} />
+            <RowActionDelete ariaLabel="Xóa khách hàng" onClick={() => setDeleteTarget(row as unknown as KhachHang)} />
+          </RowActions>
         ),
       },
     ],

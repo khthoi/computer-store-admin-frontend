@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
-import Link from "next/link";
 import {
-  PencilSquareIcon,
-  TrashIcon,
-  EyeIcon,
   PlusIcon,
   UserGroupIcon,
 } from "@heroicons/react/24/outline";
-import { DataTable, type ColumnDef, type SortDir } from "@/src/components/admin/DataTable";
+import {
+  DataTable,
+  RowActions,
+  RowActionView,
+  RowActionEdit,
+  RowActionDelete,
+  type ColumnDef,
+  type SortDir,
+} from "@/src/components/admin/DataTable";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
@@ -151,6 +155,7 @@ export function EmployeesTable({ initialEmployees }: EmployeesTableProps) {
         key: "fullName",
         header: "Nhân viên",
         sortable: true,
+        width: "w-64",
         render: (_, row) => (
           <div className="flex items-center gap-3">
             <Avatar src={row.avatarUrl as string | undefined} name={row.fullName} size="sm" />
@@ -164,6 +169,7 @@ export function EmployeesTable({ initialEmployees }: EmployeesTableProps) {
       {
         key: "email",
         header: "Email",
+        width: "w-70",
         render: (_, row) => (
           <span className="text-sm text-secondary-600 truncate">{row.email}</span>
         ),
@@ -192,12 +198,14 @@ export function EmployeesTable({ initialEmployees }: EmployeesTableProps) {
         key: "status",
         header: "Trạng thái",
         width: "w-32",
+        align: "center",
         render: (_, row) => <StatusBadge status={row.status as EmployeeStatus} />,
       },
       {
         key: "lastLoginAt",
         header: "Đăng nhập gần nhất",
         width: "w-46",
+        align: "center",
         render: (_, row) => (
           <span className="text-sm text-secondary-500">
             {row.lastLoginAt ? formatDateTime(row.lastLoginAt as string) : "—"}
@@ -210,31 +218,11 @@ export function EmployeesTable({ initialEmployees }: EmployeesTableProps) {
         width: "w-24",
         align: "right",
         render: (_, row): ReactNode => (
-          <div className="flex items-center justify-end gap-1">
-            <Link
-              href={`/employees/${row.id}`}
-              aria-label="Xem chi tiết"
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-            >
-              <EyeIcon className="h-4 w-4" />
-            </Link>
-            <button
-              type="button"
-              aria-label="Chỉnh sửa"
-              onClick={() => { setEditEmployee(row as NhanVien); setModalOpen(true); }}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-            >
-              <PencilSquareIcon className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              aria-label="Xóa nhân viên"
-              onClick={() => handleDeleteClick(row as NhanVien)}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          </div>
+          <RowActions>
+            <RowActionView href={`/employees/${row.id}`} />
+            <RowActionEdit onClick={() => { setEditEmployee(row as NhanVien); setModalOpen(true); }} />
+            <RowActionDelete ariaLabel="Xóa nhân viên" onClick={() => handleDeleteClick(row as NhanVien)} />
+          </RowActions>
         ),
       },
     ],

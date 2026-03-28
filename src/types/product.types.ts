@@ -27,7 +27,6 @@ export interface Product {
    * Products do NOT have thumbnails — images belong to individual variants.
    * This field is intentionally absent; see ProductVariant.thumbnailUrl.
    */
-  basePrice: number;
   totalStock: number;
   status: "published" | "draft" | "archived";
   variants: ProductVariant[];

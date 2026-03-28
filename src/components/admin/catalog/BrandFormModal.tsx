@@ -7,6 +7,7 @@ import { Textarea } from "@/src/components/ui/Textarea";
 import { Select } from "@/src/components/ui/Select";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Button } from "@/src/components/ui/Button";
+import { MediaUploadPanel, type MediaImage } from "@/src/components/admin/shared/MediaUploadPanel";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ export interface BrandFormData {
   websiteUrl: string;
   countryOfOrigin: string;
   active: boolean;
+  logoUrl?: string;
 }
 
 interface BrandFormModalProps {
@@ -68,6 +70,11 @@ export function BrandFormModal({
   const [websiteUrl, setWebsiteUrl] = useState(initialData?.websiteUrl ?? "");
   const [countryOfOrigin, setCountryOfOrigin] = useState(initialData?.countryOfOrigin ?? "");
   const [active, setActive] = useState(initialData?.active ?? true);
+  const [logoImages, setLogoImages] = useState<MediaImage[]>(
+    initialData?.logoUrl
+      ? [{ id: "logo-existing", url: initialData.logoUrl, alt: initialData.name ?? "Logo" }]
+      : []
+  );
 
   // Sync form when initialData changes
   useEffect(() => {
@@ -78,11 +85,27 @@ export function BrandFormModal({
       setWebsiteUrl(initialData?.websiteUrl ?? "");
       setCountryOfOrigin(initialData?.countryOfOrigin ?? "");
       setActive(initialData?.active ?? true);
+      setLogoImages(
+        initialData?.logoUrl
+          ? [{ id: "logo-existing", url: initialData.logoUrl, alt: initialData.name ?? "Logo" }]
+          : []
+      );
     }
   }, [isOpen, initialData]);
 
   function handleAutoSlug() {
     setSlug(generateSlug(name));
+  }
+
+  function handleLogoAdd(files: File[]) {
+    const file = files[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    setLogoImages([{ id: `logo-${Date.now()}`, url, alt: name || "Logo" }]);
+  }
+
+  function handleLogoRemove(_id: string) {
+    setLogoImages([]);
   }
 
   async function handleSubmit() {
@@ -93,6 +116,7 @@ export function BrandFormModal({
       websiteUrl,
       countryOfOrigin,
       active,
+      logoUrl: logoImages[0]?.url,
     });
   }
 
@@ -151,12 +175,15 @@ export function BrandFormModal({
           </button>
         </div>
 
-        {/* Logo upload placeholder */}
+        {/* Logo upload */}
         <div>
-          <p className="mb-1 block text-sm font-medium text-secondary-700">Logo thương hiệu</p>
-          <div className="flex items-center justify-center rounded-lg border-2 border-dashed border-secondary-200 bg-secondary-50 px-4 py-6 text-sm text-secondary-400 cursor-pointer hover:border-secondary-300 hover:bg-secondary-100 transition-colors">
-            Tải lên logo
-          </div>
+          <p className="mb-2 block text-sm font-medium text-secondary-700">Logo thương hiệu</p>
+          <MediaUploadPanel
+            images={logoImages}
+            onAdd={handleLogoAdd}
+            onRemove={handleLogoRemove}
+            maxImages={1}
+          />
         </div>
 
         {/* Description */}

@@ -41,9 +41,18 @@ export interface TextareaProps
   /**
    * Maximum number shown in the character counter.
    * Falls back to `maxLength` when omitted.
-   * Useful when you want a soft visual limit without enforcing maxLength.
    */
   maxCount?: number;
+  /**
+   * Shows a live "X / max words" counter below the textarea.
+   * @default false
+   */
+  showWordCount?: boolean;
+  /**
+   * Hard word limit. When set, input that would exceed this count is
+   * truncated to exactly `maxWordCount` words on every change.
+   */
+  maxWordCount?: number;
 }
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
@@ -68,6 +77,29 @@ const STATE_NORMAL =
 const STATE_ERROR =
   "border-error-400 " +
   "focus:border-error-500 focus:ring-error-500/15";
+
+// ─── Word count helper ────────────────────────────────────────────────────────
+
+function countWords(text: string): number {
+  return text.trim() === "" ? 0 : text.trim().split(/\s+/).length;
+}
+
+/** Truncate `text` to at most `max` words, preserving trailing whitespace. */
+function truncateToWords(text: string, max: number): string {
+  if (text.trim() === "") return text;
+  // Split preserving whitespace tokens so we can rejoin cleanly
+  const parts = text.split(/(\s+)/);
+  let wordsSeen = 0;
+  let result = "";
+  for (const part of parts) {
+    if (/\S/.test(part)) {
+      if (wordsSeen >= max) break;
+      wordsSeen++;
+    }
+    result += part;
+  }
+  return result;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -109,6 +141,8 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       autoResize = false,
       showCharCount = false,
       maxCount,
+      showWordCount = false,
+      maxWordCount,
       id: idProp,
       onChange,
       value,
@@ -133,6 +167,11 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     // For controlled inputs, derive current length from value prop
     const currentLength = value !== undefined ? String(value).length : undefined;
 
+    // Word count (controlled only; uncontrolled falls back to 0)
+    const currentWordCount = value !== undefined ? countWords(String(value)) : 0;
+    const wordCountAtLimit =
+      maxWordCount !== undefined && currentWordCount >= maxWordCount;
+
     const describedBy = [
       hasError ? errorId : null,
       !hasError && helperText ? helperId : null,
@@ -140,17 +179,32 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       .filter(Boolean)
       .join(" ") || undefined;
 
-    // ── Auto-resize handler ───────────────────────────────────────────────────
+    // ── Change handler — enforces word limit, drives auto-resize ─────────────
     const handleChange = useCallback(
       (e: ChangeEvent<HTMLTextAreaElement>) => {
+        let newValue = e.target.value;
+
+        // Hard word-limit enforcement
+        if (maxWordCount !== undefined && countWords(newValue) > maxWordCount) {
+          newValue = truncateToWords(newValue, maxWordCount);
+          // Sync the DOM element to the truncated value
+          if (innerRef.current) {
+            innerRef.current.value = newValue;
+          }
+          // Re-synthesise the event with the truncated value so consumers stay in sync
+          Object.defineProperty(e, "target", {
+            writable: false,
+            value: { ...e.target, value: newValue },
+          });
+        }
+
         if (autoResize && innerRef.current) {
-          // Reset height first so scrollHeight shrinks correctly on deletion
           innerRef.current.style.height = "auto";
           innerRef.current.style.height = `${innerRef.current.scrollHeight}px`;
         }
         onChange?.(e);
       },
-      [autoResize, onChange]
+      [autoResize, maxWordCount, onChange]
     );
 
     // ── Merge forwarded ref + inner ref ───────────────────────────────────────
@@ -168,13 +222,17 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
       [forwardedRef]
     );
 
-    // ── Character counter color ───────────────────────────────────────────────
+    // ── Counter colors ────────────────────────────────────────────────────────
     const isAtLimit =
       displayLimit !== undefined &&
       currentLength !== undefined &&
       currentLength >= displayLimit;
 
     const counterClass = isAtLimit
+      ? "text-error-600 font-medium"
+      : "text-secondary-400";
+
+    const wordCounterClass = wordCountAtLimit
       ? "text-error-600 font-medium"
       : "text-secondary-400";
 
@@ -228,7 +286,16 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
             )}
           </div>
 
-          {showCharCount && displayLimit !== undefined && (
+          {showWordCount && maxWordCount !== undefined && (
+            <p
+              aria-live="polite"
+              aria-atomic="true"
+              className={`shrink-0 tabular-nums text-xs ${wordCounterClass}`}
+            >
+              {currentWordCount} / {maxWordCount} từ
+            </p>
+          )}
+          {!showWordCount && showCharCount && displayLimit !== undefined && (
             <p
               aria-live="polite"
               aria-atomic="true"
