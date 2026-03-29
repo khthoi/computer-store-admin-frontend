@@ -7,7 +7,7 @@ const MOCK_IMAGES: HinhAnhSanPham[] = [
   {
     id: "img-001-a-1",
     variantId: "var-001-a",
-    url: "https://placehold.co/400x400/1a1a2e/ffffff?text=RTX+4090+Standard",
+    url: "https://product.hstatic.net/200000722513/product/fwebp__6__be7ded7631fb4241b3edaf400ed9c617_master.png",
     alt: "RTX 4090 Standard - Ảnh 1",
     displayOrder: 1,
     createdAt: "2026-01-10T07:00:00Z",

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
-import { getProductCategories, getProductBrands } from "@/src/services/product.service";
+import { getProductBrands } from "@/src/services/product.service";
 import { ProductFormPage } from "@/src/components/admin/products/ProductFormPage";
+import { MOCK_CATEGORIES } from "@/src/app/(dashboard)/products/_categoryMock";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 
@@ -14,13 +15,12 @@ export const metadata: Metadata = {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function NewProductPage() {
-  const categories = getProductCategories();
-  const brands     = getProductBrands();
+  const brands = getProductBrands();
 
   return (
     <ProductFormPage
       mode="create"
-      categories={categories}
+      categories={MOCK_CATEGORIES}
       brands={brands}
     />
   );

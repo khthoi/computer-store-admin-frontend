@@ -31,3 +31,19 @@ export function discountPercent(
   if (!originalPrice || originalPrice <= currentPrice) return 0;
   return Math.round(((originalPrice - currentPrice) / originalPrice) * 100);
 }
+
+/**
+ * Format an ISO date string as a human-readable date + time.
+ *
+ * @example
+ * formatDateTime("2026-03-18T09:30:00Z")  // "18 Mar 2026, 09:30"
+ */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}

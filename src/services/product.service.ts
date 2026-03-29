@@ -1,5 +1,6 @@
-import type { Product, ProductVariant } from "@/src/types/product.types";
+import type { Product, ProductVariant, ProductVariantDetail } from "@/src/types/product.types";
 import { MOCK_PRODUCTS } from "@/src/app/(dashboard)/products/_mock";
+import { MOCK_VARIANT } from "@/src/app/(dashboard)/products/[id]/variants/[variantId]/_mock";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +38,7 @@ export async function getProducts(
       (p) =>
         p.name.toLowerCase().includes(lower) ||
         p.slug.includes(lower) ||
-        p.brand.toLowerCase().includes(lower) ||
+        p.brands.some((b) => b.toLowerCase().includes(lower)) ||
         p.category.toLowerCase().includes(lower) ||
         p.variants.some((v) => v.sku.toLowerCase().includes(lower))
     );
@@ -123,7 +124,7 @@ export interface CreateProductPayload {
   name: string;
   slug: string;
   category: string;
-  brand: string;
+  brands: string[];
   status: Product["status"];
   variants: VariantPayload[];
 }
@@ -132,8 +133,7 @@ export interface UpdateProductPayload {
   name?: string;
   slug?: string;
   category?: string;
-  brand?: string;
-  basePrice?: number;
+  brands?: string[];
   status?: Product["status"];
   variants?: VariantPayload[];
 }
@@ -159,7 +159,7 @@ export async function createProduct(data: CreateProductPayload): Promise<Product
     name: data.name,
     slug: data.slug,
     category: data.category,
-    brand: data.brand,
+    brands: data.brands,
     totalStock: variants.reduce((s, v) => s + v.stock, 0),
     status: data.status,
     variants,
@@ -198,12 +198,55 @@ export async function updateProduct(
     name: data.name ?? existing.name,
     slug: data.slug ?? existing.slug,
     category: data.category ?? existing.category,
-    brand: data.brand ?? existing.brand,
+    brands: data.brands ?? existing.brands,
     status: data.status ?? existing.status,
     variants,
     totalStock: variants.reduce((s, v) => s + v.stock, 0),
     updatedAt: now,
   };
+}
+
+/**
+ * Fetch a single variant by product ID and variant ID.
+ * Mock implementation — replace with real GET /admin/products/:productId/variants/:variantId
+ */
+export async function getVariantById(
+  productId: string,
+  variantId: string
+): Promise<ProductVariantDetail | null> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  if (MOCK_VARIANT.productId === productId && MOCK_VARIANT.id === variantId) {
+    return MOCK_VARIANT;
+  }
+  return null;
+}
+
+// ─── Variant detail update ─────────────────────────────────────────────────────
+
+export interface UpdateVariantDetailPayload {
+  name?: string;
+  sku?: string;
+  weight?: number | null;
+  originalPrice?: number;
+  salePrice?: number;
+  status?: ProductVariantDetail["status"];
+  description?: string;
+  specificationGroups?: ProductVariantDetail["specificationGroups"];
+  media?: ProductVariantDetail["media"];
+}
+
+/**
+ * Update a variant's full detail (prices, description, specs, media).
+ * Mock implementation — replace with real PUT /admin/products/:productId/variants/:variantId/detail
+ */
+export async function updateVariantDetail(
+  _productId: string,
+  _variantId: string,
+  _data: UpdateVariantDetailPayload
+): Promise<ProductVariantDetail> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 600));
+  // Mock: return the existing mock variant unchanged
+  return MOCK_VARIANT;
 }
 
 /**
@@ -219,5 +262,5 @@ export function getProductCategories(): string[] {
  * Replace with GET /admin/products/brands when backend is ready.
  */
 export function getProductBrands(): string[] {
-  return [...new Set(MOCK_PRODUCTS.map((p) => p.brand))].sort();
+  return [...new Set(MOCK_PRODUCTS.flatMap((p) => p.brands))].sort();
 }

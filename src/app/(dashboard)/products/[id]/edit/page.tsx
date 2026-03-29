@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import {
   getProductById,
-  getProductCategories,
   getProductBrands,
 } from "@/src/services/product.service";
 import { ProductFormPage } from "@/src/components/admin/products/ProductFormPage";
+import { MOCK_CATEGORIES } from "@/src/app/(dashboard)/products/_categoryMock";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 
@@ -33,9 +33,8 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [product, categories, brands] = await Promise.all([
+  const [product, brands] = await Promise.all([
     getProductById(id),
-    Promise.resolve(getProductCategories()),
     Promise.resolve(getProductBrands()),
   ]);
 
@@ -45,7 +44,7 @@ export default async function EditProductPage({
     <ProductFormPage
       mode="edit"
       product={product}
-      categories={categories}
+      categories={MOCK_CATEGORIES}
       brands={brands}
     />
   );

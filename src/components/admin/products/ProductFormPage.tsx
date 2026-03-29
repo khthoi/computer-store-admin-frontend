@@ -3,19 +3,27 @@
 import { useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import {
-  ArrowLeftIcon,
-  PlusIcon,
-  TrashIcon,
-} from "@heroicons/react/24/outline";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
 import { Button } from "@/src/components/ui/Button";
+import { Badge } from "@/src/components/ui/Badge";
+import { StatusBadge } from "@/src/components/admin/StatusBadge";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
+import { CategoryTreeSelect } from "@/src/components/admin/CategoryTreeSelect";
+import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
+import {
+  RowActions,
+  RowActionView,
+  RowActionDelete,
+} from "@/src/components/admin/DataTable";
 import { useToast } from "@/src/components/ui/Toast";
 import {
   createProduct,
   updateProduct,
+  deleteVariant,
 } from "@/src/services/product.service";
+import { formatVND } from "@/src/lib/format";
 import type { Product, ProductVariant } from "@/src/types/product.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,36 +31,14 @@ import type { Product, ProductVariant } from "@/src/types/product.types";
 export interface ProductFormPageProps {
   mode: "create" | "edit";
   product?: Product;
-  categories: string[];
+  categories: CategoryNode[];
   brands: string[];
-}
-
-interface DraftVariant {
-  /** Stable React key — equals variant id for existing, random for new */
-  _key: string;
-  /** Only set for existing variants */
-  id?: string;
-  name: string;
-  sku: string;
-  /** Stored as string to work cleanly with number inputs */
-  price: string;
-  stock: string;
-  status: "active" | "inactive";
-}
-
-interface VariantErrors {
-  name?: string;
-  sku?: string;
-  price?: string;
-  stock?: string;
 }
 
 interface FormErrors {
   name?: string;
   category?: string;
   brand?: string;
-  basePrice?: string;
-  variants?: Record<string, VariantErrors>;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -68,31 +54,20 @@ function slugify(text: string): string {
     .replace(/-+/g, "-");
 }
 
-function newKey(): string {
-  return `v-${Math.random().toString(36).slice(2, 9)}`;
-}
-
-function variantToDraft(v: ProductVariant): DraftVariant {
-  return {
-    _key: v.id,
-    id: v.id,
-    name: v.name,
-    sku: v.sku,
-    price: String(v.price),
-    stock: String(v.stock),
-    status: v.status,
-  };
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 }
 
 const STATUS_OPTIONS = [
   { value: "draft",     label: "Draft" },
   { value: "published", label: "Published" },
   { value: "archived",  label: "Archived" },
-];
-
-const VARIANT_STATUS_OPTIONS = [
-  { value: "active",   label: "Active" },
-  { value: "inactive", label: "Inactive" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -107,25 +82,23 @@ export function ProductFormPage({
   const { showToast } = useToast();
 
   // ── Field state ─────────────────────────────────────────────────────────
-  const [name,      setName]      = useState(product?.name      ?? "");
-  const [slug,      setSlug]      = useState(product?.slug      ?? "");
-  const [category,  setCategory]  = useState(product?.category  ?? "");
-  const [brand,     setBrand]     = useState<string[]>(
-    product?.brand ? [product.brand] : []
-  );
-  const [status,    setStatus]    = useState<string>(product?.status ?? "draft");
-  const [variants,  setVariants]  = useState<DraftVariant[]>(
-    product?.variants.map(variantToDraft) ?? []
-  );
-  const [errors,       setErrors]       = useState<FormErrors>({});
+  const [name,     setName]     = useState(product?.name     ?? "");
+  const [slug,     setSlug]     = useState(product?.slug     ?? "");
+  const [category, setCategory] = useState(product?.category ?? "");
+  const [brand,    setBrand]    = useState<string[]>(product?.brands ?? []);
+  const [status,   setStatus]   = useState<string>(product?.status ?? "draft");
+  const [errors,   setErrors]   = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Track whether the user has manually edited the slug field
   const slugTouched = useRef(mode === "edit");
 
-  // ── Category / brand datalist options ───────────────────────────────────
-  const categoryListId = "product-form-categories";
-  const brandListId    = "product-form-brands";
+  // ── Variant list state (edit mode — deletions reflected immediately) ─────
+  const [variantList, setVariantList] = useState<ProductVariant[]>(
+    product?.variants ?? []
+  );
+  const [deleteTarget,  setDeleteTarget]  = useState<ProductVariant | null>(null);
+  const [isDeleting,    setIsDeleting]    = useState(false);
 
   // ── Name → auto-slug ────────────────────────────────────────────────────
   const handleNameChange = useCallback((value: string) => {
@@ -139,68 +112,30 @@ export function ProductFormPage({
     setSlug(slugify(value));
   }, []);
 
-  // ── Variant helpers ──────────────────────────────────────────────────────
-  const addVariant = useCallback(() => {
-    setVariants((prev) => [
-      ...prev,
-      { _key: newKey(), name: "", sku: "", price: "", stock: "", status: "active" },
-    ]);
-  }, []);
-
-  const removeVariant = useCallback((key: string) => {
-    setVariants((prev) => prev.filter((v) => v._key !== key));
-  }, []);
-
-  const updateVariantField = useCallback(
-    (key: string, field: keyof Omit<DraftVariant, "_key" | "id">, value: string) => {
-      setVariants((prev) =>
-        prev.map((v) => (v._key === key ? { ...v, [field]: value } : v))
-      );
-      setErrors((prev) => {
-        if (!prev.variants?.[key]) return prev;
-        const updated = { ...prev.variants[key] };
-        delete updated[field as keyof VariantErrors];
-        return { ...prev, variants: { ...prev.variants, [key]: updated } };
-      });
-    },
-    []
-  );
+  // ── Variant delete ───────────────────────────────────────────────────────
+  const handleVariantDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteVariant(deleteTarget.id);
+      setVariantList((prev) => prev.filter((v) => v.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Validate
     const newErrors: FormErrors = {};
-    if (!name.trim()) newErrors.name = "Product name is required.";
+    if (!name.trim())     newErrors.name     = "Product name is required.";
     if (!category.trim()) newErrors.category = "Category is required.";
-    if (brand.length === 0) newErrors.brand = "Brand is required.";
-
-    const variantErrors: Record<string, VariantErrors> = {};
-    variants.forEach((v) => {
-      const ve: VariantErrors = {};
-      if (!v.name.trim()) ve.name = "Required";
-      if (!v.sku.trim())  ve.sku  = "Required";
-      const p = Number(v.price);
-      if (v.price === "" || isNaN(p) || p < 0) ve.price = "Must be ≥ 0";
-      const s = Number(v.stock);
-      if (v.stock === "" || isNaN(s) || s < 0 || !Number.isInteger(s)) ve.stock = "Whole number ≥ 0";
-      if (Object.keys(ve).length > 0) variantErrors[v._key] = ve;
-    });
-    if (Object.keys(variantErrors).length > 0) newErrors.variants = variantErrors;
+    if (brand.length === 0) newErrors.brand  = "Brand is required.";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
-
-    // Build variant payload
-    const variantData = variants.map((v) => ({
-      ...(v.id ? { id: v.id } : {}),
-      name:   v.name.trim(),
-      sku:    v.sku.trim().toUpperCase(),
-      price:  Number(v.price),
-      stock:  Number(v.stock),
-      status: v.status,
-    }));
 
     setIsSubmitting(true);
     try {
@@ -208,23 +143,23 @@ export function ProductFormPage({
 
       if (mode === "create") {
         const created = await createProduct({
-          name:      name.trim(),
-          slug:      finalSlug,
-          category:  category.trim(),
-          brand:     brand.join(", "),
-          status:    status as Product["status"],
-          variants:  variantData,
+          name:     name.trim(),
+          slug:     finalSlug,
+          category: category.trim(),
+          brands:   brand,
+          status:   status as Product["status"],
+          variants: [],
         });
         showToast("Product created successfully.", "success");
         router.push(`/products/${created.id}`);
       } else {
         const updated = await updateProduct(product!.id, {
-          name:      name.trim(),
-          slug:      finalSlug,
-          category:  category.trim(),
-          brand:     brand.join(", "),
-          status:    status as Product["status"],
-          variants:  variantData,
+          name:     name.trim(),
+          slug:     finalSlug,
+          category: category.trim(),
+          brands:   brand,
+          status:   status as Product["status"],
+          // variants intentionally omitted — managed via the detail page
         });
         showToast("Product updated successfully.", "success");
         router.push(`/products/${updated.id}`);
@@ -258,7 +193,7 @@ export function ProductFormPage({
         <p className="mt-1 text-sm text-secondary-500">
           {mode === "create"
             ? "Fill in the details below to create a new product."
-            : "Update the product details and variants."}
+            : "Update the product details below."}
         </p>
       </div>
 
@@ -293,40 +228,36 @@ export function ProductFormPage({
 
             {/* Category + Brand */}
             <div className="grid gap-5 sm:grid-cols-2">
-              <div>
-                <Select
-                  label="Category"
-                  value={category}
-                  onChange={(v) => setCategory(v as string)}
-                  placeholder="e.g. GPU"
-                  required
-                  searchable
-                  clearable
-                  creatable
-                  options={categories.map((c) => ({ value: c, label: c }))}
-                  helperText="Select an existing category or type to create a new one."
-                  errorMessage={errors.category}
-                />
-              </div>
-              <div>
-                <Select
-                  label="Brand"
-                  value={brand}
-                  onChange={(v) => setBrand(v as string[])}
-                  placeholder="e.g. ASUS"
-                  required
-                  multiple
-                  searchable
-                  clearable
-                  creatable
-                  helperText="Select existing brands or type to create a new one."
-                  options={brands.map((b) => ({ value: b, label: b }))}
-                  errorMessage={errors.brand}
-                />
-              </div>
+              <CategoryTreeSelect
+                label="Category"
+                categories={categories}
+                value={category || undefined}
+                onChange={(id) => {
+                  setCategory(id);
+                  setErrors((prev) => ({ ...prev, category: undefined }));
+                }}
+                placeholder="Select a category"
+                required
+                helperText="Browse the hierarchy and select the most specific category."
+                errorMessage={errors.category}
+              />
+              <Select
+                label="Brand"
+                value={brand}
+                onChange={(v) => setBrand(v as string[])}
+                placeholder="e.g. ASUS"
+                required
+                multiple
+                searchable
+                clearable
+                creatable
+                helperText="Select existing brands or type to create a new one."
+                options={brands.map((b) => ({ value: b, label: b }))}
+                errorMessage={errors.brand}
+              />
             </div>
 
-            {/* Base Price + Status */}
+            {/* Status */}
             <div className="grid gap-5 sm:grid-cols-2">
               <Select
                 label="Status"
@@ -344,108 +275,90 @@ export function ProductFormPage({
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
               Variants
-              {variants.length > 0 && (
-                <span className="ml-2 text-secondary-400 normal-case font-normal">
-                  ({variants.length})
+              {variantList.length > 0 && (
+                <span className="ml-2 font-normal normal-case text-secondary-400">
+                  ({variantList.length})
                 </span>
               )}
             </h2>
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={addVariant}
-            >
-              <PlusIcon className="h-4 w-4" />
-              Add Variant
-            </Button>
           </div>
 
-          {variants.length === 0 ? (
+          {variantList.length === 0 ? (
             <p className="py-6 text-center text-sm text-secondary-400">
-              No variants yet — click "Add Variant" to add the first one.
+              {mode === "create"
+                ? "Variants can be added after saving the product."
+                : "No variants yet."}
             </p>
           ) : (
-            <div className="space-y-3">
-              {variants.map((v, idx) => {
-                const vErr = errors.variants?.[v._key];
-                return (
-                  <div
-                    key={v._key}
-                    className="rounded-lg border border-secondary-100 bg-secondary-50/50 p-4"
-                  >
-                    {/* Variant header */}
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="text-xs font-semibold uppercase tracking-wide text-secondary-400">
-                        Variant {idx + 1}
-                      </span>
-                      <button
-                        type="button"
-                        aria-label={`Remove variant ${idx + 1}`}
-                        onClick={() => removeVariant(v._key)}
-                        className="flex h-6 w-6 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
-                      >
-                        <TrashIcon className="h-4 w-4" />
-                      </button>
-                    </div>
-
-                    {/* Name + SKU */}
-                    <div className="mb-3 grid gap-3 sm:grid-cols-2">
-                      <Input
-                        label="Variant Name"
-                        value={v.name}
-                        onChange={(e) => updateVariantField(v._key, "name", e.target.value)}
-                        placeholder="e.g. 24GB GDDR6X — Standard"
-                        required
-                        fullWidth
-                        errorMessage={vErr?.name}
-                      />
-                      <Input
-                        label="SKU"
-                        value={v.sku}
-                        onChange={(e) => updateVariantField(v._key, "sku", e.target.value)}
-                        placeholder="e.g. ROG-RTX4090-24G"
-                        required
-                        fullWidth
-                        errorMessage={vErr?.sku}
-                      />
-                    </div>
-
-                    {/* Price + Stock + Status */}
-                    <div className="grid gap-3 sm:grid-cols-3">
-                      <Input
-                        label="Price (VND)"
-                        type="number"
-                        value={v.price}
-                        onChange={(e) => updateVariantField(v._key, "price", e.target.value)}
-                        placeholder="0"
-                        min={0}
-                        required
-                        fullWidth
-                        errorMessage={vErr?.price}
-                      />
-                      <Input
-                        label="Stock"
-                        type="number"
-                        value={v.stock}
-                        onChange={(e) => updateVariantField(v._key, "stock", e.target.value)}
-                        placeholder="0"
-                        min={0}
-                        step={1}
-                        required
-                        fullWidth
-                        errorMessage={vErr?.stock}
-                      />
-                      <Select
-                        label="Status"
-                        options={VARIANT_STATUS_OPTIONS}
-                        value={v.status}
-                        onChange={(val) => updateVariantField(v._key, "status", val as string)}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-secondary-100">
+                    <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
+                      Variant
+                    </th>
+                    <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
+                      SKU
+                    </th>
+                    <th className="pb-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
+                      Price
+                    </th>
+                    <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
+                      Stock
+                    </th>
+                    <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
+                      Status
+                    </th>
+                    <th className="pb-3 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-secondary-50">
+                  {variantList.map((v) => (
+                    <tr key={v.id} className="transition-colors hover:bg-secondary-50/50">
+                      <td className="py-3 pr-4">
+                        <p className="font-medium text-secondary-800">{v.name}</p>
+                        <p className="mt-0.5 text-xs text-secondary-400">
+                          {formatDateTime(v.updatedAt)}
+                        </p>
+                      </td>
+                      <td className="py-3 pr-4">
+                        <span className="font-mono text-xs text-secondary-600">{v.sku}</span>
+                      </td>
+                      <td className="py-3 pr-4 text-right">
+                        <span className="font-medium tabular-nums text-secondary-800">
+                          {formatVND(v.price)}
+                        </span>
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        {v.stock === 0 ? (
+                          <Badge variant="error" size="sm">Out of stock</Badge>
+                        ) : v.stock <= 5 ? (
+                          <Badge variant="warning" size="sm">{v.stock} left</Badge>
+                        ) : (
+                          <span className="text-secondary-700">{v.stock.toLocaleString()}</span>
+                        )}
+                      </td>
+                      <td className="py-3 pr-4 text-center">
+                        <StatusBadge status={v.status} size="sm" />
+                      </td>
+                      <td className="py-3 text-right">
+                        <RowActions>
+                          <RowActionView
+                            href={`/products/${product!.id}/variants/${v.id}`}
+                            ariaLabel={`View variant ${v.name}`}
+                          />
+                          <RowActionDelete
+                            ariaLabel={`Delete variant ${v.name}`}
+                            onClick={() => setDeleteTarget(v)}
+                          />
+                        </RowActions>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
         </div>
@@ -463,6 +376,18 @@ export function ProductFormPage({
           </Button>
         </div>
       </form>
+
+      {/* Variant delete confirmation */}
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleVariantDeleteConfirm}
+        title="Delete Variant"
+        description={`This will permanently delete "${deleteTarget?.name}" (${deleteTarget?.sku}). This action cannot be undone.`}
+        confirmLabel="Delete Variant"
+        requiredPhrase={deleteTarget?.sku}
+        isConfirming={isDeleting}
+      />
     </div>
   );
 }

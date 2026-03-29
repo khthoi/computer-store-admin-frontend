@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductById } from "@/src/services/product.service";
-import { getVariantById } from "@/src/services/variant.service";
-import { VariantFormPage } from "@/src/components/admin/catalog/VariantFormPage";
+import { getProductById, getVariantById } from "@/src/services/product.service";
+import { VariantEditPage } from "@/src/components/admin/variantEdit";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 
@@ -21,8 +20,8 @@ export async function generateMetadata({
   return {
     title:
       product && variant
-        ? `Sửa phiên bản: ${variant.name} — Admin`
-        : "Không tìm thấy — Admin",
+        ? `Edit: ${variant.name} — Admin`
+        : "Variant not found — Admin",
   };
 }
 
@@ -34,6 +33,7 @@ export default async function EditVariantPage({
   params: Promise<{ id: string; variantId: string }>;
 }) {
   const { id, variantId } = await params;
+
   const [product, variant] = await Promise.all([
     getProductById(id),
     getVariantById(id, variantId),
@@ -41,12 +41,5 @@ export default async function EditVariantPage({
 
   if (!product || !variant) notFound();
 
-  return (
-    <VariantFormPage
-      mode="edit"
-      productId={id}
-      productName={product.name}
-      variant={variant}
-    />
-  );
+  return <VariantEditPage product={product} variant={variant} />;
 }

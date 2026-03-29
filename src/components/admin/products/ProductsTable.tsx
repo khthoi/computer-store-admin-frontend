@@ -162,7 +162,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         (p) =>
           p.name.toLowerCase().includes(lower) ||
           p.slug.includes(lower) ||
-          p.brand.toLowerCase().includes(lower) ||
+          p.brands.some((b) => b.toLowerCase().includes(lower)) ||
           p.category.toLowerCase().includes(lower) ||
           p.variants.some((v) => v.sku.toLowerCase().includes(lower))
       );
@@ -365,7 +365,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   const handleExport = useCallback(() => {
     const headers = ["ID", "Name", "Slug", "Category", "Brand", "Base Price", "Total Stock", "Status", "Created At", "Updated At"];
     const rows = sorted.map((p) => [
-      p.id, `"${p.name}"`, p.slug, p.category, p.brand,
+      p.id, `"${p.name}"`, p.slug, p.category, `"${p.brands.join(", ")}"`,
       p.variants.length > 0 ? Math.min(...p.variants.map((v) => v.price)) : "", p.totalStock, p.status, p.createdAt, p.updatedAt,
     ]);
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");

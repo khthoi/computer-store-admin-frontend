@@ -1,0 +1,159 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { Badge } from "@/src/components/ui/Badge";
+import { StatusBadge } from "@/src/components/admin/StatusBadge";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
+import {
+  RowActions,
+  RowActionView,
+  RowActionDelete,
+} from "@/src/components/admin/DataTable";
+import { deleteVariant } from "@/src/services/product.service";
+import { formatVND } from "@/src/lib/format";
+import type { ProductVariant } from "@/src/types/product.types";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+interface VariantsPanelProps {
+  productId: string;
+  initialVariants: ProductVariant[];
+}
+
+/**
+ * VariantsPanel — client component that renders the variants table for both
+ * the product detail page and the product edit page.
+ *
+ * Owns its own variant list state so deletions are reflected immediately
+ * without a full page reload.
+ */
+export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps) {
+  const [variants, setVariants] = useState<ProductVariant[]>(initialVariants);
+  const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteVariant(deleteTarget.id);
+      setVariants((prev) => prev.filter((v) => v.id !== deleteTarget.id));
+      setDeleteTarget(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  if (variants.length === 0) {
+    return (
+      <div className="py-12 text-center">
+        <p className="text-sm text-secondary-500">No variants yet.</p>
+        <Link
+          href={`/products/${productId}/edit`}
+          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
+        >
+          Edit product to add variants
+        </Link>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-secondary-100">
+              <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
+                Variant
+              </th>
+              <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
+                SKU
+              </th>
+              <th className="pb-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
+                Price
+              </th>
+              <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
+                Stock
+              </th>
+              <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
+                Status
+              </th>
+              <th className="pb-3 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
+                Actions
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-secondary-50">
+            {variants.map((v) => (
+              <tr key={v.id} className="transition-colors hover:bg-secondary-50/50">
+                <td className="py-3 pr-4">
+                  <p className="font-medium text-secondary-800">{v.name}</p>
+                  <p className="mt-0.5 text-xs text-secondary-400">
+                    {formatDateTime(v.updatedAt)}
+                  </p>
+                </td>
+                <td className="py-3 pr-4">
+                  <span className="font-mono text-xs text-secondary-600">{v.sku}</span>
+                </td>
+                <td className="py-3 pr-4 text-right">
+                  <span className="font-medium tabular-nums text-secondary-800">
+                    {formatVND(v.price)}
+                  </span>
+                </td>
+                <td className="py-3 pr-4 text-center">
+                  {v.stock === 0 ? (
+                    <Badge variant="error" size="sm">Out of stock</Badge>
+                  ) : v.stock <= 5 ? (
+                    <Badge variant="warning" size="sm">{v.stock} left</Badge>
+                  ) : (
+                    <span className="text-secondary-700">{v.stock.toLocaleString()}</span>
+                  )}
+                </td>
+                <td className="py-3 pr-4 text-center">
+                  <StatusBadge status={v.status} size="sm" />
+                </td>
+                <td className="py-3 text-right">
+                  <RowActions>
+                    <RowActionView
+                      href={`/products/${productId}/variants/${v.id}`}
+                      ariaLabel={`View variant ${v.name}`}
+                    />
+                    <RowActionDelete
+                      ariaLabel={`Delete variant ${v.name}`}
+                      onClick={() => setDeleteTarget(v)}
+                    />
+                  </RowActions>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Variant"
+        description={`This will permanently delete "${deleteTarget?.name}" (${deleteTarget?.sku}). This action cannot be undone.`}
+        confirmLabel="Delete Variant"
+        requiredPhrase={deleteTarget?.sku}
+        isConfirming={isDeleting}
+      />
+    </>
+  );
+}
