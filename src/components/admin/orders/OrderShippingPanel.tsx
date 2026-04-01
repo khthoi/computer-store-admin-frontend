@@ -8,6 +8,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
+import { DateInput } from "@/src/components/ui/DateInput";
 import { Button } from "@/src/components/ui/Button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -132,11 +133,11 @@ export function OrderShippingPanel({
       </div>
 
       {/* Estimated delivery */}
-      <Input
-        type="date"
+      <DateInput
         label="Dự kiến giao hàng"
         value={estimatedDelivery}
-        onChange={(e) => setEstimatedDelivery(e.target.value)}
+        onChange={(val) => setEstimatedDelivery(val)}
+        placeholder="DD/MM/YYYY"
       />
 
       {/* Track shipment link */}

@@ -11,6 +11,11 @@ import {
   CheckBadgeIcon,
   EyeIcon,
   EyeSlashIcon,
+  TruckIcon,
+  CreditCardIcon,
+  ArrowUturnLeftIcon,
+  BanknotesIcon,
+  ExclamationCircleIcon,
 } from "@heroicons/react/24/solid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,7 +36,19 @@ export type AdminStatus =
   | "banned"
   | "visible"
   | "hidden"
-  | "out_of_stock";
+  | "out_of_stock"
+  // ── Order statuses ──
+  | "confirmed"
+  | "processing"
+  | "shipped"
+  | "delivered"
+  | "cancelled"
+  | "returned"
+  // ── Payment statuses ──
+  | "paid"
+  | "unpaid"
+  | "refunded"
+  | "partially_refunded";
 
 export interface StatusBadgeProps {
   /** Any known AdminStatus value; unknown values render a neutral fallback. */
@@ -66,6 +83,18 @@ const CONFIG: Record<
   visible:      { label: "Visible",       wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <EyeIcon aria-hidden="true" /> },
   hidden:       { label: "Hidden",        wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <EyeSlashIcon aria-hidden="true" /> },
   out_of_stock: { label: "Out of Stock",  wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
+  // ── Order statuses ──
+  confirmed:    { label: "Confirmed",     wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <CheckBadgeIcon aria-hidden="true" /> },
+  processing:   { label: "Processing",    wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <MagnifyingGlassCircleIcon aria-hidden="true" /> },
+  shipped:      { label: "Shipped",       wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <TruckIcon aria-hidden="true" /> },
+  delivered:    { label: "Delivered",     wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
+  cancelled:    { label: "Cancelled",     wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <XCircleIcon aria-hidden="true" /> },
+  returned:     { label: "Returned",      wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <ArrowUturnLeftIcon aria-hidden="true" /> },
+  // ── Payment statuses ──
+  paid:                { label: "Paid",               wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <BanknotesIcon aria-hidden="true" /> },
+  unpaid:              { label: "Unpaid",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
+  refunded:            { label: "Refunded",           wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <ArrowUturnLeftIcon aria-hidden="true" /> },
+  partially_refunded:  { label: "Partial Refund",     wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <CreditCardIcon aria-hidden="true" /> },
 };
 
 const FALLBACK_CONFIG = {

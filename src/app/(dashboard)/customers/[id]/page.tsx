@@ -11,10 +11,11 @@ import {
   CakeIcon,
 } from "@heroicons/react/24/outline";
 import { getCustomerById } from "@/src/services/customer.service";
+import { getOrdersByCustomerId } from "@/src/services/order.service";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
+import { CustomerOrderHistoryList } from "@/src/components/admin/customers/CustomerOrderHistoryList";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
-import { AdminEmptyState } from "@/src/components/admin/shared/AdminEmptyState";
 import { CustomerDetailActions } from "@/src/components/admin/customers/CustomerDetailActions";
 import { CustomerAddressesTable } from "@/src/components/admin/customers/CustomerAddressesTable";
 import { formatVND } from "@/src/lib/format";
@@ -59,7 +60,10 @@ export default async function CustomerDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const customer = await getCustomerById(id);
+  const [customer, orderHistory] = await Promise.all([
+    getCustomerById(id),
+    getOrdersByCustomerId(id),
+  ]);
   if (!customer) notFound();
 
   return (
@@ -198,11 +202,7 @@ export default async function CustomerDetailPage({
             </TabPanel>
 
             <TabPanel value="orders" className="p-6">
-              <AdminEmptyState
-                icon={<ClipboardDocumentListIcon className="h-8 w-8" />}
-                title="Chưa có lịch sử đơn hàng"
-                description="Lịch sử đơn hàng của khách hàng sẽ hiển thị tại đây. Xem danh sách đơn hàng được lọc theo khách hàng này."
-              />
+              <CustomerOrderHistoryList orders={orderHistory} />
             </TabPanel>
           </Tabs>
         </div>

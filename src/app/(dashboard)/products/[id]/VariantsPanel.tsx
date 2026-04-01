@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { PlusIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import {
   RowActions,
   RowActionView,
+  RowActionEdit,
   RowActionDelete,
 } from "@/src/components/admin/DataTable";
 import { deleteVariant } from "@/src/services/product.service";
@@ -62,10 +64,10 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
       <div className="py-12 text-center">
         <p className="text-sm text-secondary-500">No variants yet.</p>
         <Link
-          href={`/products/${productId}/edit`}
+          href={`/products/${productId}/variants/new`}
           className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
         >
-          Edit product to add variants
+          Add the first variant
         </Link>
       </div>
     );
@@ -73,6 +75,20 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
 
   return (
     <>
+      {/* Header row — count + Add Variant button */}
+      <div className="mb-4 flex items-center justify-between">
+        <p className="text-sm text-secondary-500">
+          {variants.length} variant{variants.length !== 1 ? "s" : ""}
+        </p>
+        <Link
+          href={`/products/${productId}/variants/new`}
+          className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+        >
+          <PlusIcon className="h-4 w-4" aria-hidden="true" />
+          Add Variant
+        </Link>
+      </div>
+
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
@@ -131,6 +147,10 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
                     <RowActionView
                       href={`/products/${productId}/variants/${v.id}`}
                       ariaLabel={`View variant ${v.name}`}
+                    />
+                    <RowActionEdit
+                      href={`/products/${productId}/variants/${v.id}/edit`}
+                      ariaLabel={`Edit variant ${v.name}`}
                     />
                     <RowActionDelete
                       ariaLabel={`Delete variant ${v.name}`}

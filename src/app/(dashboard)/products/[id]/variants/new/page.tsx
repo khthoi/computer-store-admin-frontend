@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductById } from "@/src/services/product.service";
+import { getProductById, getNewVariantTemplate } from "@/src/services/product.service";
 import { VariantFormPage } from "@/src/components/admin/catalog/VariantFormPage";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
@@ -29,7 +29,10 @@ export default async function NewVariantPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const product = await getProductById(id);
+  const [product, specTemplate] = await Promise.all([
+    getProductById(id),
+    getNewVariantTemplate(id),
+  ]);
   if (!product) notFound();
 
   return (
@@ -37,6 +40,7 @@ export default async function NewVariantPage({
       mode="create"
       productId={id}
       productName={product.name}
+      specTemplate={specTemplate}
     />
   );
 }

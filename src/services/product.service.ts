@@ -1,6 +1,7 @@
-import type { Product, ProductVariant, ProductVariantDetail } from "@/src/types/product.types";
+import type { Product, ProductVariant, ProductVariantDetail, DetailVariantStatus, SpecificationGroup, VariantMedia } from "@/src/types/product.types";
 import { MOCK_PRODUCTS } from "@/src/app/(dashboard)/products/_mock";
 import { MOCK_VARIANT } from "@/src/app/(dashboard)/products/[id]/variants/[variantId]/_mock";
+import { MOCK_SPEC_TEMPLATES } from "@/src/app/(dashboard)/products/_mock_spec_templates";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -247,6 +248,62 @@ export async function updateVariantDetail(
   await new Promise<void>((resolve) => setTimeout(resolve, 600));
   // Mock: return the existing mock variant unchanged
   return MOCK_VARIANT;
+}
+
+// ─── New variant spec template ────────────────────────────────────────────────
+
+/**
+ * Returns the specification group template for a new variant of the given product.
+ * Groups are seeded from the product's category (inherited) and any directly
+ * assigned groups, with all values set to "" so the user can fill them in.
+ *
+ * Mock implementation — replace with real GET /admin/products/:productId/variants/template
+ */
+export async function getNewVariantTemplate(
+  productId: string
+): Promise<SpecificationGroup[]> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 50));
+  return MOCK_SPEC_TEMPLATES[productId] ?? [];
+}
+
+// ─── Variant detail create ─────────────────────────────────────────────────────
+
+export interface CreateVariantDetailPayload {
+  name: string;
+  sku: string;
+  weight?: number | null;
+  originalPrice: number;
+  salePrice: number;
+  status: DetailVariantStatus;
+  description?: string;
+  specificationGroups?: SpecificationGroup[];
+  media?: VariantMedia[];
+}
+
+/**
+ * Create a new variant with full detail.
+ * Mock implementation — replace with real POST /admin/products/:productId/variants/detail
+ */
+export async function createVariantDetail(
+  productId: string,
+  data: CreateVariantDetailPayload
+): Promise<ProductVariantDetail> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 600));
+  const now = new Date().toISOString();
+  return {
+    id:                  `var-${Date.now()}`,
+    productId,
+    name:                data.name,
+    sku:                 data.sku,
+    originalPrice:       data.originalPrice,
+    salePrice:           data.salePrice,
+    weight:              data.weight ?? undefined,
+    status:              data.status,
+    updatedAt:           now,
+    description:         data.description ?? "",
+    specificationGroups: data.specificationGroups ?? [],
+    media:               data.media ?? [],
+  };
 }
 
 /**

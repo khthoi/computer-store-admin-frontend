@@ -1,214 +1,210 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { Input } from "@/src/components/ui/Input";
-import { Select } from "@/src/components/ui/Select";
 import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
-import { createVariant, updateVariant } from "@/src/services/variant.service";
-import type { PhienBanSanPham } from "@/src/types/variant.types";
+import { createVariantDetail } from "@/src/services/product.service";
+import { VariantInfoForm } from "@/src/components/admin/variantEdit/VariantInfoForm";
+import { PricingStatusForm } from "@/src/components/admin/variantEdit/PricingStatusForm";
+import { SpecificationEditor } from "@/src/components/admin/variantEdit/SpecificationEditor";
+import { MediaManager } from "@/src/components/admin/variantEdit/MediaManager";
+import type { SpecificationGroup, VariantMedia } from "@/src/types/product.types";
+import type { VariantInfoFormValue } from "@/src/components/admin/variantEdit/VariantInfoForm";
+import type { PricingStatusFormValue } from "@/src/components/admin/variantEdit/PricingStatusForm";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+// ─── Dynamic import — CKEditor must be client-only ───────────────────────────
+
+const RichTextEditor = dynamic(
+  () => import("@/src/components/editor").then((m) => ({ default: m.RichTextEditor })),
+  {
+    ssr: false,
+    loading: () => <div className="h-48 animate-pulse rounded-lg bg-secondary-100" />,
+  }
+);
+
+// ─── VariantFormPage ──────────────────────────────────────────────────────────
 
 export interface VariantFormPageProps {
-  mode: "create" | "edit";
+  mode: "create";
   productId: string;
   productName: string;
-  variant?: PhienBanSanPham;
+  /** Spec groups seeded from the product's category template, values pre-set to "". */
+  specTemplate?: SpecificationGroup[];
 }
 
-interface FormErrors {
-  name?: string;
-  sku?: string;
-  price?: string;
-  stock?: string;
-}
-
-const STATUS_OPTIONS = [
-  { value: "active",   label: "Kích hoạt" },
-  { value: "inactive", label: "Tắt" },
-];
-
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export function VariantFormPage({
-  mode,
-  productId,
-  productName,
-  variant,
-}: VariantFormPageProps) {
+export function VariantFormPage({ productId, productName, specTemplate = [] }: VariantFormPageProps) {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const [name,     setName]     = useState(variant?.name  ?? "");
-  const [sku,      setSku]      = useState(variant?.sku   ?? "");
-  const [price,    setPrice]    = useState(variant ? String(variant.price) : "");
-  const [stock,    setStock]    = useState(variant ? String(variant.stock) : "");
-  const [status,   setStatus]   = useState<string>(variant?.status ?? "active");
-  const [errors,   setErrors]   = useState<FormErrors>({});
+  // ── Section state ─────────────────────────────────────────────────────────
+
+  const [info, setInfo] = useState<VariantInfoFormValue>({
+    name:   "",
+    sku:    "",
+    weight: "",
+  });
+
+  const [pricing, setPricing] = useState<PricingStatusFormValue>({
+    originalPrice: "",
+    salePrice:     "",
+    status:        "visible",
+  });
+
+  const [description, setDescription] = useState("");
+  const [specs, setSpecs]             = useState<SpecificationGroup[]>(specTemplate);
+  const [media, setMedia]             = useState<VariantMedia[]>([]);
+
+  const [errors, setErrors]   = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
-  const backHref = `/products/${productId}/variants`;
+  // ── Validation ────────────────────────────────────────────────────────────
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  function validate(): boolean {
+    const next: Record<string, string> = {};
+    if (!info.name.trim())      next.name          = "Name is required.";
+    if (!info.sku.trim())       next.sku           = "SKU is required.";
+    if (!pricing.originalPrice) next.originalPrice = "Original price is required.";
+    if (!pricing.salePrice)     next.salePrice     = "Sale price is required.";
+    setErrors(next);
+    return Object.keys(next).length === 0;
+  }
 
-    const newErrors: FormErrors = {};
-    if (!name.trim()) newErrors.name = "Tên phiên bản là bắt buộc.";
-    if (!sku.trim())  newErrors.sku  = "SKU là bắt buộc.";
-    const priceNum = Number(price);
-    if (price === "" || isNaN(priceNum) || priceNum < 0) {
-      newErrors.price = "Nhập giá hợp lệ (≥ 0).";
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  async function handleCreate() {
+    if (!validate()) {
+      showToast("Please fix the errors before saving.", "error");
+      return;
     }
-    const stockNum = Number(stock);
-    if (stock === "" || isNaN(stockNum) || stockNum < 0 || !Number.isInteger(stockNum)) {
-      newErrors.stock = "Số nguyên ≥ 0.";
-    }
-
-    setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
 
     setIsSaving(true);
     try {
-      if (mode === "create") {
-        await createVariant(productId, productName, {
-          name: name.trim(),
-          sku: sku.trim(),
-          price: priceNum,
-          stock: stockNum,
-          status: status as "active" | "inactive",
-        });
-        showToast("Đã thêm phiên bản.", "success");
-      } else {
-        await updateVariant(productId, variant!.id, {
-          name: name.trim(),
-          sku: sku.trim(),
-          price: priceNum,
-          stock: stockNum,
-          status: status as "active" | "inactive",
-        });
-        showToast("Đã cập nhật phiên bản.", "success");
-      }
-      router.push(backHref);
+      const created = await createVariantDetail(productId, {
+        name:                info.name.trim(),
+        sku:                 info.sku.trim(),
+        weight:              info.weight !== "" ? parseFloat(info.weight) : null,
+        originalPrice:       parseFloat(pricing.originalPrice),
+        salePrice:           parseFloat(pricing.salePrice),
+        status:              pricing.status,
+        description,
+        specificationGroups: specs,
+        media,
+      });
+      showToast("Variant created successfully.", "success");
+      router.push(`/products/${productId}/variants/${created.id}`);
     } catch {
-      showToast("Có lỗi xảy ra. Vui lòng thử lại.", "error");
+      showToast("Failed to create variant. Please try again.", "error");
     } finally {
       setIsSaving(false);
     }
   }
 
+  // ─────────────────────────────────────────────────────────────────────────
+
   return (
     <div className="space-y-6 p-6">
-      {/* Back link */}
-      <Link
-        href={backHref}
-        className="inline-flex items-center gap-1.5 text-sm text-secondary-500 transition-colors hover:text-secondary-700"
-      >
-        <ArrowLeftIcon className="h-4 w-4" />
-        Phiên bản sản phẩm
-      </Link>
+      {/* ── Page header ── */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
+            <Link href="/products" className="transition-colors hover:text-secondary-700">
+              Products
+            </Link>
+            <span aria-hidden="true">›</span>
+            <Link
+              href={`/products/${productId}`}
+              className="max-w-[200px] truncate transition-colors hover:text-secondary-700"
+              title={productName}
+            >
+              {productName}
+            </Link>
+            <span aria-hidden="true">›</span>
+            <Link
+              href={`/products/${productId}/variants`}
+              className="transition-colors hover:text-secondary-700"
+            >
+              Variants
+            </Link>
+            <span aria-hidden="true">›</span>
+            <span className="text-secondary-600">New Variant</span>
+          </nav>
 
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-secondary-900">
-          {mode === "create" ? "Thêm phiên bản" : `Sửa: ${variant!.name}`}
-        </h1>
-        <p className="mt-1 text-sm text-secondary-500">{productName}</p>
-      </div>
-
-      <form onSubmit={handleSubmit} noValidate className="space-y-6">
-        <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
-          <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-            Thông tin phiên bản
-          </h2>
-
-          <div className="space-y-5">
-            {/* Name + SKU */}
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Input
-                label="Tên phiên bản"
-                value={name}
-                onChange={(e) => {
-                  setName(e.target.value);
-                  setErrors((p) => ({ ...p, name: undefined }));
-                }}
-                placeholder="Ví dụ: 16GB DDR5-6400"
-                required
-                fullWidth
-                errorMessage={errors.name}
-              />
-              <Input
-                label="SKU"
-                value={sku}
-                onChange={(e) => {
-                  setSku(e.target.value);
-                  setErrors((p) => ({ ...p, sku: undefined }));
-                }}
-                placeholder="Ví dụ: SAM-990PRO-1TB"
-                required
-                fullWidth
-                errorMessage={errors.sku}
-              />
-            </div>
-
-            {/* Price + Stock + Status */}
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Input
-                label="Giá (VND)"
-                type="number"
-                value={price}
-                onChange={(e) => {
-                  setPrice(e.target.value);
-                  setErrors((p) => ({ ...p, price: undefined }));
-                }}
-                placeholder="0"
-                min={0}
-                required
-                fullWidth
-                errorMessage={errors.price}
-              />
-              <Input
-                label="Tồn kho"
-                type="number"
-                value={stock}
-                onChange={(e) => {
-                  setStock(e.target.value);
-                  setErrors((p) => ({ ...p, stock: undefined }));
-                }}
-                placeholder="0"
-                min={0}
-                step={1}
-                required
-                fullWidth
-                errorMessage={errors.stock}
-              />
-              <Select
-                label="Trạng thái"
-                options={STATUS_OPTIONS}
-                value={status}
-                onChange={(v) => setStatus(v as string)}
-                required
-              />
-            </div>
-          </div>
+          {/* Title */}
+          <h1 className="mt-2 text-2xl font-bold text-secondary-900">Add Variant</h1>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3">
+        <div className="flex items-center gap-3">
           <Link
-            href={backHref}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+            href={`/products/${productId}`}
+            className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
           >
-            Hủy
+            <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
+            Cancel
           </Link>
-          <Button type="submit" variant="primary" isLoading={isSaving}>
-            {mode === "create" ? "Thêm phiên bản" : "Lưu thay đổi"}
+          <Button
+            variant="primary"
+            isLoading={isSaving}
+            onClick={handleCreate}
+          >
+            Create Variant
           </Button>
         </div>
-      </form>
+      </div>
+
+      {/* ── Two-column layout ── */}
+      <div className="grid gap-6 xl:grid-cols-[300px_1fr] xl:items-start">
+
+        {/* ── Left column ── */}
+        <div className="space-y-4 xl:relative xl:top-0">
+          <VariantInfoForm
+            value={info}
+            onChange={setInfo}
+            errors={{ name: errors.name, sku: errors.sku, weight: errors.weight }}
+          />
+          <PricingStatusForm
+            value={pricing}
+            onChange={setPricing}
+            errors={{ originalPrice: errors.originalPrice, salePrice: errors.salePrice }}
+          />
+        </div>
+
+        {/* ── Right column ── */}
+        <div className="space-y-6">
+          {/* Description */}
+          <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
+              Description
+            </h2>
+            <RichTextEditor
+              value={description}
+              onChange={setDescription}
+              placeholder="Write the variant description…"
+              minHeight={240}
+            />
+          </div>
+
+          {/* Specifications */}
+          <SpecificationEditor groups={specs} onChange={setSpecs} />
+          {specs.length === 0 && (
+            <p className="text-sm text-secondary-400">
+              No specification template found for this category.
+            </p>
+          )}
+
+          {/* Media */}
+          <MediaManager
+            variantId=""
+            media={media}
+            onChange={setMedia}
+          />
+        </div>
+      </div>
     </div>
   );
 }
