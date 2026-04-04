@@ -26,44 +26,44 @@ type OrderRow = OrderSummary & Record<string, unknown>;
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("vi-VN", {
-    year:  "numeric",
+    year: "numeric",
     month: "2-digit",
-    day:   "2-digit",
+    day: "2-digit",
   });
 }
 
 const ORDER_STATUS_OPTIONS = [
-  { value: "pending",    label: "Pending" },
-  { value: "confirmed",  label: "Confirmed" },
+  { value: "pending", label: "Pending" },
+  { value: "confirmed", label: "Confirmed" },
   { value: "processing", label: "Processing" },
-  { value: "shipped",    label: "Shipped" },
-  { value: "delivered",  label: "Delivered" },
-  { value: "cancelled",  label: "Cancelled" },
-  { value: "returned",   label: "Returned" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
+  { value: "returned", label: "Returned" },
 ];
 
 const PAYMENT_STATUS_OPTIONS = [
-  { value: "unpaid",             label: "Unpaid" },
-  { value: "paid",               label: "Paid" },
-  { value: "refunded",           label: "Refunded" },
+  { value: "unpaid", label: "Unpaid" },
+  { value: "paid", label: "Paid" },
+  { value: "refunded", label: "Refunded" },
   { value: "partially_refunded", label: "Partial Refund" },
 ];
 
 const PAYMENT_METHOD_LABELS: Record<string, string> = {
-  cod:           "COD",
+  cod: "COD",
   bank_transfer: "Bank Transfer",
-  credit_card:   "Credit Card",
-  momo:          "MoMo",
-  zalopay:       "ZaloPay",
-  vnpay:         "VNPay",
+  credit_card: "Credit Card",
+  momo: "MoMo",
+  zalopay: "ZaloPay",
+  vnpay: "VNPay",
 };
 
 // ─── Columns ──────────────────────────────────────────────────────────────────
 
 const COLUMNS: ColumnDef<OrderRow>[] = [
   {
-    key:      "id",
-    header:   "Order ID",
+    key: "id",
+    header: "Order ID",
     sortable: true,
     render: (_, row) => (
       <Link
@@ -75,8 +75,8 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
     ),
   },
   {
-    key:      "createdAt",
-    header:   "Date",
+    key: "createdAt",
+    header: "Date",
     sortable: true,
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-600">
@@ -85,8 +85,8 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
     ),
   },
   {
-    key:      "customerName",
-    header:   "Customer",
+    key: "customerName",
+    header: "Customer",
     sortable: true,
     render: (_, row) => (
       <div>
@@ -96,14 +96,14 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
     ),
   },
   {
-    key:      "status",
-    header:   "Order Status",
+    key: "status",
+    header: "Order Status",
     sortable: true,
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
-    key:      "paymentStatus",
-    header:   "Payment",
+    key: "paymentStatus",
+    header: "Payment",
     sortable: true,
     render: (_, row) => (
       <div className="space-y-1">
@@ -115,15 +115,16 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
     ),
   },
   {
-    key:    "itemCount",
+    key: "itemCount",
     header: "Items",
+    align: "center",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.itemCount as number}</span>
     ),
   },
   {
-    key:      "grandTotal",
-    header:   "Total",
+    key: "grandTotal",
+    header: "Total",
     sortable: true,
     render: (_, row) => (
       <span className="text-sm font-semibold text-secondary-900">
@@ -132,7 +133,7 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
     ),
   },
   {
-    key:    "_actions",
+    key: "_actions",
     header: "",
     render: (_, row) => (
       <RowActions>
@@ -145,13 +146,13 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function OrdersTable({ initialOrders }: OrdersTableProps) {
-  const [q, setQ]                         = useState("");
-  const [statusFilter, setStatusFilter]   = useState<string[]>([]);
+  const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [paymentFilter, setPaymentFilter] = useState<string[]>([]);
-  const [sortKey, setSortKey]             = useState("createdAt");
-  const [sortDir, setSortDir]             = useState<SortDir>("desc");
-  const [page, setPage]                   = useState(1);
-  const [pageSize, setPageSize]           = useState(10);
+  const [sortKey, setSortKey] = useState("createdAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 

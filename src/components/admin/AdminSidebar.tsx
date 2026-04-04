@@ -51,11 +51,13 @@ export interface AdminSidebarProps {
 interface SidebarInternalCtx {
   collapsed: boolean;
   userRole: string;
+  allLeafHrefs: string[];
 }
 
 const InternalCtx = createContext<SidebarInternalCtx>({
   collapsed: false,
   userRole: "",
+  allLeafHrefs: [],
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -65,35 +67,70 @@ function isAllowed(item: AdminNavItem, userRole: string): boolean {
   return item.requiredRoles.includes(userRole);
 }
 
+/** Collect every leaf href in the nav tree (items that have href and no children). */
+function collectLeafHrefs(items: AdminNavItem[]): string[] {
+  const hrefs: string[] = [];
+  for (const item of items) {
+    if (item.href && !item.children?.length) {
+      hrefs.push(item.href);
+    }
+    if (item.children?.length) {
+      hrefs.push(...collectLeafHrefs(item.children));
+    }
+  }
+  return hrefs;
+}
+
 /**
- * Returns true when `href` matches the current pathname.
- * "/" is treated as an exact match only to avoid false-positives on all routes.
+ * Returns true when `href` should be considered active for `pathname`.
+ *
+ * Exact match always wins. Prefix match (`/foo` active on `/foo/bar`) is only
+ * applied when no other leaf nav item is a more-specific match for pathname —
+ * this prevents `/inventory` from highlighting when the route is
+ * `/inventory/items` (which has its own nav item).
  */
-function isItemActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href + "/");
+function isItemActive(
+  pathname: string,
+  href: string,
+  allLeafHrefs: string[]
+): boolean {
+  if (pathname === href) return true;
+  if (href === "/") return false;
+  if (!pathname.startsWith(href + "/")) return false;
+  // Prefix match: suppress if a more-specific nav item also matches pathname.
+  const moreSpecificExists = allLeafHrefs.some(
+    (other) =>
+      other !== href &&
+      other.startsWith(href + "/") &&
+      (pathname === other || pathname.startsWith(other + "/"))
+  );
+  return !moreSpecificExists;
 }
 
 /**
  * Recursively checks whether any descendant of `item` is active.
  */
-function hasActiveDescendant(pathname: string, item: AdminNavItem): boolean {
+function hasActiveDescendant(
+  pathname: string,
+  item: AdminNavItem,
+  allLeafHrefs: string[]
+): boolean {
   return (item.children ?? []).some(
     (child) =>
-      (child.href ? isItemActive(pathname, child.href) : false) ||
-      hasActiveDescendant(pathname, child)
+      (child.href ? isItemActive(pathname, child.href, allLeafHrefs) : false) ||
+      hasActiveDescendant(pathname, child, allLeafHrefs)
   );
 }
 
 // ─── NavItem ──────────────────────────────────────────────────────────────────
 
 function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
-  const { collapsed, userRole } = useContext(InternalCtx);
+  const { collapsed, userRole, allLeafHrefs } = useContext(InternalCtx);
   const pathname = usePathname();
 
   const hasChildren = !!item.children?.length;
-  const active = item.href ? isItemActive(pathname, item.href) : false;
-  const childActive = hasActiveDescendant(pathname, item);
+  const active = item.href ? isItemActive(pathname, item.href, allLeafHrefs) : false;
+  const childActive = hasActiveDescendant(pathname, item, allLeafHrefs);
 
   // Auto-open when a child route is active; allow manual toggle otherwise.
   const [open, setOpen] = useState(() => childActive);
@@ -226,9 +263,10 @@ export function AdminSidebar({
   const { collapsed, toggle } = useSidebar();
 
   const visibleItems = items.filter((item) => isAllowed(item, userRole));
+  const allLeafHrefs = collectLeafHrefs(items);
 
   return (
-    <InternalCtx.Provider value={{ collapsed, userRole }}>
+    <InternalCtx.Provider value={{ collapsed, userRole, allLeafHrefs }}>
       <aside
         className={[
           "flex flex-col bg-secondary-900 text-white transition-all duration-200 h-full",

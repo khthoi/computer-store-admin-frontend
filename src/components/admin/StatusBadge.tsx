@@ -16,6 +16,11 @@ import {
   ArrowUturnLeftIcon,
   BanknotesIcon,
   ExclamationCircleIcon,
+  ArrowDownTrayIcon,
+  ArrowUpTrayIcon,
+  ArrowPathIcon,
+  CubeIcon,
+  ExclamationTriangleIcon,
 } from "@heroicons/react/24/solid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -48,7 +53,23 @@ export type AdminStatus =
   | "paid"
   | "unpaid"
   | "refunded"
-  | "partially_refunded";
+  | "partially_refunded"
+  // ── Inventory / Return statuses ──
+  | "requested"
+  | "received"
+  | "completed"
+  | "packing"
+  | "packed"
+  | "partial"
+  | "low_stock"
+  | "out_of_stock_inv"
+  | "replacement"
+  | "store_credit"
+  // ── Promotion statuses ──
+  | "scheduled"
+  | "ended"
+  | "expired"
+  | "paused";
 
 export interface StatusBadgeProps {
   /** Any known AdminStatus value; unknown values render a neutral fallback. */
@@ -95,6 +116,22 @@ const CONFIG: Record<
   unpaid:              { label: "Unpaid",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
   refunded:            { label: "Refunded",           wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <ArrowUturnLeftIcon aria-hidden="true" /> },
   partially_refunded:  { label: "Partial Refund",     wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <CreditCardIcon aria-hidden="true" /> },
+  // ── Inventory / Return statuses ──
+  requested:           { label: "Requested",          wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ClockIcon aria-hidden="true" /> },
+  received:            { label: "Received",           wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <ArrowDownTrayIcon aria-hidden="true" /> },
+  completed:           { label: "Completed",          wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
+  packing:             { label: "Packing",            wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <CubeIcon aria-hidden="true" /> },
+  packed:              { label: "Packed",             wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ArrowUpTrayIcon aria-hidden="true" /> },
+  partial:             { label: "Partial",            wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
+  low_stock:           { label: "Low Stock",          wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationTriangleIcon aria-hidden="true" /> },
+  out_of_stock_inv:    { label: "Out of Stock",       wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
+  replacement:         { label: "Replacement",        wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ArrowPathIcon aria-hidden="true" /> },
+  store_credit:        { label: "Store Credit",       wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <CreditCardIcon aria-hidden="true" /> },
+  // ── Promotion statuses ──
+  scheduled:           { label: "Scheduled",          wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ClockIcon aria-hidden="true" /> },
+  ended:               { label: "Ended",              wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <ArchiveBoxIcon aria-hidden="true" /> },
+  expired:             { label: "Expired",            wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <XCircleIcon aria-hidden="true" /> },
+  paused:              { label: "Paused",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
 };
 
 const FALLBACK_CONFIG = {
