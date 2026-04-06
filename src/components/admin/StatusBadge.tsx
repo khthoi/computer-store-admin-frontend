@@ -21,6 +21,10 @@ import {
   ArrowPathIcon,
   CubeIcon,
   ExclamationTriangleIcon,
+  SparklesIcon,
+  GiftIcon,
+  MinusCircleIcon,
+  AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/solid";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -69,7 +73,12 @@ export type AdminStatus =
   | "scheduled"
   | "ended"
   | "expired"
-  | "paused";
+  | "paused"
+  // ── Loyalty transaction types ──
+  | "earn"
+  | "redeem"
+  | "expire"
+  | "adjust";
 
 export interface StatusBadgeProps {
   /** Any known AdminStatus value; unknown values render a neutral fallback. */
@@ -132,6 +141,11 @@ const CONFIG: Record<
   ended:               { label: "Ended",              wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <ArchiveBoxIcon aria-hidden="true" /> },
   expired:             { label: "Expired",            wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <XCircleIcon aria-hidden="true" /> },
   paused:              { label: "Paused",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
+  // ── Loyalty transaction types ──
+  earn:                { label: "Earn",               wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <SparklesIcon aria-hidden="true" /> },
+  redeem:              { label: "Redeem",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <GiftIcon aria-hidden="true" /> },
+  expire:              { label: "Expire",             wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <MinusCircleIcon aria-hidden="true" /> },
+  adjust:              { label: "Adjust",             wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <AdjustmentsHorizontalIcon aria-hidden="true" /> },
 };
 
 const FALLBACK_CONFIG = {

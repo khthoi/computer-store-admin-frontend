@@ -44,6 +44,7 @@ const COLUMNS: ColumnDef<Row>[] = [
     key: "id",
     header: "ID",
     sortable: true,
+    width: "w-[9%]",
     render: (_, row) => (
       <Link
         href={`/inventory/stock-out/${row.id as string}`}
@@ -71,11 +72,14 @@ const COLUMNS: ColumnDef<Row>[] = [
     key: "status",
     header: "Status",
     sortable: true,
+    align: "center",
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "itemCount",
     header: "Items",
+    sortable: true,
+    align: "center",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.itemCount as number}</span>
     ),

@@ -26,6 +26,7 @@ import {
   BellIcon,
   ReceiptPercentIcon,
   PuzzlePieceIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 
 import { SidebarProvider, useSidebar } from "@/src/components/admin/layout/SidebarContext";
@@ -209,24 +210,30 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     ],
   },
 
-  // ── Promotions ───────────────────────────────────────────────────────────────
+   // ── Promotions ───────────────────────────────────────────────────────────────
   {
     value: "promotions",
-    label: "Promotions",
+    label: "Promos & Coupons",
     icon: <TicketIcon className="w-5 h-5" />,
     dividerAfter: true,
     children: [
       {
         value: "promotions-list",
-        label: "Promotions",
+        label: "All Promos & Coupons",
         href: "/promotions",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
       {
-        value: "coupons",
-        label: "Coupons",
-        href: "/promotions/coupons",
-        icon: <ReceiptPercentIcon className="w-4 h-4" />,
+        value: "promotions-new",
+        label: "New Promotion",
+        href: "/promotions/new",
+        icon: <PlusIcon className="w-4 h-4" />,
+      },
+      {
+        value: "promotions-earn-rules",
+        label: "Earn Rules",
+        href: "/promotions/earn-rules",
+        icon: <BoltIcon className="w-4 h-4" />,
       },
     ],
   },

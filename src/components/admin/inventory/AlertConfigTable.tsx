@@ -16,8 +16,8 @@ import type { InventoryItem } from "@/src/types/inventory.types";
 type Row = InventoryItem & Record<string, unknown>;
 
 const ALERT_OPTIONS = [
-  { value: "ok",               label: "OK" },
-  { value: "low_stock",        label: "Low Stock" },
+  { value: "ok", label: "OK" },
+  { value: "low_stock", label: "Low Stock" },
   { value: "out_of_stock_inv", label: "Out of Stock" },
 ];
 
@@ -72,12 +72,14 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
         key: "alertLevel",
         header: "Alert Status",
         sortable: true,
+        align: "center",
         render: (_, row) => <StatusBadge status={row.alertLevel as string} size="sm" />,
       },
       {
         key: "quantityOnHand",
         header: "On Hand",
         sortable: true,
+        align: "center",
         render: (_, row) => (
           <span className="text-sm font-semibold text-secondary-900">
             {row.quantityOnHand as number}
@@ -88,10 +90,11 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
         key: "lowStockThreshold",
         header: "Alert Threshold",
         sortable: true,
+        align: "center",
         render: (_, row) => {
           const threshold = row.lowStockThreshold as number;
           return (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center justify-center gap-1.5">
               <BellAlertIcon
                 className={[
                   "w-3.5 h-3.5 shrink-0",
@@ -112,6 +115,7 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
       {
         key: "quantityAvailable",
         header: "Available",
+        align: "center",
         render: (_, row) => (
           <span className="text-sm text-secondary-600">{row.quantityAvailable as number}</span>
         ),
@@ -119,6 +123,7 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
       {
         key: "_actions",
         header: "",
+        align: "right",
         render: (_, row) => (
           <button
             type="button"

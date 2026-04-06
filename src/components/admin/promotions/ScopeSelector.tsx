@@ -1,33 +1,45 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
-import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Select } from "@/src/components/ui/Select";
 import type { PromotionScope, ScopeType } from "@/src/types/promotion.types";
 
 // ─── Mock reference data ───────────────────────────────────────────────────────
 // In production, these would be fetched via async search APIs.
 
+import type { SelectOptionBadge } from "@/src/components/ui/Select";
+
+// ─── Stock badge helper ────────────────────────────────────────────────────────
+
+function stockBadge(qty: number): SelectOptionBadge {
+  if (qty === 0) return { text: "Out of stock", variant: "error" };
+  if (qty <= 5)  return { text: `${qty} left`,      variant: "warning" };
+  return { text: `${qty} in stock`, variant: "default" };
+}
+
+// ─── Mock reference data ───────────────────────────────────────────────────────
+
 const MOCK_CATEGORIES = [
-  { id: "cat-cpu",   label: "Processors (CPU)" },
-  { id: "cat-mb",    label: "Motherboards" },
-  { id: "cat-ram",   label: "RAM / Memory" },
-  { id: "cat-gpu",   label: "Graphics Cards" },
-  { id: "cat-ssd",   label: "SSDs / Storage" },
-  { id: "cat-hdd",   label: "HDDs / Storage" },
-  { id: "cat-psu",   label: "Power Supplies" },
-  { id: "cat-case",  label: "PC Cases" },
-  { id: "cat-fans",  label: "Case Fans / Cooling" },
+  { id: "cat-cpu",    label: "Processors (CPU)" },
+  { id: "cat-mb",     label: "Motherboards" },
+  { id: "cat-ram",    label: "RAM / Memory" },
+  { id: "cat-gpu",    label: "Graphics Cards" },
+  { id: "cat-ssd",    label: "SSDs / Storage" },
+  { id: "cat-hdd",    label: "HDDs / Storage" },
+  { id: "cat-psu",    label: "Power Supplies" },
+  { id: "cat-case",   label: "PC Cases" },
+  { id: "cat-fans",   label: "Case Fans / Cooling" },
   { id: "cat-cooler", label: "CPU Coolers" },
 ];
 
 const MOCK_PRODUCTS = [
-  { id: "PROD-001", label: "Intel Core i9-13900K" },
-  { id: "PROD-002", label: "AMD Ryzen 9 7950X" },
-  { id: "PROD-003", label: "ASUS ROG Strix Z790-E" },
-  { id: "PROD-004", label: "Corsair Vengeance DDR5 32GB" },
-  { id: "PROD-005", label: "Samsung 990 Pro 2TB NVMe" },
-  { id: "PROD-006", label: "NVIDIA RTX 4090 FE" },
-  { id: "PROD-THERMAL-001", label: "Arctic MX-4 Thermal Paste 4g" },
+  { id: "PROD-001",         label: "Intel Core i9-13900K",         stock: 15  },
+  { id: "PROD-002",         label: "AMD Ryzen 9 7950X",             stock: 8   },
+  { id: "PROD-003",         label: "ASUS ROG Strix Z790-E",         stock: 3   },
+  { id: "PROD-004",         label: "Corsair Vengeance DDR5 32GB",   stock: 42  },
+  { id: "PROD-005",         label: "Samsung 990 Pro 2TB NVMe",      stock: 27  },
+  { id: "PROD-006",         label: "NVIDIA RTX 4090 FE",            stock: 2   },
+  { id: "PROD-THERMAL-001", label: "Arctic MX-4 Thermal Paste 4g", stock: 156 },
 ];
 
 const MOCK_BRANDS = [
@@ -39,6 +51,38 @@ const MOCK_BRANDS = [
   { id: "brand-samsung", label: "Samsung" },
 ];
 
+const MOCK_VARIANTS = [
+  { id: "VAR-I9-13900K-BOX",  label: "Core i9-13900K — Box",          stock: 10 },
+  { id: "VAR-I9-13900K-TRAY", label: "Core i9-13900K — Tray",         stock: 5  },
+  { id: "VAR-R9-7950X-BOX",   label: "Ryzen 9 7950X — Box",           stock: 8  },
+  { id: "VAR-DDR5-32-2X16",   label: "Vengeance DDR5 32GB (2×16GB)",  stock: 22 },
+  { id: "VAR-DDR5-64-2X32",   label: "Vengeance DDR5 64GB (2×32GB)",  stock: 7  },
+  { id: "VAR-990PRO-1TB",     label: "Samsung 990 Pro — 1TB",          stock: 18 },
+  { id: "VAR-990PRO-2TB",     label: "Samsung 990 Pro — 2TB",          stock: 9  },
+  { id: "VAR-RTX4090-FE",     label: "RTX 4090 Founders Edition",      stock: 2  },
+  { id: "VAR-RTX4090-STRIX",  label: "RTX 4090 ASUS ROG Strix",        stock: 0  },
+];
+
+// ─── Helpers ───────────────────────────────────────────────────────────────────
+
+function getRefOptions(scopeType: ScopeType) {
+  switch (scopeType) {
+    case "category": return MOCK_CATEGORIES.map((o) => ({ value: o.id, label: o.label, description: o.id }));
+    case "product":  return MOCK_PRODUCTS.map((o) => ({ value: o.id, label: o.label, description: `ID: ${o.id}`, badge: stockBadge(o.stock) }));
+    case "brand":    return MOCK_BRANDS.map((o) => ({ value: o.id, label: o.label, description: o.id }));
+    case "variant":  return MOCK_VARIANTS.map((o) => ({ value: o.id, label: o.label, description: `SKU: ${o.id}`, badge: stockBadge(o.stock) }));
+    default:         return [];
+  }
+}
+
+const REF_PLACEHOLDER: Record<ScopeType, string> = {
+  global:   "",
+  category: "Search category…",
+  product:  "Search product…",
+  brand:    "Search brand…",
+  variant:  "Search variant / SKU…",
+};
+
 // ─── Draft scope ───────────────────────────────────────────────────────────────
 
 export interface ScopeDraft {
@@ -46,98 +90,6 @@ export interface ScopeDraft {
   scopeType: ScopeType;
   scopeRefId?: string;
   scopeRefLabel?: string;
-}
-
-// ─── Inline combobox for scope ref ───────────────────────────────────────────
-
-function ScopeRefCombobox({
-  scopeType,
-  value,
-  label,
-  onSelect,
-}: {
-  scopeType: ScopeType;
-  value?: string;
-  label?: string;
-  onSelect: (id: string, label: string) => void;
-}) {
-  const [search, setSearch] = useState(label ?? "");
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  const options =
-    scopeType === "category" ? MOCK_CATEGORIES
-    : scopeType === "product" ? MOCK_PRODUCTS
-    : scopeType === "brand"   ? MOCK_BRANDS
-    : [];
-
-  const filtered = options.filter((o) =>
-    !search.trim() || o.label.toLowerCase().includes(search.toLowerCase()) || o.id.toLowerCase().includes(search.toLowerCase())
-  );
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (!ref.current?.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [open]);
-
-  useEffect(() => {
-    setSearch(label ?? "");
-  }, [label]);
-
-  if (scopeType === "global" || scopeType === "variant") {
-    return (
-      <input
-        type="text"
-        value={value ?? ""}
-        onChange={(e) => onSelect(e.target.value, e.target.value)}
-        placeholder={scopeType === "variant" ? "Variant / SKU ID" : ""}
-        className="flex-1 rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-      />
-    );
-  }
-
-  return (
-    <div ref={ref} className="relative flex-1">
-      <div className="flex items-center gap-1 rounded-lg border border-secondary-300 bg-white px-3 py-2 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500/20">
-        {value && (
-          <span className="flex items-center gap-1 rounded-md bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700 whitespace-nowrap">
-            {label ?? value}
-            <button type="button" onClick={() => { onSelect("", ""); setSearch(""); }}>
-              <XMarkIcon className="w-3 h-3" />
-            </button>
-          </span>
-        )}
-        <input
-          type="text"
-          value={value ? "" : search}
-          onChange={(e) => { setSearch(e.target.value); setOpen(true); }}
-          onFocus={() => setOpen(true)}
-          placeholder={value ? "" : `Search ${scopeType}…`}
-          className="flex-1 min-w-0 bg-transparent text-sm text-secondary-800 placeholder:text-secondary-400 focus:outline-none"
-        />
-      </div>
-      {open && filtered.length > 0 && (
-        <ul className="absolute z-50 mt-1 max-h-52 w-full overflow-y-auto rounded-xl border border-secondary-200 bg-white shadow-lg">
-          {filtered.map((opt) => (
-            <li key={opt.id}>
-              <button
-                type="button"
-                onClick={() => { onSelect(opt.id, opt.label); setSearch(opt.label); setOpen(false); }}
-                className="flex w-full flex-col px-3 py-2 text-left hover:bg-primary-50 transition-colors"
-              >
-                <span className="text-sm font-medium text-secondary-800">{opt.label}</span>
-                <span className="text-xs text-secondary-400 font-mono">{opt.id}</span>
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -193,33 +145,41 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
       )}
 
       {scopes.map((scope) => (
-        <div key={scope.draftId} className="flex items-start gap-3 rounded-xl border border-secondary-200 bg-secondary-50 p-3">
+        <div key={scope.draftId} className="flex items-center gap-3 rounded-xl border border-secondary-200 bg-secondary-50 p-3">
           {/* Type selector */}
-          <select
-            value={scope.scopeType}
-            onChange={(e) => updateScope(scope.draftId, { scopeType: e.target.value as ScopeType })}
-            disabled={hasGlobal && scope.scopeType !== "global"}
-            className="rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50"
-          >
-            {SCOPE_TYPE_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
+          <div className="w-52 flex-shrink-0">
+            <Select
+              options={SCOPE_TYPE_OPTIONS.map((o) => ({ value: o.value, label: o.label }))}
+              value={scope.scopeType}
+              onChange={(v) => updateScope(scope.draftId, { scopeType: v as ScopeType })}
+              disabled={hasGlobal && scope.scopeType !== "global"}
+            />
+          </div>
 
           {/* Ref selector (hidden for global) */}
           {scope.scopeType !== "global" && (
-            <ScopeRefCombobox
-              scopeType={scope.scopeType}
-              value={scope.scopeRefId}
-              label={scope.scopeRefLabel}
-              onSelect={(id, label) =>
-                updateScope(scope.draftId, { scopeRefId: id || undefined, scopeRefLabel: label || undefined })
-              }
-            />
+            <div className="flex-1">
+              <Select
+                options={getRefOptions(scope.scopeType)}
+                value={scope.scopeRefId ?? ""}
+                onChange={(v) => {
+                  const id = v as string;
+                  const found = getRefOptions(scope.scopeType).find((o) => o.value === id);
+                  updateScope(scope.draftId, {
+                    scopeRefId: id || undefined,
+                    scopeRefLabel: found?.label || undefined,
+                  });
+                }}
+                searchable
+                clearable
+                boldLabel
+                placeholder={REF_PLACEHOLDER[scope.scopeType]}
+              />
+            </div>
           )}
 
           {scope.scopeType === "global" && (
-            <span className="flex-1 flex items-center text-sm text-secondary-500">
+            <span className="flex-1 text-sm text-secondary-500">
               Applies to all products in the cart
             </span>
           )}
@@ -228,7 +188,7 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
           <button
             type="button"
             onClick={() => removeScope(scope.draftId)}
-            className="flex items-center justify-center w-8 h-8 rounded-lg text-error-500 hover:bg-error-50 transition-colors"
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-error-500 hover:bg-error-50 transition-colors flex-shrink-0"
             title="Remove scope"
           >
             <TrashIcon className="w-4 h-4" />

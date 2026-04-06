@@ -14,6 +14,7 @@ import {
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import { useToast } from "@/src/components/ui/Toast";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { duplicatePromotion } from "@/src/services/promotion.service";
 import type { PromotionSummary, PromotionType, StackingPolicy } from "@/src/types/promotion.types";
 
@@ -99,6 +100,7 @@ export function PromotionsTable({
     {
       key: "id",
       header: "ID",
+      width: "w-[7%]",
       sortable: true,
       render: (_, row) => (
         <Link
@@ -112,10 +114,15 @@ export function PromotionsTable({
     {
       key: "name",
       header: "Name",
+      width: "w-[14%]",
       sortable: true,
       render: (_, row) => (
         <div>
-          <p className="text-sm font-medium text-secondary-900">{row.name as string}</p>
+          <Tooltip content={row.name as string} placement="top" anchorToContent>
+            <p className="truncate text-sm font-medium text-secondary-900 cursor-default">
+              {row.name as string}
+            </p>
+          </Tooltip>
           {(row.isCoupon as boolean) && (
             <span className="inline-block mt-0.5 rounded-md bg-secondary-100 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-secondary-600">
               {row.code as string}
@@ -127,6 +134,7 @@ export function PromotionsTable({
     {
       key: "type",
       header: "Type",
+      width: "w-[9%]",
       sortable: true,
       render: (_, row) => (
         <span className="text-sm text-secondary-600">
@@ -137,13 +145,19 @@ export function PromotionsTable({
     {
       key: "scopeDisplay",
       header: "Scope",
+      width: "w-[10%]",
       render: (_, row) => (
-        <span className="text-sm text-secondary-600">{row.scopeDisplay as string}</span>
+        <Tooltip content={row.scopeDisplay as string} placement="top" anchorToContent>
+          <span className="block truncate text-sm text-secondary-600 cursor-default">
+            {row.scopeDisplay as string}
+          </span>
+        </Tooltip>
       ),
     },
     {
       key: "discountDisplay",
       header: "Discount",
+      width: "w-[9%]",
       sortable: true,
       render: (_, row) => (
         <span className="text-sm font-semibold text-primary-700">{row.discountDisplay as string}</span>
@@ -152,12 +166,16 @@ export function PromotionsTable({
     {
       key: "status",
       header: "Status",
+      width: "w-[7%]",
+      align: "center",
       sortable: true,
       render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
     },
     {
       key: "stackingPolicy",
       header: "Stacking",
+      width: "w-[8%]",
+      align: "center",
       render: (_, row) => {
         const policy = row.stackingPolicy as StackingPolicy;
         return (
@@ -170,6 +188,7 @@ export function PromotionsTable({
     {
       key: "startDate",
       header: "Period",
+      width: "w-[12%]",
       sortable: true,
       render: (_, row) => (
         <span className="whitespace-nowrap text-xs text-secondary-600">
@@ -180,13 +199,14 @@ export function PromotionsTable({
     {
       key: "usageCount",
       header: "Usage",
+      width: "w-[8%]",
       sortable: true,
       render: (_, row) => {
         const count = row.usageCount as number;
         const limit = row.totalUsageLimit as number | undefined;
         const pct = limit ? Math.min(100, Math.round((count / limit) * 100)) : null;
         return (
-          <div className="min-w-[80px]">
+          <div>
             <span className="text-sm text-secondary-600">
               {count}{limit !== undefined ? ` / ${limit}` : ""}
             </span>
@@ -205,6 +225,8 @@ export function PromotionsTable({
     {
       key: "priority",
       header: "Priority",
+      width: "w-[7%]",
+      align: "center",
       sortable: true,
       render: (_, row) => (
         <span className="text-sm font-mono text-secondary-600">{row.priority as number}</span>
@@ -213,6 +235,7 @@ export function PromotionsTable({
     {
       key: "_actions",
       header: "",
+      width: "w-[8%]",
       render: (_, row) => (
         <RowActions>
           <RowActionView href={`/promotions/${row.id as string}`} />
@@ -272,6 +295,7 @@ export function PromotionsTable({
       columns={COLUMNS}
       data={pageRows}
       keyField="id"
+      tableLayout="fixed"
       sortKey={sortKey}
       sortDir={sortDir}
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}

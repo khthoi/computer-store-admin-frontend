@@ -153,6 +153,18 @@ export interface DataTableProps<T extends Record<string, unknown>> {
    */
   hidePagination?: boolean;
 
+  /**
+   * CSS table-layout algorithm.
+   * - `"auto"` (default): column widths are determined by content — each tab
+   *   or data state may render with different column widths.
+   * - `"fixed"`: column widths strictly follow the `width` prop on each
+   *   `ColumnDef`. All tabs / filter states share identical column widths,
+   *   regardless of what data is currently visible.
+   *
+   * @default "auto"
+   */
+  tableLayout?: "auto" | "fixed";
+
   className?: string;
 }
 
@@ -266,6 +278,7 @@ export function DataTable<T extends Record<string, unknown>>({
   expandedByDefault = false,
   rowClassName,
   hidePagination = false,
+  tableLayout = "auto",
   className = "",
 }: DataTableProps<T>) {
   const searchId = useId();
@@ -494,7 +507,7 @@ export function DataTable<T extends Record<string, unknown>>({
 
       {/* ── Table ── */}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[600px] text-sm">
+        <table className={["w-full min-w-[600px] text-sm", tableLayout === "fixed" ? "table-fixed" : ""].filter(Boolean).join(" ")}>
           {/* Header */}
           <thead className="bg-secondary-50">
             <tr className="border-b border-secondary-200">

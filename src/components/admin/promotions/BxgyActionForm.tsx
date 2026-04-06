@@ -1,52 +1,27 @@
 "use client";
 
+import { Select, type SelectOptionBadge } from "@/src/components/ui/Select";
 import type { BxgyFields, DeliveryMode } from "@/src/types/promotion.types";
 
-// ─── Mock product search data ─────────────────────────────────────────────────
+// ─── Stock badge helper ────────────────────────────────────────────────────────
 
-const MOCK_PRODUCTS = [
-  { id: "PROD-001", label: "Intel Core i9-13900K" },
-  { id: "PROD-002", label: "AMD Ryzen 9 7950X" },
-  { id: "PROD-003", label: "ASUS ROG Strix Z790-E" },
-  { id: "PROD-004", label: "Corsair Vengeance DDR5 32GB" },
-  { id: "PROD-005", label: "Samsung 990 Pro 2TB NVMe" },
-  { id: "PROD-006", label: "NVIDIA RTX 4090 FE" },
-  { id: "PROD-THERMAL-001", label: "Arctic MX-4 Thermal Paste 4g" },
-];
-
-// ─── Simple product combobox ──────────────────────────────────────────────────
-
-function ProductSelect({
-  value,
-  label,
-  placeholder,
-  onSelect,
-}: {
-  value?: string;
-  label?: string;
-  placeholder: string;
-  onSelect: (id: string | undefined, label: string | undefined) => void;
-}) {
-  return (
-    <select
-      value={value ?? "__any__"}
-      onChange={(e) => {
-        if (e.target.value === "__any__") {
-          onSelect(undefined, undefined);
-        } else {
-          const found = MOCK_PRODUCTS.find((p) => p.id === e.target.value);
-          onSelect(found?.id, found?.label);
-        }
-      }}
-      className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-    >
-      <option value="__any__">{placeholder}</option>
-      {MOCK_PRODUCTS.map((p) => (
-        <option key={p.id} value={p.id}>{p.label}</option>
-      ))}
-    </select>
-  );
+function stockBadge(qty: number): SelectOptionBadge {
+  if (qty === 0) return { text: "Out of stock", variant: "error" };
+  if (qty <= 5)  return { text: `${qty} left`,      variant: "warning" };
+  return { text: `${qty} in stock`, variant: "default" };
 }
+
+// ─── Mock product data ────────────────────────────────────────────────────────
+
+const PRODUCT_OPTIONS = [
+  { value: "PROD-001",         label: "Intel Core i9-13900K",         description: "ID: PROD-001",         badge: stockBadge(15)  },
+  { value: "PROD-002",         label: "AMD Ryzen 9 7950X",             description: "ID: PROD-002",         badge: stockBadge(8)   },
+  { value: "PROD-003",         label: "ASUS ROG Strix Z790-E",         description: "ID: PROD-003",         badge: stockBadge(3)   },
+  { value: "PROD-004",         label: "Corsair Vengeance DDR5 32GB",   description: "ID: PROD-004",         badge: stockBadge(42)  },
+  { value: "PROD-005",         label: "Samsung 990 Pro 2TB NVMe",      description: "ID: PROD-005",         badge: stockBadge(27)  },
+  { value: "PROD-006",         label: "NVIDIA RTX 4090 FE",            description: "ID: PROD-006",         badge: stockBadge(2)   },
+  { value: "PROD-THERMAL-001", label: "Arctic MX-4 Thermal Paste 4g", description: "ID: PROD-THERMAL-001", badge: stockBadge(156) },
+];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -71,14 +46,20 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
         <p className="text-xs font-bold uppercase tracking-wide text-blue-700">BUY</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-              Buy Product <span className="font-normal text-secondary-400">(or any in scope)</span>
-            </label>
-            <ProductSelect
-              value={value.buyProductId}
-              label={value.buyProductLabel}
+            <Select
+              label="Buy Product"
+              options={PRODUCT_OPTIONS}
+              value={value.buyProductId ?? ""}
+              onChange={(v) => {
+                const id = v as string;
+                const found = PRODUCT_OPTIONS.find((p) => p.value === id);
+                patch({ buyProductId: id || undefined, buyProductLabel: found?.label });
+              }}
+              searchable
+              clearable
+              boldLabel
               placeholder="Any product in scope"
-              onSelect={(id, label) => patch({ buyProductId: id, buyProductLabel: label })}
+              helperText="Leave blank to match any product in the defined scope"
             />
           </div>
           <div>
@@ -93,6 +74,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               onChange={(e) => patch({ buyQuantity: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
+            <p className="mt-1 text-[11px] text-secondary-400">Minimum units the customer must purchase to trigger the deal</p>
           </div>
         </div>
       </div>
@@ -102,14 +84,20 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
         <p className="text-xs font-bold uppercase tracking-wide text-success-700">GET (FREE / DISCOUNTED)</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-              Get Product <span className="font-normal text-secondary-400">(or same as buy)</span>
-            </label>
-            <ProductSelect
-              value={value.getProductId}
-              label={value.getProductLabel}
+            <Select
+              label="Get Product"
+              options={PRODUCT_OPTIONS}
+              value={value.getProductId ?? ""}
+              onChange={(v) => {
+                const id = v as string;
+                const found = PRODUCT_OPTIONS.find((p) => p.value === id);
+                patch({ getProductId: id || undefined, getProductLabel: found?.label });
+              }}
+              searchable
+              clearable
+              boldLabel
               placeholder="Same as buy product"
-              onSelect={(id, label) => patch({ getProductId: id, getProductLabel: label })}
+              helperText="Leave blank to apply the discount to the same buy-side product"
             />
           </div>
           <div>
@@ -124,6 +112,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               onChange={(e) => patch({ getQuantity: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
+            <p className="mt-1 text-[11px] text-secondary-400">Number of units the customer receives at the discounted price</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
@@ -144,6 +133,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
                 {value.getDiscountPercent === 100 ? "(fully free)" : value.getDiscountPercent === 0 ? "(no discount)" : ""}
               </span>
             </div>
+            <p className="mt-1 text-[11px] text-secondary-400">100% = completely free; 50% = half price; 0% = no discount</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
@@ -157,7 +147,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               onChange={(e) => patch({ maxApplicationsPerOrder: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
-            <p className="mt-1 text-[11px] text-secondary-400">e.g. 1 = get at most 1 free item per order</p>
+            <p className="mt-1 text-[11px] text-secondary-400">e.g. 1 = get at most 1 free item per order, regardless of how many qualifying sets are in the cart</p>
           </div>
         </div>
       </div>
@@ -177,30 +167,32 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
                   onChange={() => patch({ deliveryMode: mode })}
                   className="accent-primary-600"
                 />
-                <span className="text-sm text-secondary-700">
-                  {mode === "auto_add" ? "Auto-add to cart" : "Customer selects from options"}
-                </span>
+                <div>
+                  <span className="text-sm text-secondary-700">
+                    {mode === "auto_add" ? "Auto-add to cart" : "Customer selects from options"}
+                  </span>
+                  <p className="text-[11px] text-secondary-400">
+                    {mode === "auto_add"
+                      ? "Free item is added to the cart automatically when conditions are met"
+                      : "Customer can choose their free item from a list of eligible products"}
+                  </p>
+                </div>
               </label>
             ))}
           </div>
           {value.deliveryMode === "customer_selects" && (
             <div className="mt-3">
-              <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-                Eligible Free Products (comma-separated IDs)
-              </label>
-              <input
-                type="text"
-                value={(value.eligibleFreeProductIds ?? []).join(", ")}
-                onChange={(e) =>
-                  patch({
-                    eligibleFreeProductIds: e.target.value
-                      .split(",")
-                      .map((s) => s.trim())
-                      .filter(Boolean),
-                  })
-                }
-                placeholder="PROD-001, PROD-002, PROD-003"
-                className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+              <Select
+                label="Eligible Free Products"
+                options={PRODUCT_OPTIONS}
+                value={value.eligibleFreeProductIds ?? []}
+                onChange={(v) => patch({ eligibleFreeProductIds: v as string[] })}
+                multiple
+                searchable
+                clearable
+                boldLabel
+                placeholder="Select eligible free products…"
+                helperText="Products the customer can choose as their free gift"
               />
             </div>
           )}

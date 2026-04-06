@@ -1,6 +1,7 @@
 "use client";
 
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { Select } from "@/src/components/ui/Select";
 import { formatVND } from "@/src/lib/format";
 import type { BulkTier, DiscountType } from "@/src/types/promotion.types";
 
@@ -101,14 +102,15 @@ export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
           </div>
 
           {/* Discount type */}
-          <select
+          <Select
+            options={[
+              { value: "percentage", label: "% off" },
+              { value: "fixed",      label: "₫ off/item" },
+            ]}
             value={tier.discountType}
-            onChange={(e) => updateTier(idx, { discountType: e.target.value as DiscountType })}
-            className="w-full rounded-lg border border-secondary-300 bg-white px-2 py-1.5 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-          >
-            <option value="percentage">% off</option>
-            <option value="fixed">₫ off/item</option>
-          </select>
+            onChange={(v) => updateTier(idx, { discountType: v as DiscountType })}
+            size="sm"
+          />
 
           {/* Remove */}
           <button

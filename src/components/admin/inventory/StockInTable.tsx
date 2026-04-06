@@ -13,6 +13,7 @@ import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import { formatVND } from "@/src/lib/format";
 import type { StockInSummary } from "@/src/types/inventory.types";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 
 type Row = StockInSummary & Record<string, unknown>;
 
@@ -47,27 +48,36 @@ const COLUMNS: ColumnDef<Row>[] = [
     key: "receiptCode",
     header: "Receipt Code",
     sortable: true,
+    width: "w-[11%]",
     render: (_, row) => (
-      <span className="font-mono text-xs text-secondary-600">{row.receiptCode as string}</span>
+      <Tooltip content={row.receiptCode as string} placement="top" anchorToContent>
+        <span className="font-mono text-xs truncate text-secondary-600">{row.receiptCode as string}</span>
+      </Tooltip>
     ),
   },
   {
     key: "supplierName",
     header: "Supplier",
     sortable: true,
+    width: "w-[17%]",
     render: (_, row) => (
-      <span className="text-sm text-secondary-800">{row.supplierName as string}</span>
+      <Tooltip content={row.supplierName as string} placement="top" anchorToContent>
+        <span className="text-sm truncate text-secondary-800">{row.supplierName as string}</span>
+      </Tooltip>
     ),
   },
   {
     key: "status",
     header: "Status",
     sortable: true,
+    align: "center",
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "itemCount",
     header: "Items",
+    sortable: true,
+    align: "center",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.itemCount as number}</span>
     ),

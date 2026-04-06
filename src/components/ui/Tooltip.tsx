@@ -23,6 +23,7 @@ import {
   useState,
   type ReactElement,
   type ReactNode,
+  type RefCallback,
 } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -52,6 +53,21 @@ export interface TooltipProps {
   maxWidth?: string;
   /** Disable the tooltip entirely */
   disabled?: boolean;
+  /**
+   * When true, Floating UI anchors to an inline `<span>` wrapping the
+   * *content inside* the child element instead of the element itself.
+   *
+   * Use this when the child is a block/max-width container (e.g. a truncated
+   * `<p>` or `<td>`) so the tooltip positions over the actual text rather than
+   * over the full-width box.
+   *
+   * ```tsx
+   * <Tooltip content="Full long name here" anchorToContent>
+   *   <p className="truncate max-w-[200px]">Full long name here</p>
+   * </Tooltip>
+   * ```
+   */
+  anchorToContent?: boolean;
   /**
    * Trigger element. Must be a single React element so Floating UI can
    * attach its ref directly to the real DOM node (native HTML elements and
@@ -83,6 +99,7 @@ export function Tooltip({
   offsetPx = 8,
   delay = 50,
   disabled = false,
+  anchorToContent = false,
   children,
 }: TooltipProps) {
   const [open, setOpen] = useState(false);
@@ -137,14 +154,39 @@ export function Tooltip({
     left: "right",
   }[resolvedPlacement.split("-")[0]] as "top" | "right" | "bottom" | "left";
 
-  // Inject ref + interaction props directly into the child element so
-  // Floating UI measures the real DOM node — not a wrapper with zero size.
-  const trigger = isValidElement(children)
-    ? cloneElement(children as ReactElement<Record<string, unknown>>, {
-      ref: refs.setReference,
-      ...getReferenceProps(),
-    })
-    : children;
+  // Build the trigger element.
+  //
+  // Default: inject ref + interaction props into the child element directly —
+  // Floating UI measures that DOM node.
+  //
+  // anchorToContent=true: keep the outer element untouched (for layout /
+  // truncation) and wrap its inner children in an inline <span> that carries
+  // the ref. Floating UI then measures only the text bounding box, so the
+  // tooltip appears centred over the actual content rather than the full-width
+  // container.
+  let trigger: ReactNode;
+
+  if (anchorToContent && isValidElement(children)) {
+    const childEl = children as ReactElement<Record<string, unknown>>;
+    const innerAnchor = (
+      <span
+        ref={refs.setReference as RefCallback<HTMLSpanElement>}
+        style={{ display: "inline" }}
+        {...getReferenceProps()}
+      >
+        {childEl.props.children as ReactNode}
+      </span>
+    );
+    // Outer element keeps its className/style for layout; inner span is the anchor.
+    trigger = cloneElement(childEl, {}, innerAnchor);
+  } else {
+    trigger = isValidElement(children)
+      ? cloneElement(children as ReactElement<Record<string, unknown>>, {
+          ref: refs.setReference,
+          ...getReferenceProps(),
+        })
+      : children;
+  }
 
   return (
     <>

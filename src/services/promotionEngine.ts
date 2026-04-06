@@ -124,8 +124,11 @@ export function evaluateConditions(
   const now = new Date().toISOString().slice(0, 10);
   if (now < promotion.startDate || now > promotion.endDate) return false;
 
-  // Status
-  if (promotion.status !== "active") return false;
+  // Status — also treat "scheduled" as active once the start date has been reached
+  const effectivelyActive =
+    promotion.status === "active" ||
+    (promotion.status === "scheduled" && now >= promotion.startDate);
+  if (!effectivelyActive) return false;
 
   // Global usage limit
   if (

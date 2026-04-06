@@ -22,7 +22,9 @@ import { formatVND } from "@/src/lib/format";
 import {
   MapPinIcon,
   ClipboardDocumentListIcon,
+  SparklesIcon,
 } from "@heroicons/react/24/outline";
+import { CustomerLoyaltyTab } from "@/src/components/admin/customers/CustomerLoyaltyTab";
 
 export const dynamic = "force-dynamic";
 
@@ -190,6 +192,11 @@ export default async function CustomerDetailPage({
                 label: "Lịch sử đơn hàng",
                 icon: <ClipboardDocumentListIcon className="h-4 w-4" />,
               },
+              {
+                value: "loyalty",
+                label: "Loyalty & Points",
+                icon: <SparklesIcon className="h-4 w-4" />,
+              },
             ]}
             defaultValue="addresses"
             className="border-b border-secondary-200 px-6"
@@ -203,6 +210,10 @@ export default async function CustomerDetailPage({
 
             <TabPanel value="orders" className="p-6">
               <CustomerOrderHistoryList orders={orderHistory} />
+            </TabPanel>
+
+            <TabPanel value="loyalty" className="p-6">
+              <CustomerLoyaltyTab customerId={customer.id} />
             </TabPanel>
           </Tabs>
         </div>

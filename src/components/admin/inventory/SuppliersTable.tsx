@@ -14,6 +14,7 @@ import { PlusIcon, PencilIcon } from "@heroicons/react/24/outline";
 import { createSupplier, updateSupplier } from "@/src/services/inventory.service";
 import { useToast } from "@/src/components/ui/Toast";
 import type { Supplier } from "@/src/types/inventory.types";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 
 type Row = Supplier & Record<string, unknown>;
 
@@ -35,7 +36,9 @@ const COLUMNS: ColumnDef<Row>[] = [
     sortable: true,
     render: (_, row) => (
       <div>
-        <p className="text-sm font-semibold text-secondary-900">{row.name as string}</p>
+        <Tooltip content={row.name as string} placement="top" anchorToContent>
+          <p className="text-sm font-semibold text-secondary-900">{row.name as string}</p>
+        </Tooltip>
         <p className="text-xs text-secondary-500">{row.contactName as string}</p>
       </div>
     ),
@@ -54,12 +57,14 @@ const COLUMNS: ColumnDef<Row>[] = [
     key: "status",
     header: "Status",
     sortable: true,
+    align: "center",
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "productCount",
     header: "Products",
     sortable: true,
+    align: "center",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.productCount as number}</span>
     ),
@@ -68,6 +73,7 @@ const COLUMNS: ColumnDef<Row>[] = [
     key: "totalOrders",
     header: "Orders",
     sortable: true,
+    align: "center",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.totalOrders as number}</span>
     ),
