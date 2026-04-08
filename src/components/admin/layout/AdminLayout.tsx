@@ -26,6 +26,7 @@ import {
   BellIcon,
   ReceiptPercentIcon,
   PuzzlePieceIcon,
+  BoltIcon,
 } from "@heroicons/react/24/outline";
 
 import { SidebarProvider, useSidebar } from "@/src/components/admin/layout/SidebarContext";
@@ -227,6 +228,12 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         label: "New Promotion",
         href: "/promotions/new",
         icon: <PlusIcon className="w-4 h-4" />,
+      },
+      {
+        value: "flash-sales",
+        label: "Flash Sales",
+        href: "/promotions/flash-sales",
+        icon: <BoltIcon className="w-4 h-4" />,
       },
     ],
   },
