@@ -105,7 +105,7 @@ export const MOCK_VARIANTS: VariantSearchResult[] = [
 export const MOCK_FLASH_SALES: FlashSale[] = [
   {
     flashSaleId: 1,
-    ten: "Flash Sale Cuối Tuần — Giảm Đến 35%",
+    ten: "Flash Sale Cuối Tuần — Giảm Đến 35% Linh Kiện Gaming PC và Laptop và SSD",
     moTa: "Sự kiện flash sale hàng tuần dành cho linh kiện PC và laptop gaming.",
     trangThai: "dang_dien_ra",
     batDau: "2026-04-08T08:00:00.000Z",

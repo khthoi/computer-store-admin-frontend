@@ -12,12 +12,12 @@ import {
   PencilSquareIcon,
   NoSymbolIcon,
 } from "@heroicons/react/24/outline";
-import { StatCard }    from "@/src/components/admin/StatCard";
-import { DataTable }   from "@/src/components/admin/DataTable";
+import { StatCard } from "@/src/components/admin/StatCard";
+import { DataTable } from "@/src/components/admin/DataTable";
 import type { ColumnDef } from "@/src/components/admin/DataTable";
-import { Select }      from "@/src/components/ui/Select";
-import { Tooltip }     from "@/src/components/ui/Tooltip";
-import { useToast }    from "@/src/components/ui/Toast";
+import { Select } from "@/src/components/ui/Select";
+import { Tooltip } from "@/src/components/ui/Tooltip";
+import { useToast } from "@/src/components/ui/Toast";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FlashSaleStatusBadge } from "./FlashSaleStatusBadge";
 import {
@@ -35,11 +35,11 @@ import type {
 // ─── Status filter options ─────────────────────────────────────────────────────
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "nhap",         label: "Nháp" },
-  { value: "sap_dien_ra",  label: "Sắp diễn ra" },
+  { value: "nhap", label: "Nháp" },
+  { value: "sap_dien_ra", label: "Sắp diễn ra" },
   { value: "dang_dien_ra", label: "Đang diễn ra" },
-  { value: "da_ket_thuc",  label: "Đã kết thúc" },
-  { value: "huy",          label: "Đã hủy" },
+  { value: "da_ket_thuc", label: "Đã kết thúc" },
+  { value: "huy", label: "Đã hủy" },
 ];
 
 // ─── Table columns ─────────────────────────────────────────────────────────────
@@ -49,24 +49,27 @@ function buildColumns(
 ): ColumnDef<FlashSaleSummary & Record<string, unknown>>[] {
   return [
     {
-      key:    "ten",
-      header: "Tên sự kiện",
-      render: (_, row) => (
+      key:     "ten",
+      header:  "Tên sự kiện",
+      width:   "w-[20%]",
+      tooltip: (_, row) => row.ten as string,
+      render:  (_, row) => (
         <Link
           href={`/promotions/flash-sales/${row.flashSaleId}`}
-          className="font-medium text-primary-700 hover:text-primary-800 hover:underline transition-colors"
+          className="font-medium text-primary-700 hover:text-primary-800 hover:underline transition-colors truncate block"
         >
           {row.ten as string}
         </Link>
       ),
     },
     {
-      key:    "trangThai",
+      key: "trangThai",
       header: "Trạng thái",
+      align: "center",
       render: (value) => <FlashSaleStatusBadge status={value as FlashSaleStatus} />,
     },
     {
-      key:    "batDau",
+      key: "batDau",
       header: "Thời gian",
       render: (_, row) => (
         <div className="text-xs text-secondary-600 space-y-0.5">
@@ -76,20 +79,20 @@ function buildColumns(
       ),
     },
     {
-      key:    "soLuongPhienBan",
+      key: "soLuongPhienBan",
       header: "Variants",
-      align:  "center",
+      align: "center",
       render: (value) => (
         <span className="font-semibold text-secondary-700">{value as number}</span>
       ),
     },
     {
-      key:    "tongSanPhamDaBan",
+      key: "tongSanPhamDaBan",
       header: "Đã bán / Giới hạn",
       render: (_, row) => {
-        const sold  = row.tongSanPhamDaBan as number;
+        const sold = row.tongSanPhamDaBan as number;
         const limit = row.tongGioiHan as number;
-        const pct   = limit > 0 ? Math.min(100, Math.round((sold / limit) * 100)) : 0;
+        const pct = limit > 0 ? Math.min(100, Math.round((sold / limit) * 100)) : 0;
         return (
           <div className="space-y-1 min-w-[100px]">
             <div className="flex items-center justify-between text-xs text-secondary-600">
@@ -110,7 +113,7 @@ function buildColumns(
       },
     },
     {
-      key:    "createdAt",
+      key: "createdAt",
       header: "Ngày tạo",
       render: (value) => (
         <span className="text-xs text-secondary-500 whitespace-nowrap">
@@ -119,11 +122,11 @@ function buildColumns(
       ),
     },
     {
-      key:    "flashSaleId",
+      key: "flashSaleId",
       header: "",
-      align:  "right",
+      align: "right",
       render: (_, row) => {
-        const canEdit   = row.trangThai === "nhap" || row.trangThai === "sap_dien_ra";
+        const canEdit = row.trangThai === "nhap" || row.trangThai === "sap_dien_ra";
         const canCancel = row.trangThai === "nhap" || row.trangThai === "sap_dien_ra";
         return (
           <div className="flex items-center justify-end gap-1">
@@ -177,20 +180,20 @@ export function FlashSalesListClient() {
   const { showToast } = useToast();
 
   // ── Data state ────────────────────────────────────────────────────────────
-  const [data,    setData]    = useState<FlashSaleSummary[]>([]);
-  const [stats,   setStats]   = useState<FlashSaleStats | null>(null);
+  const [data, setData] = useState<FlashSaleSummary[]>([]);
+  const [stats, setStats] = useState<FlashSaleStats | null>(null);
   const [loading, setLoading] = useState(true);
-  const [total,   setTotal]   = useState(0);
+  const [total, setTotal] = useState(0);
 
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [search,   setSearch]   = useState("");
-  const [status,   setStatus]   = useState<string>("");
-  const [page,     setPage]     = useState(1);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState<string>("");
+  const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
   // ── Confirm cancel state ──────────────────────────────────────────────────
   const [cancelTarget, setCancelTarget] = useState<{ id: number; name: string } | null>(null);
-  const [cancelling,   setCancelling]   = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -199,9 +202,9 @@ export function FlashSalesListClient() {
       const [result, statsData] = await Promise.all([
         getFlashSales({
           page,
-          limit:   pageSize,
-          status:  (status as FlashSaleStatus) || undefined,
-          search:  search || undefined,
+          limit: pageSize,
+          status: (status as FlashSaleStatus) || undefined,
+          search: search || undefined,
         }),
         getFlashSaleStats(),
       ]);
@@ -233,7 +236,7 @@ export function FlashSalesListClient() {
     }
   }
 
-  const columns   = buildColumns((id, name) => setCancelTarget({ id, name }));
+  const columns = buildColumns((id, name) => setCancelTarget({ id, name }));
   const tableData = data as (FlashSaleSummary & Record<string, unknown>)[];
 
   return (
@@ -306,6 +309,7 @@ export function FlashSalesListClient() {
           page={page}
           pageSize={pageSize}
           totalRows={total}
+          tableLayout="fixed"
           onPageChange={setPage}
           onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
           searchQuery={search}
