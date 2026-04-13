@@ -193,7 +193,7 @@ export function ReviewsListClient() {
             />
           )}
           <div className="min-w-0">
-            <Tooltip content={`${row.tenPhienBan as string} — ${row.tenSanPham as string}`} placement="top">
+            <Tooltip content={`${row.tenPhienBan as string} — ${row.tenSanPham as string}`} placement="top" anchorToContent>
               <Link
                 href={`/products/${row.phienBanId}`}
                 className="text-sm font-medium text-secondary-800 hover:text-primary-700 truncate max-w-[160px] block"
@@ -235,14 +235,14 @@ export function ReviewsListClient() {
         <div className="space-y-0.5">
           <StarRating value={row.rating as ReviewSummary["rating"]} size="sm" />
           {row.tieuDe && (
-            <Tooltip content={row.tieuDe as string} placement="top">
+            <Tooltip content={row.tieuDe as string} placement="top" anchorToContent>
               <p className="text-xs font-semibold text-secondary-800 truncate max-w-[240px]">
                 {row.tieuDe as string}
               </p>
             </Tooltip>
           )}
           {row.noiDung && (
-            <Tooltip content={row.noiDung as string} placement="top">
+            <Tooltip content={row.noiDung as string} placement="top" anchorToContent>
               <p className="text-xs text-secondary-500 line-clamp-2 max-w-[240px]">
                 {row.noiDung as string}
               </p>

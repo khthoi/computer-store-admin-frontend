@@ -172,13 +172,15 @@ export function Tooltip({
       <span
         ref={refs.setReference as RefCallback<HTMLSpanElement>}
         style={{ display: "inline" }}
-        {...getReferenceProps()}
       >
         {childEl.props.children as ReactNode}
       </span>
     );
-    // Outer element keeps its className/style for layout; inner span is the anchor.
-    trigger = cloneElement(childEl, {}, innerAnchor);
+    // Hover events go on the outer element so the full hover area (including
+    // empty space after truncated text) triggers the tooltip. The inner span
+    // carries only the positioning ref so Floating UI anchors to the text
+    // bounding box rather than the full-width container.
+    trigger = cloneElement(childEl, { ...getReferenceProps() }, innerAnchor);
   } else {
     trigger = isValidElement(children)
       ? cloneElement(children as ReactElement<Record<string, unknown>>, {

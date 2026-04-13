@@ -26,7 +26,10 @@
       "Bash(find 'd:/Online PC Store System/Source/computer-store-client-frontend' -name *mock_data* -type f)",
       "Bash(find 'd:/Online PC Store System/Source/computer-store-client-frontend/node_modules/@computer-store/ui/src/components' -type f \\\\\\(-name *.tsx -o -name *.ts \\\\\\))",
       "Bash(ls \"d:/Online PC Store System/Source/computer-store-client-frontend/src/app/\\(storefront\\)/account/\")",
-      "Bash(ls \"d:/Online PC Store System/Source/computer-store-client-frontend/src/app/\\(storefront\\)/account/orders/\")"
+      "Bash(ls \"d:/Online PC Store System/Source/computer-store-client-frontend/src/app/\\(storefront\\)/account/orders/\")",
+      "Bash(python -c \"import sys; open\\('.graphify_python', 'w'\\).write\\(sys.executable\\)\")",
+      "Bash(python -c ':*)",
+      "Bash(rm -f .graphify_detect.json .graphify_extract.json .graphify_ast.json .graphify_semantic.json .graphify_analysis.json .graphify_labels.json .graphify_labels_raw.json .graphify_cached.json .graphify_uncached.txt .graphify_semantic_new.json .graphify_python)"
     ]
   }
 }

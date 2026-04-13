@@ -305,7 +305,7 @@ export function TicketListToolbar({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2 bg-white rounded-2xl border border-secondary-100 px-4 py-3 shadow-sm">
+    <div className="flex flex-wrap items-center gap-2 bg-white rounded-2xl border border-secondary-100 px-4 py-3 shadow-sm max-w-[800px]">
       {/* Search */}
       <AdminSearchBar
         value={value.search}

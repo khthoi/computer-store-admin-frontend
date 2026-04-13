@@ -89,8 +89,8 @@ export function RevenueLineChart({
             width={48}
           />
           <Tooltip
-            formatter={(v: number) => [
-              v.toLocaleString("vi-VN") + "₫",
+            formatter={(v) => [
+              Number(v).toLocaleString("vi-VN") + "₫",
               "Doanh thu",
             ]}
             labelFormatter={(label) =>
