@@ -13,6 +13,7 @@ import {
   ChatBubbleLeftRightIcon,
   StarIcon,
   Cog6ToothIcon,
+  ClipboardDocumentListIcon,
   // Sub-item icons
   PlusIcon,
   ListBulletIcon,
@@ -264,6 +265,24 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href:  "/reviews",
     icon:  <StarIcon className="w-5 h-5" />,
     requiredRoles: ["admin", "cskh"],
+  },
+
+  // ── Hệ thống ─────────────────────────────────────────────────────────────────
+  {
+    value: "system",
+    label: "Hệ thống",
+    icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
+    requiredRoles: ["admin"],
+    dividerAfter: true,
+    children: [
+      {
+        value: "audit-logs",
+        label: "Nhật ký hoạt động",
+        href: "/audit-logs",
+        icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredRoles: ["admin"],
+      },
+    ],
   },
 
   // ── Settings ─────────────────────────────────────────────────────────────────

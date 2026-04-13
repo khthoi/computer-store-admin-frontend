@@ -609,6 +609,7 @@ export function DateInput({
             role="dialog"
             aria-modal="false"
             aria-label={showTime ? "Chọn ngày và giờ" : "Chọn ngày"}
+            data-dateinput-portal="true"
             className="fixed z-[9999] rounded-xl border border-secondary-200 bg-white shadow-xl"
             style={{
               top:    dropdownPos.flipUp ? undefined : `${dropdownPos.top}px`,

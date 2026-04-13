@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { CalendarDaysIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { DateInput } from "@/src/components/ui/DateInput";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,11 +76,17 @@ export function AdminDateRangePicker({
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Close on outside click
+  // Close on outside click.
+  // Skip close when the user clicks inside a DateInput calendar portal
+  // (portals are appended to document.body and are therefore outside containerRef,
+  // but they belong to a DateInput that lives inside this component).
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (!containerRef.current?.contains(e.target as Node)) {
+      const target = e.target as HTMLElement;
+      // Ignore clicks that land inside any DateInput portal dropdown
+      if (target.closest("[data-dateinput-portal]")) return;
+      if (!containerRef.current?.contains(target)) {
         setOpen(false);
       }
     };
@@ -240,28 +247,28 @@ export function AdminDateRangePicker({
                     <label className="mb-1 block text-xs font-medium text-secondary-600">
                       Từ ngày
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
+                      size="sm"
+                      placeholder="DD/MM/YYYY"
                       value={customFrom}
-                      onChange={(e) => {
-                        setCustomFrom(e.target.value);
+                      onChange={(value) => {
+                        setCustomFrom(value);
                         setCustomError(null);
                       }}
-                      className="w-full rounded-lg border border-secondary-200 px-2.5 py-1.5 text-sm text-secondary-700 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
                     />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs font-medium text-secondary-600">
                       Đến ngày
                     </label>
-                    <input
-                      type="date"
+                    <DateInput
+                      size="sm"
+                      placeholder="DD/MM/YYYY"
                       value={customTo}
-                      onChange={(e) => {
-                        setCustomTo(e.target.value);
+                      onChange={(value) => {
+                        setCustomTo(value);
                         setCustomError(null);
                       }}
-                      className="w-full rounded-lg border border-secondary-200 px-2.5 py-1.5 text-sm text-secondary-700 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
                     />
                   </div>
                 </div>
