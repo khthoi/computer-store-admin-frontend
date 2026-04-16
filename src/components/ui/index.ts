@@ -71,3 +71,9 @@ export type { ToastMessageProps, ToastType, ToastPosition } from "./Toast";
 
 export { Lightbox } from "./Lightbox";
 export type { LightboxProps, LightboxItem } from "./Lightbox";
+
+export { ColorSelect } from "./ColorSelect";
+export type { ColorSelectProps } from "./ColorSelect";
+
+export { Dropzone } from "./Dropzone";
+export type { DropzoneProps } from "./Dropzone";

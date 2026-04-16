@@ -1,3 +1,47 @@
+/* Puck visual editor */
+@import "@puckeditor/core/dist/index.css";
+
+/* CKEditor 5 — RichTextEditor wrapper + content styles */
+@import "../components/editor/styles/editor.css";
+
+/* ── Marquee animation for AnnouncementBarPreview ────────────────────────────*/
+@keyframes marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ── Announcement bar content: links inherit bar text color ──────────────────
+ * Browser default link color (blue) would disappear on coloured backgrounds.
+ * `color: inherit` picks up the bar's textColor; underline keeps links
+ * distinguishable without relying on hue contrast alone.
+ */
+.bar-content a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Banner grid: column-span via CSS :has() ──────────────────────────────────
+ * The Puck DropZone inside BannerRow uses display:grid (4 cols).
+ * BannerItem renders with data-col-span="N" on its root div.
+ * These rules promote that value to grid-column on the Puck wrapper element.
+ */
+.banner-grid > *:has([data-col-span="1"]) { grid-column: span 1; }
+.banner-grid > *:has([data-col-span="2"]) { grid-column: span 2; }
+.banner-grid > *:has([data-col-span="3"]) { grid-column: span 3; }
+.banner-grid > *:has([data-col-span="4"]) { grid-column: span 4; }
+
+/* ── Puck editor skin overrides ───────────────────────────────────────────────
+ * Scope to .puck-banner-editor so we don't pollute the rest of the app.
+ * Override Puck's Inter font to use the admin's DM Sans.
+ */
+.puck-banner-editor {
+  font-family: var(--font-dm-sans, system-ui, sans-serif);
+}
+.puck-banner-editor [class*="Puck"] {
+  font-family: inherit;
+}
+
 /**
  * ═══════════════════════════════════════════════════════════════════════════
  * ONLINE PC STORE — ADMIN DASHBOARD

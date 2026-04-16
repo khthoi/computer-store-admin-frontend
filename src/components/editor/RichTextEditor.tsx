@@ -1,6 +1,5 @@
 "use client";
 
-import "@/src/components/editor/styles/editor.css";
 import { useMemo } from "react";
 import { CKEditor } from "@ckeditor/ckeditor5-react";
 // eslint-disable-next-line @typescript-eslint/no-require-imports

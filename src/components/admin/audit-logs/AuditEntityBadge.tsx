@@ -16,6 +16,7 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import type { AuditEntityType } from "@/src/types/audit-log.types";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
@@ -180,14 +181,15 @@ export function AuditEntityBadge({
 
   if (isLinkable) {
     return (
-      <Link
-        href={`${config.basePath!}/${entityId}`}
-        className={badgeClasses}
-        title={`Xem ${config.label} #${entityId}`}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {content}
-      </Link>
+      <Tooltip content={`Xem ${config.label} #${entityId}`} placement="top">
+        <Link
+          href={`${config.basePath!}/${entityId}`}
+          className={badgeClasses}
+          onClick={(e) => e.stopPropagation()}
+        >
+          {content}
+        </Link>
+      </Tooltip>
     );
   }
 

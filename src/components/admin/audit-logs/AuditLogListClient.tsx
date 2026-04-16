@@ -258,7 +258,7 @@ export function AuditLogListClient() {
         header: "Mô tả",
         width: "w-80",
         render: (value) => (
-          <Tooltip content={value as string} placement="top" anchorToContent>
+          <Tooltip content={value as string} placement="top">
             <p className="truncate text-sm text-secondary-600 max-w-xs">
               {value as string}
             </p>

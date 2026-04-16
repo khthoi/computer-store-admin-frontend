@@ -8,10 +8,8 @@ import {
   CategoryTreeView,
   type CategoryNode,
 } from "@/src/components/admin/catalog/CategoryTreeView";
-import {
-  CategoryFormModal,
-  type CategoryFormData,
-} from "@/src/components/admin/catalog/CategoryFormModal";
+import { CategoryFormModal } from "@/src/components/admin/catalog/CategoryFormModal";
+import type { CategoryFormData } from "@/src/services/category.service";
 import { SpecGroupPanel } from "@/src/components/admin/catalog/SpecGroupPanel";
 import { SpecGroupEditor } from "@/src/components/admin/catalog/SpecGroupEditor";
 import { SpecGroupFormModal } from "@/src/components/admin/catalog/SpecGroupFormModal";

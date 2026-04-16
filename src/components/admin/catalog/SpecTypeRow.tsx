@@ -107,8 +107,8 @@ export function SpecTypeRow({
             size="sm"
             rows={2}
             autoResize
-            showWordCount
-            maxWordCount={MAX_DESCRIPTION_WORDS}
+            showCharCount
+            maxCharCount={MAX_DESCRIPTION_WORDS}
           />
 
           <div className="flex items-center justify-between">

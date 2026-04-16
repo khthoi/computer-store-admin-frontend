@@ -52,6 +52,16 @@ export function OptionItem({
         .filter(Boolean)
         .join(" ")}
     >
+      {/* Brand / icon image */}
+      {option.imageUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={option.imageUrl}
+          alt=""
+          className="mt-0.5 h-6 w-6 shrink-0 rounded-sm object-contain"
+        />
+      )}
+
       {/* Multi-select: checkbox */}
       {multiple && (
         <span

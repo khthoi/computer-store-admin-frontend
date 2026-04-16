@@ -42,6 +42,11 @@ export interface SelectOption {
   badge?: SelectOptionBadge;
   /** Prevents the option from being selected */
   disabled?: boolean;
+  /**
+   * Optional image URL (e.g. brand logo) shown at the left of the option row
+   * and in the trigger when the option is selected (single-select only).
+   */
+  imageUrl?: string;
 }
 
 export interface SelectOptionGroup {

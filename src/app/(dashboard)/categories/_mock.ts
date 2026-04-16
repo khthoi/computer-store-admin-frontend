@@ -50,7 +50,12 @@ import type { DanhMuc, DanhMucNode } from "@/src/types/category.types";
 //   cat-004  Vỏ máy tính                 (root, no children)
 // ───────────────────────────────────────────────────────────────────────────────
 
-export const MOCK_CATEGORIES: DanhMuc[] = [
+// Shorthand for legacy mock objects that predate the new fields.
+// The service layer (applyDefaults) fills in nodeType/filterParams/badge at runtime.
+type LegacyDanhMuc = Omit<DanhMuc, "nodeType" | "filterParams" | "badgeText" | "badgeBg" | "badgeFg">
+  & Partial<Pick<DanhMuc, "nodeType" | "filterParams" | "badgeText" | "badgeBg" | "badgeFg">>;
+
+export const MOCK_CATEGORIES: LegacyDanhMuc[] = [
   // ═══════════════════════════════════════════════════════════════════════════
   // ORIGINAL CATEGORIES
   // ═══════════════════════════════════════════════════════════════════════════
@@ -117,6 +122,102 @@ export const MOCK_CATEGORIES: DanhMuc[] = [
     productCount: 14,
     createdAt: "2025-10-01T07:00:00Z",
     updatedAt: "2026-03-01T08:00:00Z",
+    nodeType: "category",
+    filterParams: null,
+    badgeText: "HOT",
+    badgeBg: "#ef4444",
+    badgeFg: "#ffffff",
+  },
+  // ── Filter-shortcut nodes under GPU (megamenu examples) ──────────────────
+  {
+    id: "cat-011-label-brand",
+    name: "GPU theo hãng",
+    slug: "gpu-theo-hang",
+    parentId: "cat-011",
+    description: "",
+    displayOrder: 10,
+    active: true,
+    productCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    nodeType: "label",
+    filterParams: null,
+    badgeText: null, badgeBg: null, badgeFg: null,
+  },
+  {
+    id: "cat-011-brand-asus",
+    name: "ASUS",
+    slug: "asus",
+    parentId: "cat-011-label-brand",
+    description: "",
+    displayOrder: 1,
+    active: true,
+    productCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    nodeType: "filter",
+    filterParams: { brand: "asus" },
+    badgeText: null, badgeBg: null, badgeFg: null,
+  },
+  {
+    id: "cat-011-brand-nvidia",
+    name: "NVIDIA",
+    slug: "nvidia",
+    parentId: "cat-011-label-brand",
+    description: "",
+    displayOrder: 2,
+    active: true,
+    productCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    nodeType: "filter",
+    filterParams: { brand: "nvidia" },
+    badgeText: null, badgeBg: null, badgeFg: null,
+  },
+  {
+    id: "cat-011-label-price",
+    name: "GPU theo khoảng giá",
+    slug: "gpu-theo-gia",
+    parentId: "cat-011",
+    description: "",
+    displayOrder: 11,
+    active: true,
+    productCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    nodeType: "label",
+    filterParams: null,
+    badgeText: null, badgeBg: null, badgeFg: null,
+  },
+  {
+    id: "cat-011-price-10-20",
+    name: "10 - 20 triệu",
+    slug: "gpu-10-20tr",
+    parentId: "cat-011-label-price",
+    description: "",
+    displayOrder: 1,
+    active: true,
+    productCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    nodeType: "filter",
+    filterParams: { price_min: "10000000", price_max: "20000000" },
+    badgeText: null, badgeBg: null, badgeFg: null,
+  },
+  {
+    id: "cat-011-price-20-35",
+    name: "20 - 35 triệu",
+    slug: "gpu-20-35tr",
+    parentId: "cat-011-label-price",
+    description: "",
+    displayOrder: 2,
+    active: true,
+    productCount: 0,
+    createdAt: "2026-01-01T00:00:00Z",
+    updatedAt: "2026-01-01T00:00:00Z",
+    nodeType: "filter",
+    filterParams: { price_min: "20000000", price_max: "35000000" },
+    badgeText: null, badgeBg: null, badgeFg: null,
   },
   {
     id: "cat-012",
@@ -506,7 +607,8 @@ export const MOCK_CATEGORIES: DanhMuc[] = [
 
 // ─── Build tree ────────────────────────────────────────────────────────────────
 
-export function buildCategoryTree(flat: DanhMuc[] = MOCK_CATEGORIES): DanhMucNode[] {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function buildCategoryTree(flat: any[] = MOCK_CATEGORIES): DanhMucNode[] {
   const map = new Map<string, DanhMucNode>();
   flat.forEach((c) => map.set(c.id, { ...c }));
 

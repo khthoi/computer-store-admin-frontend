@@ -164,9 +164,11 @@ export function Select({
     allFlat.some((o) => o.label.toLowerCase() === trimmedQuery.toLowerCase());
   const showCreateRow = !!(creatable && searchable && trimmedQuery && !exactMatch);
 
-  const triggerLabel = !multiple
-    ? allFlat.find((o) => o.value === selectedValues[0])?.label ?? placeholder
+  const selectedSingleOpt = !multiple
+    ? allFlat.find((o) => o.value === selectedValues[0])
     : null;
+  const triggerLabel = selectedSingleOpt?.label ?? placeholder;
+  const triggerImageUrl = selectedSingleOpt?.imageUrl;
 
   // ── Open / close ──────────────────────────────────────────────────────────
 
@@ -394,19 +396,30 @@ export function Select({
                 );
               })
             ) : (
-              <span
-                className={
-                  !showSelectedInTrigger || selectedValues.length === 0
-                    ? "text-secondary-400"
-                    : ""
-                }
-              >
-                {!showSelectedInTrigger
-                  ? placeholder
-                  : multiple
+              <>
+                {/* Brand / icon image in single-select trigger */}
+                {!multiple && triggerImageUrl && selectedValues.length > 0 && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={triggerImageUrl}
+                    alt=""
+                    className="h-5 w-5 shrink-0 rounded-sm object-contain"
+                  />
+                )}
+                <span
+                  className={
+                    !showSelectedInTrigger || selectedValues.length === 0
+                      ? "text-secondary-400"
+                      : ""
+                  }
+                >
+                  {!showSelectedInTrigger
                     ? placeholder
-                    : triggerLabel}
-              </span>
+                    : multiple
+                      ? placeholder
+                      : triggerLabel}
+                </span>
+              </>
             )}
           </span>
 

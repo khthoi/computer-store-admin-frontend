@@ -29,6 +29,13 @@ import {
   ReceiptPercentIcon,
   PuzzlePieceIcon,
   BoltIcon,
+  // Content icons
+  PhotoIcon,
+  RectangleStackIcon,
+  DocumentTextIcon,
+  MegaphoneIcon,
+  Bars3Icon,
+  QuestionMarkCircleIcon,
 } from "@heroicons/react/24/outline";
 
 import { SidebarProvider, useSidebar } from "@/src/components/admin/layout/SidebarContext";
@@ -265,6 +272,52 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     href:  "/reviews",
     icon:  <StarIcon className="w-5 h-5" />,
     requiredRoles: ["admin", "cskh"],
+  },
+
+  // ── Nội dung ─────────────────────────────────────────────────────────────────
+  {
+    value: "content",
+    label: "Nội dung",
+    icon: <DocumentTextIcon className="w-5 h-5" />,
+    requiredRoles: ["admin", "staff"],
+    children: [
+      {
+        value: "content-media",
+        label: "Thư viện Media",
+        href: "/content/media",
+        icon: <PhotoIcon className="w-4 h-4" />,
+      },
+      {
+        value: "content-banners",
+        label: "Banner",
+        href: "/content/banners",
+        icon: <RectangleStackIcon className="w-4 h-4" />,
+      },
+      {
+        value: "content-pages",
+        label: "Trang tĩnh",
+        href: "/content/pages",
+        icon: <DocumentTextIcon className="w-4 h-4" />,
+      },
+      {
+        value: "content-announcements",
+        label: "Thông báo & Popup",
+        href: "/content/announcements",
+        icon: <MegaphoneIcon className="w-4 h-4" />,
+      },
+      {
+        value: "content-navigation",
+        label: "Điều hướng Menu",
+        href: "/content/navigation",
+        icon: <Bars3Icon className="w-4 h-4" />,
+      },
+      {
+        value: "content-faq",
+        label: "FAQ",
+        href: "/content/faq",
+        icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
+      },
+    ],
   },
 
   // ── Hệ thống ─────────────────────────────────────────────────────────────────
