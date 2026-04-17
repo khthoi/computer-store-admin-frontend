@@ -250,32 +250,20 @@ export function RuleFormModal({
 
         {/* Flags */}
         <div className="flex items-center justify-between rounded-xl border border-secondary-200 bg-secondary-50 px-4 py-3">
-          <label className="flex cursor-pointer items-center gap-3">
-            <Toggle
-              checked={form.batBuoc}
-              onChange={(e) => set("batBuoc", e.target.checked)}
-              size="sm"
-            />
-            <div>
-              <span className="text-sm font-medium text-secondary-700">Bắt buộc</span>
-              <p className="text-[11px] text-secondary-400">
-                Vi phạm → chặn thêm vào build
-              </p>
-            </div>
-          </label>
-          <label className="flex cursor-pointer items-center gap-3">
-            <Toggle
-              checked={form.isActive}
-              onChange={(e) => set("isActive", e.target.checked)}
-              size="sm"
-            />
-            <div>
-              <span className="text-sm font-medium text-secondary-700">Kích hoạt</span>
-              <p className="text-[11px] text-secondary-400">
-                Tắt = quy tắc bị bỏ qua
-              </p>
-            </div>
-          </label>
+          <Toggle
+            checked={form.batBuoc}
+            onChange={(e) => set("batBuoc", e.target.checked)}
+            size="sm"
+            label="Bắt buộc"
+            description="Vi phạm → chặn thêm vào build"
+          />
+          <Toggle
+            checked={form.isActive}
+            onChange={(e) => set("isActive", e.target.checked)}
+            size="sm"
+            label="Kích hoạt"
+            description="Tắt = quy tắc bị bỏ qua"
+          />
         </div>
       </div>
     </Modal>

@@ -188,24 +188,20 @@ export function SlotFormModal({
         />
 
         <div className="flex items-center justify-between rounded-xl border border-secondary-200 bg-secondary-50 px-4 py-3">
-          <label className="flex cursor-pointer items-center gap-3">
-            <Toggle
-              checked={form.batBuoc}
-              onChange={(e) => set("batBuoc", e.target.checked)}
-              size="sm"
-            />
-            <span className="text-sm font-medium text-secondary-700">Bắt buộc</span>
-            <span className="text-xs text-secondary-400">Build thiếu khe này sẽ không hợp lệ</span>
-          </label>
-          <label className="flex cursor-pointer items-center gap-3">
-            <Toggle
-              checked={form.isActive}
-              onChange={(e) => set("isActive", e.target.checked)}
-              size="sm"
-            />
-            <span className="text-sm font-medium text-secondary-700">Kích hoạt</span>
-            <span className="text-xs text-secondary-400">Tắt = ẩn khỏi giao diện</span>
-          </label>
+          <Toggle
+            checked={form.batBuoc}
+            onChange={(e) => set("batBuoc", e.target.checked)}
+            size="sm"
+            label="Bắt buộc"
+            description="Build thiếu khe này sẽ không hợp lệ"
+          />
+          <Toggle
+            checked={form.isActive}
+            onChange={(e) => set("isActive", e.target.checked)}
+            size="sm"
+            label="Kích hoạt"
+            description="Tắt = ẩn khỏi giao diện"
+          />
         </div>
       </div>
     </Modal>

@@ -438,6 +438,7 @@ export function DateInput({
 }: DateInputProps) {
   const generatedId = useId();
   const id       = idProp ?? generatedId;
+  const labelId  = `${id}-label`;
   const errorId  = `${id}-error`;
   const helperId = `${id}-helper`;
   const hasError = Boolean(errorMessage);
@@ -561,10 +562,10 @@ export function DateInput({
   return (
     <div className="w-full">
       {label && (
-        <label htmlFor={id} className="mb-1 block text-sm font-medium text-secondary-700">
+        <span id={labelId} className="mb-1 block text-sm font-medium text-secondary-700">
           {label}
           {required && <span aria-hidden="true" className="ml-0.5 text-error-600">*</span>}
-        </label>
+        </span>
       )}
 
       {/* Trigger + clear button wrapper */}
@@ -576,6 +577,7 @@ export function DateInput({
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-invalid={hasError || undefined}
+          aria-labelledby={label ? labelId : undefined}
           aria-describedby={describedBy}
           disabled={disabled}
           onClick={() => setOpen((o) => !o)}

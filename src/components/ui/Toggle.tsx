@@ -93,6 +93,7 @@ export const Toggle = forwardRef<HTMLInputElement, ToggleProps>(function Toggle(
   const generatedId = useId();
   const id = idProp ?? generatedId;
   const descId = `${id}-desc`;
+  const labelId = `${id}-label`;
 
   // Support controlled and uncontrolled modes
   const isControlled = checked !== undefined;
@@ -119,6 +120,7 @@ export const Toggle = forwardRef<HTMLInputElement, ToggleProps>(function Toggle(
         onChange={handleChange}
         disabled={disabled}
         aria-describedby={description ? descId : undefined}
+        aria-labelledby={label ? labelId : undefined}
         aria-checked={isChecked}
         className="peer absolute inset-0 z-10 size-full cursor-pointer opacity-0 disabled:cursor-not-allowed"
         {...rest}
@@ -157,16 +159,16 @@ export const Toggle = forwardRef<HTMLInputElement, ToggleProps>(function Toggle(
   const textContent = (label || description) && (
     <div className="min-w-0">
       {label && (
-        <label
-          htmlFor={id}
+        <span
+          id={labelId}
           className={[
             "block font-medium text-secondary-800",
             TEXT[size],
-            disabled ? "cursor-not-allowed" : "cursor-pointer",
+            disabled ? "cursor-not-allowed" : "",
           ].join(" ")}
         >
           {label}
-        </label>
+        </span>
       )}
       {description && (
         <p id={descId} className="mt-0.5 text-xs text-secondary-500">
