@@ -10,6 +10,8 @@ import { Toggle } from "@/src/components/ui/Toggle";
 import { Button } from "@/src/components/ui/Button";
 import { Badge } from "@/src/components/ui/Badge";
 import { ColorSelect } from "@/src/components/ui/ColorSelect";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import type { CategoryFormData } from "@/src/services/category.service";
 import type { DanhMucNodeType, FilterParams } from "@/src/types/category.types";
 
@@ -369,6 +371,11 @@ export function CategoryFormModal({
   const [badgeFg, setBadgeFg]         = useState(initialData?.badgeFg ?? "#ffffff");
   const hasBadge = badgeText.trim().length > 0;
 
+  // ── Image ────────────────────────────────────────────────────────────────────
+  const [categoryImage, setCategoryImage] = useState<ImageFieldValue>(
+    initialData?.imageUrl ? imageFieldFromUrl(initialData.imageUrl) : emptyImageField()
+  );
+
   // Sync form when modal opens or initialData changes
   useEffect(() => {
     if (!isOpen) return;
@@ -383,6 +390,7 @@ export function CategoryFormModal({
     setBadgeText(initialData?.badgeText ?? "");
     setBadgeBg(initialData?.badgeBg ?? "#ef4444");
     setBadgeFg(initialData?.badgeFg ?? "#ffffff");
+    setCategoryImage(initialData?.imageUrl ? imageFieldFromUrl(initialData.imageUrl) : emptyImageField());
   }, [isOpen, initialData]);
 
   async function handleSubmit() {
@@ -398,6 +406,8 @@ export function CategoryFormModal({
       badgeText: hasBadge ? badgeText.trim() : null,
       badgeBg: hasBadge ? badgeBg : null,
       badgeFg: hasBadge ? badgeFg : null,
+      imageUrl: categoryImage.urlFallback ?? null,
+      imageAssetId: categoryImage.assetId ?? null,
     });
   }
 
@@ -478,6 +488,14 @@ export function CategoryFormModal({
               placeholder="Mô tả ngắn về danh mục này…"
               showCharCount
               maxCharCount={120}
+            />
+
+            <ImageField
+              label="Ảnh đại diện danh mục"
+              value={categoryImage}
+              onChange={setCategoryImage}
+              aspectRatioHint="1:1 — Kích thước đề nghị 200 × 200 px"
+              allowedTypes={["image"]}
             />
 
             <div className="grid grid-cols-2 gap-3">

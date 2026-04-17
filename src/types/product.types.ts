@@ -65,9 +65,13 @@ export interface VariantMedia {
   id: string;
   variantId: string;
   url: string;
+  /** FK → media_asset. null = URL fallback (external / paste). */
+  assetId?: string | null;
   type: MediaType;
   order: number;
   altText?: string;
+  /** Short caption displayed below the image on storefront (optional) */
+  caption?: string;
 }
 
 export interface SpecificationItem {

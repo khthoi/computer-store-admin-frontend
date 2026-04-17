@@ -20,6 +20,9 @@ export interface CategoryFormData {
   badgeText: string | null;
   badgeBg: string | null;
   badgeFg: string | null;
+  // Image — dual-field: assetId (managed) or imageUrl (fallback)
+  imageUrl?: string | null;
+  imageAssetId?: string | null;
 }
 
 // ─── Defaults helper ───────────────────────────────────────────────────────

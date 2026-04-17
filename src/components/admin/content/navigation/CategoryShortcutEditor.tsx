@@ -11,7 +11,8 @@ import { Input } from "@/src/components/ui/Input";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Modal } from "@/src/components/ui/Modal";
 import { Tooltip } from "@/src/components/ui/Tooltip";
-import { Dropzone } from "@/src/components/ui/Dropzone";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { useToast } from "@/src/components/ui/Toast";
 import { saveCategoryShortcuts } from "@/src/services/content.service";
@@ -41,6 +42,9 @@ function ShortcutFormModal({
     item
       ? { iconUrl: item.iconUrl, label: item.label, url: item.url, active: item.active, sortOrder: item.sortOrder }
       : DEFAULT_FORM
+  );
+  const [iconImage, setIconImage] = useState<ImageFieldValue>(
+    item?.iconUrl ? imageFieldFromUrl(item.iconUrl) : emptyImageField()
   );
 
   function set<K extends keyof CategoryShortcutFormData>(k: K, v: CategoryShortcutFormData[K]) {
@@ -87,15 +91,16 @@ function ShortcutFormModal({
         </div>
 
         {/* Icon upload */}
-        <div>
-          <p className="mb-2 text-sm font-medium text-secondary-700">Icon danh mục</p>
-          <Dropzone
-            initialUrl={form.iconUrl ?? ""}
-            onPreviewChange={(url) => set("iconUrl", url || undefined)}
-            aspectRatioHint="1:1 — Kích thước đề nghị 64 × 64 px (PNG/SVG nền trong)"
-            maxSizeMB={1}
-          />
-        </div>
+        <ImageField
+          label="Icon danh mục"
+          value={iconImage}
+          onChange={(v) => {
+            setIconImage(v);
+            set("iconUrl", v.displayUrl ?? undefined);
+          }}
+          aspectRatioHint="1:1 — Kích thước đề nghị 64 × 64 px"
+          allowedTypes={["image"]}
+        />
 
         <Input
           label="Tên hiển thị"

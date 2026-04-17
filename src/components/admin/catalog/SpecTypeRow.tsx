@@ -13,6 +13,7 @@ import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Checkbox } from "@/src/components/ui/Checkbox";
 import { Tooltip } from "@/src/components/ui/Tooltip";
+import { Button } from "@/src/components/ui/Button";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import type { SpecType, SpecTypeFormData } from "@/src/types/spec_group.types";
 
@@ -50,11 +51,13 @@ export function SpecTypeRow({
 
   const [draftName, setDraftName] = useState(specType.name);
   const [draftDescription, setDraftDescription] = useState(specType.description);
+  const [draftMaKyThuat, setDraftMaKyThuat] = useState(specType.maKyThuat ?? "");
   const [draftRequired, setDraftRequired] = useState(specType.required);
 
   function handleStartEdit() {
     setDraftName(specType.name);
     setDraftDescription(specType.description);
+    setDraftMaKyThuat(specType.maKyThuat ?? "");
     setDraftRequired(specType.required);
     setIsEditing(true);
   }
@@ -70,6 +73,7 @@ export function SpecTypeRow({
       await onUpdate(specType.id, {
         name: draftName.trim(),
         description: draftDescription.trim(),
+        maKyThuat: draftMaKyThuat.trim(),
         required: draftRequired,
       });
       setIsEditing(false);
@@ -98,6 +102,15 @@ export function SpecTypeRow({
             required
             autoFocus
           />
+          
+          <Input
+            label="Mã kỹ thuật"
+            value={draftMaKyThuat}
+            onChange={(e) => setDraftMaKyThuat(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+            placeholder="VD: cpu_socket, tdp_watt, ram_type…"
+            size="sm"
+            helperText="Dùng cho engine kiểm tra tương thích Build PC — để trống nếu không cần"
+          />
 
           <Textarea
             label="Mô tả"
@@ -119,23 +132,20 @@ export function SpecTypeRow({
             />
 
             <div className="flex gap-2">
-              <button
-                type="button"
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={handleCancel}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-secondary-600 hover:bg-secondary-100 transition-colors"
               >
-                <XMarkIcon className="w-3.5 h-3.5" aria-hidden="true" />
                 Hủy
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                size="sm"
                 onClick={handleSave}
                 disabled={!draftName.trim() || saving}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:pointer-events-none transition-colors"
               >
-                <CheckIcon className="w-3.5 h-3.5" aria-hidden="true" />
                 {saving ? "Đang lưu..." : "Lưu"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -184,9 +194,16 @@ export function SpecTypeRow({
               <span className="shrink-0 text-error-500 text-xs leading-none" aria-label="bắt buộc">*</span>
             )}
           </div>
+          {specType.maKyThuat && (
+            <div className="mt-0.5">
+              <code className="rounded bg-secondary-100 px-1 py-0 font-mono text-[10px] text-secondary-500">
+                {specType.maKyThuat}
+              </code>
+            </div>
+          )}
           {specType.description && (
             <Tooltip content={specType.description} placement="bottom">
-              <span className="inline-block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-secondary-400 mt-0.5 cursor-default">
+              <span className="block max-w-full overflow-hidden text-ellipsis whitespace-nowrap text-xs text-secondary-400 mt-0.5 cursor-default">
                 {specType.description}
               </span>
             </Tooltip>

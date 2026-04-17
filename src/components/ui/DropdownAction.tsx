@@ -21,13 +21,15 @@ export interface DropdownActionItem {
 }
 
 export interface DropdownActionProps {
-  items:       DropdownActionItem[];
+  items:          DropdownActionItem[];
   /** Label shown on the trigger button */
-  label?:      ReactNode;
-  size?:       ButtonSize;
-  placement?:  PopoverPlacement;
-  disabled?:   boolean;
-  className?:  string;
+  label?:         ReactNode;
+  size?:          ButtonSize;
+  placement?:     PopoverPlacement;
+  disabled?:      boolean;
+  className?:     string;
+  /** Called when the dropdown opens or closes */
+  onOpenChange?:  (open: boolean) => void;
 }
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
@@ -85,13 +87,19 @@ const CHEVRON_SIZE: Record<ButtonSize, string> = {
  */
 export function DropdownAction({
   items,
-  label    = "Hành động",
-  size     = "sm",
-  placement = "bottom-end",
-  disabled  = false,
-  className = "",
+  label        = "Hành động",
+  size         = "sm",
+  placement    = "bottom-end",
+  disabled     = false,
+  className    = "",
+  onOpenChange,
 }: DropdownActionProps) {
   const [open, setOpen] = useState(false);
+
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    onOpenChange?.(next);
+  }
 
   const panel = (
     <ul role="menu" className="min-w-[11rem] overflow-hidden">
@@ -103,7 +111,7 @@ export function DropdownAction({
             disabled={item.disabled}
             onClick={() => {
               item.onClick();
-              setOpen(false);
+              handleOpenChange(false);
             }}
             className={[ITEM_BASE, ITEM_VARIANT[item.variant ?? "default"]].join(" ")}
           >
@@ -136,7 +144,7 @@ export function DropdownAction({
     <Popover
       placement={placement}
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={handleOpenChange}
       content={panel}
       panelClassName="overflow-hidden"
     >

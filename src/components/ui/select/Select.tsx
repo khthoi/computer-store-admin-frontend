@@ -320,11 +320,11 @@ export function Select({
       {label && (
         <label
           id={labelId}
-          className="mb-1 block text-sm font-medium text-secondary-700"
+          className="mb-1 block select-none text-sm font-medium text-secondary-700"
         >
           {label}
           {required && (
-            <span aria-hidden="true" className="ml-0.5 text-error-600">*</span>
+            <span aria-hidden="true" className="ml-0.5 select-none text-error-600">*</span>
           )}
         </label>
       )}

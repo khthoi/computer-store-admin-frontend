@@ -7,6 +7,8 @@ import { Select } from "@/src/components/ui/Select";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { Button } from "@/src/components/ui/Button";
 import { RadioGroup, Radio } from "@/src/components/ui/Radio";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { createEmployee, updateEmployee } from "@/src/services/employee.service";
 import type { NhanVien, EmployeeStatus, GenderType } from "@/src/types/employee.types";
 import type { VaiTro } from "@/src/types/role.types";
@@ -48,6 +50,9 @@ export function EmployeeFormModal({
   const [hireDate, setHireDate] = useState(employee?.hireDate ?? "");
   const [gender, setGender] = useState<GenderType | null>(employee?.gender ?? null);
   const [dateOfBirth, setDateOfBirth] = useState(employee?.dateOfBirth ?? "");
+  const [avatarImage, setAvatarImage] = useState<ImageFieldValue>(
+    employee?.avatarUrl ? imageFieldFromUrl(employee.avatarUrl) : emptyImageField()
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -118,6 +123,8 @@ export function EmployeeFormModal({
             hireDate,
             gender,
             dateOfBirth: dateOfBirth || null,
+            avatarUrl: avatarImage.displayUrl ?? undefined,
+            avatarAssetId: avatarImage.assetId ?? undefined,
           });
       onSaved(saved);
       onClose();
@@ -193,6 +200,14 @@ export function EmployeeFormModal({
           onChange={(v) => setRoleIds(v as string[])}
           multiple
           placeholder="Chọn vai trò…"
+        />
+
+        <ImageField
+          label="Ảnh đại diện"
+          value={avatarImage}
+          onChange={setAvatarImage}
+          aspectRatioHint="1:1 — Kích thước đề nghị 200 × 200 px"
+          allowedTypes={["image"]}
         />
 
         <div className="grid grid-cols-2 gap-4">

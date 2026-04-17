@@ -12,7 +12,8 @@ import { Input }     from "@/src/components/ui/Input";
 import { Textarea }  from "@/src/components/ui/Textarea";
 import { Select }    from "@/src/components/ui/Select";
 import { DateInput } from "@/src/components/ui/DateInput";
-import { Dropzone }  from "@/src/components/ui/Dropzone";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { useToast }  from "@/src/components/ui/Toast";
 import { createFlashSale, updateFlashSale } from "@/src/services/flash-sale.service";
 import { FlashSaleItemsEditor } from "./FlashSaleItemsEditor";
@@ -144,14 +145,13 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
       ? new Date(initialData.ketThuc).toISOString().slice(0, 16)
       : ""
   );
-  const [bannerTitle,      setBannerTitle]      = useState(initialData?.bannerTitle ?? "");
-  const [bannerAlt,        setBannerAlt]        = useState(initialData?.bannerAlt ?? "");
-  // bannerPreviewUrl holds the URL shown in the Dropzone preview
-  // (existing URL from DB, or a local object URL for newly dropped files)
-  const [bannerPreviewUrl, setBannerPreviewUrl] = useState(initialData?.bannerImageUrl ?? "");
-  // bannerFile is set when the user drops/selects a new file
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [bannerFile,       setBannerFile]       = useState<File | null>(null);
+  const [bannerTitle, setBannerTitle] = useState(initialData?.bannerTitle ?? "");
+  const [bannerAlt,   setBannerAlt]   = useState(initialData?.bannerAlt ?? "");
+  const [bannerImage, setBannerImage] = useState<ImageFieldValue>(
+    initialData?.bannerImageUrl
+      ? imageFieldFromUrl(initialData.bannerImageUrl)
+      : emptyImageField()
+  );
   const [items,          setItems]          = useState<FlashSaleItemPayload[]>(
     initialData?.items.map((i) => ({
       phienBanId:     i.phienBanId,
@@ -195,9 +195,10 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
         trangThai,
         batDau,
         ketThuc,
-        bannerTitle:    bannerTitle.trim()      || undefined,
-        bannerImageUrl: bannerPreviewUrl.trim() || undefined,
-        bannerAlt:      bannerAlt.trim()        || undefined,
+        bannerTitle:    bannerTitle.trim()               || undefined,
+        bannerImageUrl: bannerImage.displayUrl?.trim()   || undefined,
+        bannerAssetId:  bannerImage.assetId              ?? undefined,
+        bannerAlt:      bannerAlt.trim()                 || undefined,
         items,
       };
 
@@ -308,17 +309,14 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
 
           {/* Section 3: Banner */}
           <Section title="Banner (tuỳ chọn)">
-            {/* Image dropzone */}
-            <div>
-              <p className="mb-1.5 text-sm font-medium text-secondary-700">Hình ảnh banner</p>
-              <Dropzone
-                initialUrl={initialData?.bannerImageUrl}
-                aspectRatioHint="16:5 – Kích thước đề nghị 1600 × 500 px"
-                onFileChange={setBannerFile}
-                onPreviewChange={setBannerPreviewUrl}
-                disabled={isReadonlyStatus}
-              />
-            </div>
+            <ImageField
+              label="Hình ảnh banner"
+              value={bannerImage}
+              onChange={setBannerImage}
+              aspectRatioHint="16:5 – Kích thước đề nghị 1600 × 500 px"
+              allowedTypes={["image"]}
+              disabled={isReadonlyStatus}
+            />
 
             {/* Title + alt text — shown once an image is present or when editing */}
             <Input

@@ -14,7 +14,8 @@ import {
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
-import { Dropzone } from "@/src/components/ui/Dropzone";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { FlatNavEditor } from "./FlatNavEditor";
 import { SocialLinksEditor, SOCIAL_PLATFORM_CFG } from "./SocialLinksEditor";
 import type {
@@ -61,6 +62,56 @@ function Section({
           {children}
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Logo footer preview ──────────────────────────────────────────────────────
+
+function LogoFooterPreview({
+  logoUrl,
+  logoAlt,
+  description,
+  className,
+}: {
+  logoUrl?: string;
+  logoAlt?: string;
+  description?: string;
+  className?: string;
+}) {
+  return (
+    <div className={`overflow-hidden rounded-xl border border-secondary-200 bg-secondary-50 p-3 ${className || ""}`}>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-secondary-400">
+        Xem trước trên storefront — Footer (cột thương hiệu)
+      </p>
+      {/* Simulated footer brand column */}
+      <div className="rounded-lg bg-slate-800 p-4">
+        <div className="mb-3 flex h-8 items-center">
+          {logoUrl
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={logoUrl} alt={logoAlt ?? "Logo"} className="h-8 object-contain" />
+            : <span className="text-base font-bold text-white">{logoAlt || "PC Store"}</span>
+          }
+        </div>
+        {description ? (
+          <p className="text-xs leading-relaxed text-slate-400 line-clamp-3">{description}</p>
+        ) : (
+          <div className="space-y-1.5">
+            <div className="h-2 w-3/4 rounded bg-slate-700" />
+            <div className="h-2 w-full rounded bg-slate-700" />
+            <div className="h-2 w-2/3 rounded bg-slate-700" />
+          </div>
+        )}
+        {/* Social placeholders */}
+        <div className="mt-3 flex gap-2">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="h-7 w-7 rounded-full bg-slate-600" />
+          ))}
+        </div>
+      </div>
+      <p className="mt-2 text-[10px] text-secondary-400">
+        Logo hiển thị ở chiều cao 32 px trên nền tối — tỷ lệ 3:1 (ví dụ: 180 × 60 px) cho kết quả tốt nhất.
+      </p>
     </div>
   );
 }
@@ -186,6 +237,9 @@ export function FooterEditor({
   isDirty: boolean;
 }) {
   const [showPreview, setShowPreview] = useState(false);
+  const [logoImage, setLogoImage] = useState<ImageFieldValue>(
+    config.brand.logoUrl ? imageFieldFromUrl(config.brand.logoUrl) : emptyImageField()
+  );
 
   function updateBrand(patch: Partial<FooterConfig["brand"]>) {
     onChange({ brand: { ...config.brand, ...patch } });
@@ -249,22 +303,40 @@ export function FooterEditor({
             onChange={(e) => updateBrand({ storeName: e.target.value })}
             placeholder="PC Store"
           />
-          <div>
-            <p className="mb-2 text-sm font-medium text-secondary-700">Logo cửa hàng</p>
-            <Dropzone
-              initialUrl={config.brand.logoUrl || undefined}
-              onPreviewChange={(url) => updateBrand({ logoUrl: url })}
-              aspectRatioHint="3:1 — Kích thước đề nghị 180 × 60 px (PNG/SVG nền trong)"
-              maxSizeMB={1}
-            />
+
+          {/* Logo upload + live preview */}
+          <div className="grid grid-cols-5 gap-6 items-start">
+            {/* Left: uploader (1/5) */}
+            <div className="col-span-2 space-y-3">
+              <ImageField
+                label="Logo cửa hàng"
+                value={logoImage}
+                onChange={(v) => {
+                  setLogoImage(v);
+                  updateBrand({ logoUrl: v.displayUrl ?? "" });
+                }}
+                aspectRatioHint="3:1 — Đề nghị 180 × 60 px"
+                allowedTypes={["image"]}
+              />
+              <Input
+                label="Alt text logo"
+                value={config.brand.logoAlt}
+                onChange={(e) => updateBrand({ logoAlt: e.target.value })}
+                placeholder="PC Store"
+                helperText="Văn bản thay thế khi ảnh không tải được"
+              />
+            </div>
+            {/* Right: storefront preview (3/5) */}
+            <div className="col-span-3">
+              <LogoFooterPreview
+                logoUrl={config.brand.logoUrl}
+                logoAlt={config.brand.logoAlt || config.brand.storeName || "PC Store"}
+                description={config.brand.description}
+                className="mt-3"
+              />
+            </div>
           </div>
-          <Input
-            label="Alt text logo"
-            value={config.brand.logoAlt}
-            onChange={(e) => updateBrand({ logoAlt: e.target.value })}
-            placeholder="PC Store"
-            helperText="Văn bản thay thế khi ảnh không tải được"
-          />
+
           <Textarea
             label="Mô tả"
             rows={3}

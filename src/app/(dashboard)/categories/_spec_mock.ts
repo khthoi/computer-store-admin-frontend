@@ -62,7 +62,7 @@ export const MOCK_SPEC_TYPES: SpecType[] = [
   { id: "st-002-2", groupId: "sg-002", name: "Bus bộ nhớ",     description: "Độ rộng bus bộ nhớ GPU tính theo bit",                        displayOrder: 2, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-002-3", groupId: "sg-002", name: "Clock cơ bản",   description: "Tốc độ xung nhịp cơ bản tính theo MHz",                       displayOrder: 3, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-002-4", groupId: "sg-002", name: "Clock boost",    description: "Tốc độ xung nhịp tối đa (boost) tính theo MHz",               displayOrder: 4, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
-  { id: "st-002-5", groupId: "sg-002", name: "TDP",            description: "Mức tiêu thụ điện năng thiết kế tính theo W",                 displayOrder: 5, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-002-5", groupId: "sg-002", name: "TDP",            description: "Mức tiêu thụ điện năng thiết kế tính theo W",                 displayOrder: 5, required: true,  maKyThuat: "tdp_watt",           createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-002-6", groupId: "sg-002", name: "Kiến trúc",      description: "Tên kiến trúc vi xử lý đồ họa",                               displayOrder: 6, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
 
   // ── sg-003: Hiệu năng CPU ──────────────────────────────────────────────────
@@ -71,13 +71,13 @@ export const MOCK_SPEC_TYPES: SpecType[] = [
   { id: "st-003-3", groupId: "sg-003", name: "Clock cơ bản",   description: "Tốc độ xung nhịp cơ bản tính theo GHz",                       displayOrder: 3, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-003-4", groupId: "sg-003", name: "Clock tối đa",   description: "Tốc độ xung nhịp boost tối đa tính theo GHz",                 displayOrder: 4, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-003-5", groupId: "sg-003", name: "Cache L3",        description: "Dung lượng bộ nhớ đệm L3 tính theo MB",                      displayOrder: 5, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
-  { id: "st-003-6", groupId: "sg-003", name: "TDP",            description: "Mức tiêu thụ điện năng thiết kế tính theo W",                 displayOrder: 6, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
-  { id: "st-003-7", groupId: "sg-003", name: "Socket",         description: "Loại socket mainboard tương thích (LGA1700, AM5, ...)",       displayOrder: 7, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-003-6", groupId: "sg-003", name: "TDP",            description: "Mức tiêu thụ điện năng thiết kế tính theo W",                 displayOrder: 6, required: true,  maKyThuat: "tdp_watt",           createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-003-7", groupId: "sg-003", name: "Socket",         description: "Loại socket mainboard tương thích (LGA1700, AM5, ...)",       displayOrder: 7, required: true,  maKyThuat: "cpu_socket",         createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
 
   // ── sg-004: Bộ nhớ RAM ─────────────────────────────────────────────────────
-  { id: "st-004-1", groupId: "sg-004", name: "Dung lượng",     description: "Dung lượng RAM tính theo GB",                                 displayOrder: 1, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
-  { id: "st-004-2", groupId: "sg-004", name: "Loại RAM",       description: "Thế hệ RAM (DDR4, DDR5, ...)",                                displayOrder: 2, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
-  { id: "st-004-3", groupId: "sg-004", name: "Tốc độ",         description: "Tốc độ bus bộ nhớ tính theo MHz",                             displayOrder: 3, required: true,  createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-004-1", groupId: "sg-004", name: "Dung lượng",     description: "Dung lượng RAM tính theo GB",                                 displayOrder: 1, required: true,  maKyThuat: "ram_max_capacity_gb", createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-004-2", groupId: "sg-004", name: "Loại RAM",       description: "Thế hệ RAM (DDR4, DDR5, ...)",                                displayOrder: 2, required: true,  maKyThuat: "ram_type",            createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-004-3", groupId: "sg-004", name: "Tốc độ",         description: "Tốc độ bus bộ nhớ tính theo MHz",                             displayOrder: 3, required: true,  maKyThuat: "ram_max_speed_mhz",   createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-004-4", groupId: "sg-004", name: "Hệ số dạng",     description: "Form factor của RAM (DIMM, SO-DIMM, ...)",                    displayOrder: 4, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
 
   // ── sg-005: Lưu trữ SSD ───────────────────────────────────────────────────
@@ -96,7 +96,7 @@ export const MOCK_SPEC_TYPES: SpecType[] = [
   { id: "st-006-6", groupId: "sg-006", name: "Độ sáng",              description: "Độ sáng tối đa tính theo nit (cd/m²)",                 displayOrder: 6, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
 
   // ── sg-007: Kết nối & Cổng ────────────────────────────────────────────────
-  { id: "st-007-1", groupId: "sg-007", name: "Chuẩn PCIe",     description: "Phiên bản PCIe hỗ trợ (3.0, 4.0, 5.0, ...)",                 displayOrder: 1, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
+  { id: "st-007-1", groupId: "sg-007", name: "Chuẩn PCIe",     description: "Phiên bản PCIe hỗ trợ (3.0, 4.0, 5.0, ...)",                 displayOrder: 1, required: false, maKyThuat: "pcie_version",       createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-007-2", groupId: "sg-007", name: "Cổng kết nối",   description: "Danh sách các cổng ngoại vi hỗ trợ (USB-A, USB-C, HDMI, ...)", displayOrder: 2, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
   { id: "st-007-3", groupId: "sg-007", name: "Thunderbolt",    description: "Phiên bản Thunderbolt hỗ trợ (3, 4, 5) nếu có",              displayOrder: 3, required: false, createdAt: "2025-10-01T07:00:00Z", updatedAt: "2026-03-01T08:00:00Z" },
 

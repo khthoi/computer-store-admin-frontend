@@ -86,7 +86,7 @@ export function MediaPickerModal({
 
   return (
     <>
-      <Modal isOpen={open} onClose={onClose} title={title} size="xl" animated>
+      <Modal isOpen={open} onClose={onClose} title={title} size="3xl" animated>
         <div className="flex h-[600px] overflow-hidden">
           {/* Sidebar */}
           <div className="w-48 shrink-0 border-r border-secondary-100 overflow-y-auto">

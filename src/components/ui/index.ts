@@ -77,3 +77,6 @@ export type { ColorSelectProps } from "./ColorSelect";
 
 export { Dropzone } from "./Dropzone";
 export type { DropzoneProps } from "./Dropzone";
+
+export { ImageField, emptyImageField, imageFieldFromUrl, imageFieldFromAsset } from "./ImageField";
+export type { ImageFieldProps, ImageFieldValue } from "./ImageField";

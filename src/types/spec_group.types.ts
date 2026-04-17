@@ -27,6 +27,13 @@ export interface SpecType {
   name: string;
   /** Optional description / hint (max 120 words) */
   description: string;
+  /**
+   * Machine-readable key used by the Build PC compatibility engine.
+   * Maps to loai_thong_so.ma_ky_thuat in the ERD.
+   * Format: lowercase letters, digits, underscores only (e.g. "cpu_socket", "tdp_watt").
+   * Optional — specs not referenced by any compatibility rule can leave this blank.
+   */
+  maKyThuat?: string;
   displayOrder: number;
   required: boolean;
   createdAt: string;
@@ -36,6 +43,8 @@ export interface SpecType {
 export interface SpecTypeFormData {
   name: string;
   description: string;
+  /** @see SpecType.maKyThuat */
+  maKyThuat: string;
   displayOrder: number;
   required: boolean;
 }

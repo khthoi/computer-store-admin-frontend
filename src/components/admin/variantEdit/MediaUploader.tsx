@@ -1,107 +1,192 @@
 "use client";
 
 import { useState } from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import {
+  PlusIcon,
+  FolderOpenIcon,
+  ArrowUpTrayIcon,
+  LinkIcon,
+  CheckIcon,
+} from "@heroicons/react/24/outline";
+import { Select } from "@/src/components/ui/Select";
 import { Input } from "@/src/components/ui/Input";
+import { MediaPickerModal } from "@/src/components/admin/content/media/MediaPickerModal";
+import { MediaUploadModal } from "@/src/components/admin/content/media/MediaUploadModal";
+import type { MediaFile } from "@/src/types/content.types";
 import type { MediaType, VariantMedia } from "@/src/types/product.types";
 
-// ─── MediaUploader ────────────────────────────────────────────────────────────
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const TYPE_OPTIONS: { value: MediaType; label: string }[] = [
+  { value: "main",    label: "Main"    },
+  { value: "gallery", label: "Gallery" },
+  { value: "360",     label: "360°"    },
+];
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface MediaUploaderProps {
   onAdd: (item: Omit<VariantMedia, "id" | "variantId">) => void;
+  /** Folder ID pre-selected in the upload/picker modals. */
+  folderId?: string | null;
 }
 
-const EMPTY = { url: "", type: "gallery" as MediaType, altText: "" };
+// ─── Component ────────────────────────────────────────────────────────────────
 
-const TYPE_OPTIONS: { value: MediaType; label: string }[] = [
-  { value: "main",    label: "Main" },
-  { value: "gallery", label: "Gallery" },
-  { value: "360",     label: "360°" },
-];
+export function MediaUploader({ onAdd, folderId = null }: MediaUploaderProps) {
+  const [type,       setType]       = useState<MediaType>("gallery");
+  const [altText,    setAltText]    = useState("");
+  const [urlMode,    setUrlMode]    = useState(false);
+  const [urlDraft,   setUrlDraft]   = useState("");
+  const [urlError,   setUrlError]   = useState("");
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-export function MediaUploader({ onAdd }: MediaUploaderProps) {
-  const [form, setForm] = useState(EMPTY);
-  const [error, setError] = useState("");
+  // ── Commit helpers ────────────────────────────────────────────────────────
 
-  function set(field: keyof typeof EMPTY) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [field]: e.target.value }));
+  function commitFromLibrary(file: MediaFile) {
+    onAdd({
+      url:     file.url,
+      assetId: file.id,
+      type,
+      altText: altText.trim() || file.altText || file.filename,
+      order:   0,
+    });
+    setAltText("");
+    setPickerOpen(false);
   }
 
-  function handleAdd() {
-    if (!form.url.trim()) {
-      setError("URL is required.");
-      return;
-    }
-    setError("");
-    onAdd({ url: form.url.trim(), type: form.type, altText: form.altText.trim() || undefined, order: 0 });
-    setForm(EMPTY);
+  function commitFromUpload(files: MediaFile[]) {
+    files.forEach((file) =>
+      onAdd({
+        url:     file.url,
+        assetId: file.id,
+        type,
+        altText: altText.trim() || file.altText || file.filename,
+        order:   0,
+      })
+    );
+    setAltText("");
+    setUploadOpen(false);
   }
+
+  function commitFromUrl() {
+    const trimmed = urlDraft.trim();
+    if (!trimmed) { setUrlError("URL không được để trống."); return; }
+    setUrlError("");
+    onAdd({ url: trimmed, assetId: null, type, altText: altText.trim() || undefined, order: 0 });
+    setUrlDraft("");
+    setAltText("");
+    setUrlMode(false);
+  }
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <div className="rounded-xl border border-dashed border-secondary-300 bg-secondary-50 p-4">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-secondary-500">
-        Add Media
+    <div className="rounded-xl border border-dashed border-secondary-300 bg-secondary-50 p-4 space-y-3">
+      <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
+        Thêm ảnh
       </p>
 
-      <div className="space-y-3">
-        <Input
-          label="Image URL"
-          value={form.url}
-          onChange={set("url")}
-          placeholder="https://example.com/image.png"
-          errorMessage={error}
-          size="sm"
-        />
-
-        {/* Preview */}
-        {form.url && (
-          <div className="h-24 w-24 overflow-hidden rounded-lg border border-secondary-200 bg-white">
-            <img
-              src={form.url}
-              alt="Preview"
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.currentTarget as HTMLImageElement).src = "";
-              }}
-            />
-          </div>
-        )}
-
-        <div className="grid grid-cols-2 gap-3">
-          <Input
-            label="Alt text"
-            value={form.altText}
-            onChange={set("altText")}
-            placeholder="Describe image…"
-            size="sm"
-          />
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-secondary-700">Type</label>
-            <select
-              value={form.type}
-              onChange={set("type")}
-              className="h-8 w-full rounded border border-secondary-300 bg-white px-3 text-sm text-secondary-700 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
-            >
-              {TYPE_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
+      {/* ── Source buttons ────────────────────────────────────────────────── */}
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => { setUrlMode(false); setPickerOpen(true); }}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-1.5 text-xs font-medium text-secondary-700 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+        >
+          <FolderOpenIcon className="h-3.5 w-3.5" aria-hidden />
+          Chọn từ thư viện
+        </button>
 
         <button
           type="button"
-          onClick={handleAdd}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-primary-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+          onClick={() => { setUrlMode(false); setUploadOpen(true); }}
+          className="inline-flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-1.5 text-xs font-medium text-secondary-700 shadow-sm transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
         >
-          <PlusIcon className="h-4 w-4" aria-hidden="true" />
-          Add to Gallery
+          <ArrowUpTrayIcon className="h-3.5 w-3.5" aria-hidden />
+          Tải ảnh lên mới
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setUrlMode((v) => !v)}
+          className={[
+            "inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium shadow-sm transition-colors",
+            urlMode
+              ? "border-primary-300 bg-primary-50 text-primary-700"
+              : "border-secondary-200 bg-white text-secondary-700 hover:border-secondary-300 hover:bg-secondary-50",
+          ].join(" ")}
+        >
+          <LinkIcon className="h-3.5 w-3.5" aria-hidden />
+          Dán URL
         </button>
       </div>
+
+      {/* ── URL input (collapsible) ───────────────────────────────────────── */}
+      {urlMode && (
+        <div className="flex items-start gap-2 pt-1">
+          <div className="flex-1">
+            <Input
+              label="URL ảnh"
+              value={urlDraft}
+              onChange={(e) => { setUrlDraft(e.target.value); setUrlError(""); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); commitFromUrl(); } }}
+              placeholder="https://example.com/image.jpg"
+              errorMessage={urlError}
+              size="sm"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={commitFromUrl}
+            disabled={!urlDraft.trim()}
+            className="mt-6 inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-40"
+          >
+            <CheckIcon className="h-3.5 w-3.5" aria-hidden />
+            Thêm
+          </button>
+        </div>
+      )}
+
+      {/* ── Type + Alt text ───────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        <Select
+          label="Loại ảnh"
+          options={TYPE_OPTIONS}
+          value={type}
+          onChange={(v) => setType(v as MediaType)}
+          size="sm"
+        />
+        <Input
+          label="Alt text"
+          value={altText}
+          onChange={(e) => setAltText(e.target.value)}
+          placeholder="Mô tả ảnh…"
+          size="sm"
+        />
+      </div>
+
+      {/* Hint */}
+      <p className="text-[10px] text-secondary-400">
+        Alt text và loại ảnh sẽ được áp dụng cho ảnh tiếp theo bạn chọn.
+      </p>
+
+      {/* ── Modals ───────────────────────────────────────────────────────── */}
+      <MediaPickerModal
+        open={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        allowedTypes={["image"]}
+        title="Chọn ảnh sản phẩm"
+        onPick={commitFromLibrary}
+      />
+
+      <MediaUploadModal
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        folderId={folderId}
+        onUploaded={commitFromUpload}
+      />
     </div>
   );
 }

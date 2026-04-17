@@ -7,7 +7,8 @@ import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { Toggle } from "@/src/components/ui/Toggle";
-import { Dropzone } from "@/src/components/ui/Dropzone";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { RichTextEditor } from "@/src/components/editor/DynamicRichTextEditor";
 import { PopupPreview } from "./PopupPreview";
 import { createPopup, updatePopup } from "@/src/services/content.service";
@@ -57,6 +58,7 @@ const DEFAULT: PopupFormData = {
 
 export function PopupFormModal({ popup, onClose, onSaved }: PopupFormModalProps) {
   const [form, setForm] = useState<PopupFormData>(DEFAULT);
+  const [popupImage, setPopupImage] = useState<ImageFieldValue>(emptyImageField());
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof PopupFormData, string>>>({});
 
@@ -73,8 +75,10 @@ export function PopupFormModal({ popup, onClose, onSaved }: PopupFormModalProps)
         targetPages: popup.targetPages,
         startDate: popup.startDate, endDate: popup.endDate,
       });
+      setPopupImage(popup.imageUrl ? imageFieldFromUrl(popup.imageUrl) : emptyImageField());
     } else {
       setForm(DEFAULT);
+      setPopupImage(emptyImageField());
     }
     setErrors({});
   }, [popup]);
@@ -177,22 +181,17 @@ export function PopupFormModal({ popup, onClose, onSaved }: PopupFormModalProps)
         />
 
         {/* Ảnh tiêu đề */}
-        <div className="flex flex-col gap-1.5">
-          <label className="text-sm font-medium text-secondary-700">
-            Ảnh tiêu đề popup
-            <span className="ml-1.5 text-xs font-normal text-secondary-400">(tuỳ chọn)</span>
-          </label>
-          <Dropzone
-            key={popup?.id ?? "new"}
-            initialUrl={form.imageUrl ?? ""}
-            onPreviewChange={(url) => set("imageUrl", url || undefined)}
-            aspectRatioHint="4:3 – Kích thước đề nghị 400 × 300 px"
-            maxSizeMB={2}
-          />
-          <p className="text-xs text-secondary-400">
-            Ảnh hiển thị phía trên tiêu đề trong popup. Để trống nếu không cần ảnh.
-          </p>
-        </div>
+        <ImageField
+          label="Ảnh tiêu đề popup (tuỳ chọn)"
+          value={popupImage}
+          onChange={(v) => {
+            setPopupImage(v);
+            set("imageUrl", v.displayUrl ?? undefined);
+          }}
+          aspectRatioHint="4:3 – Kích thước đề nghị 400 × 300 px"
+          allowedTypes={["image"]}
+          helperText="Ảnh hiển thị phía trên tiêu đề trong popup. Để trống nếu không cần ảnh."
+        />
 
         <RichTextEditor
           label="Nội dung popup"

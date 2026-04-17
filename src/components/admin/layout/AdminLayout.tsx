@@ -36,6 +36,9 @@ import {
   MegaphoneIcon,
   Bars3Icon,
   QuestionMarkCircleIcon,
+  CpuChipIcon,
+  WrenchScrewdriverIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
 import { SidebarProvider, useSidebar } from "@/src/components/admin/layout/SidebarContext";
@@ -312,10 +315,44 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: <Bars3Icon className="w-4 h-4" />,
       },
       {
+        value: "content-homepage",
+        label: "Trang chủ",
+        href: "/content/homepage",
+        icon: <HomeIcon className="w-4 h-4" />,
+      },
+      {
         value: "content-faq",
         label: "FAQ",
         href: "/content/faq",
         icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
+      },
+    ],
+  },
+
+  // ── Build PC ─────────────────────────────────────────────────────────────────
+  {
+    value: "buildpc",
+    label: "Build PC",
+    icon: <CpuChipIcon className="w-5 h-5" />,
+    requiredRoles: ["admin", "staff"],
+    children: [
+      {
+        value: "buildpc-slots",
+        label: "Khe linh kiện",
+        href: "/content/buildpc/slots",
+        icon: <WrenchScrewdriverIcon className="w-4 h-4" />,
+      },
+      {
+        value: "buildpc-rules",
+        label: "Quy tắc tương thích",
+        href: "/content/buildpc/rules",
+        icon: <ShieldCheckIcon className="w-4 h-4" />,
+      },
+      {
+        value: "buildpc-builds",
+        label: "Build đã lưu",
+        href: "/content/buildpc/builds",
+        icon: <ListBulletIcon className="w-4 h-4" />,
       },
     ],
   },

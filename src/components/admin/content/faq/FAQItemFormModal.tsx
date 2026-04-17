@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Modal } from "@/src/components/ui/Modal";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
+import { Textarea } from "@/src/components/ui/Textarea";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Select } from "@/src/components/ui/Select";
-import { RichTextEditor } from "@/src/components/editor/DynamicRichTextEditor";
 import { createFAQItem, updateFAQItem } from "@/src/services/content.service";
 import type { FAQItem, FAQItemFormData, FAQGroup } from "@/src/types/content.types";
 
@@ -101,12 +101,15 @@ export function FAQItemFormModal({
         />
 
         {/* Answer */}
-        <RichTextEditor
+        <Textarea
           label="Câu trả lời *"
           value={form.answer}
-          onChange={(html) => set("answer", html)}
+          onChange={(e) => set("answer", e.target.value)}
           placeholder="Viết câu trả lời chi tiết..."
-          minHeight={200}
+          rows={6}
+          autoResize
+          showCharCount
+          maxCharCount={2000}
           errorMessage={errors.answer}
         />
 

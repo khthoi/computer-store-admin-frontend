@@ -43,6 +43,7 @@ interface AddSpecTypeFormProps {
 function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFormProps) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [maKyThuat, setMaKyThuat] = useState("");
   const [required, setRequired] = useState(false);
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState("");
@@ -57,11 +58,13 @@ function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFor
       await onAdd({
         name: name.trim(),
         description: description.trim(),
+        maKyThuat: maKyThuat.trim(),
         required,
         displayOrder: nextOrder,
       });
       setName("");
       setDescription("");
+      setMaKyThuat("");
       setRequired(false);
       setNameError("");
     } finally {
@@ -86,6 +89,15 @@ function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFor
           size="sm"
           required
           errorMessage={nameError || undefined}
+        />
+
+        <Input
+          label="Mã kỹ thuật"
+          value={maKyThuat}
+          onChange={(e) => setMaKyThuat(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+          placeholder="VD: cpu_socket, tdp_watt, ram_type…"
+          size="sm"
+          helperText="Dùng cho engine kiểm tra tương thích Build PC — để trống nếu không cần"
         />
 
         <Textarea

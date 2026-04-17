@@ -100,6 +100,8 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
     }
   }
 
+  const cancelHref = `/products/${product.id}/variants/${variant.id}`;
+
   // ─────────────────────────────────────────────────────────────────────────
 
   return (
@@ -144,20 +146,18 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
           <p className="mt-0.5 font-mono text-xs text-secondary-400">{variant.sku}</p>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-3">
+        {/* Actions
+            fixed top-[80px] = below AdminHeader (h-16 = 64px) + 16px gap
+            right-6 = always within content area regardless of sidebar state   */}
+        <div className="fixed right-6 top-[80px] z-20 flex items-center gap-3">
           <Link
-            href={`/products/${product.id}/variants/${variant.id}`}
-            className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
+            href={cancelHref}
+            className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 shadow-sm transition-colors hover:bg-secondary-50"
           >
             <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
             Cancel
           </Link>
-          <Button
-            variant="primary"
-            isLoading={isSaving}
-            onClick={handleSave}
-          >
+          <Button variant="primary" isLoading={isSaving} onClick={handleSave}>
             Save Changes
           </Button>
         </div>
@@ -166,8 +166,8 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
       {/* ── Two-column layout ── */}
       <div className="grid gap-6 xl:grid-cols-[300px_1fr] xl:items-start">
 
-        {/* ── Left column — self-start so it doesn't stretch to match right column height ── */}
-        <div className="space-y-4 xl:relative xl:top-0">
+        {/* ── Left column ── */}
+        <div className="space-y-4">
           <VariantInfoForm
             value={info}
             onChange={setInfo}

@@ -77,22 +77,6 @@ function contrastColor(hex: string): "#000000" | "#ffffff" {
 
 // ─── ColorSelect ───────────────────────────────────────────────────────────────
 
-/**
- * ColorSelect — a compact, accessible color picker that combines:
- * - A click-to-open native `<input type="color">` swatch
- * - A hex text input (with live validation)
- * - A preset palette grid
- * - An optional live badge preview
- *
- * ```tsx
- * <ColorSelect
- *   label="Màu nền badge"
- *   value={form.badgeColor}
- *   onChange={(c) => set("badgeColor", c)}
- *   previewText={form.badge}
- * />
- * ```
- */
 export function ColorSelect({
   value = "#ef4444",
   onChange,
@@ -114,10 +98,6 @@ export function ColorSelect({
   const hasError = Boolean(errorMessage);
   const safeValue = isValidHex(value) ? value : "#ef4444";
 
-  // ── Expose current draft (what user typed) separately from committed value ──
-  // We don't use state for the input text; we control it via ref+DOM directly
-  // so we never lose focus mid-typing.
-
   // Sync the hex text input when the external `value` prop changes
   useEffect(() => {
     if (hexInputRef.current && document.activeElement !== hexInputRef.current) {
@@ -130,7 +110,6 @@ export function ColorSelect({
       const hex = normalizeHex(raw);
       if (isValidHex(hex)) {
         onChange?.(hex);
-        // Keep input in sync if not focused
         if (hexInputRef.current && document.activeElement !== hexInputRef.current) {
           hexInputRef.current.value = hex;
         }
@@ -144,18 +123,15 @@ export function ColorSelect({
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value;
-    const normalized = normalizeHex(raw);
+    const normalized = normalizeHex(e.target.value);
     if (isValidHex(normalized)) commit(normalized);
   };
 
   const handleInputBlur = (e: React.FocusEvent<HTMLInputElement>) => {
     const normalized = normalizeHex(e.target.value);
     if (!isValidHex(normalized)) {
-      // Reset to last known-good value
       e.target.value = safeValue;
     } else {
-      // Canonicalise display to lowercase with #
       e.target.value = normalized.toLowerCase();
     }
   };
@@ -181,13 +157,11 @@ export function ColorSelect({
       {label && (
         <label
           htmlFor={id}
-          className="mb-1.5 block text-sm font-medium text-secondary-700"
+          className="mb-1.5 block select-none text-sm font-medium text-secondary-700"
         >
           {label}
           {required && (
-            <span aria-hidden="true" className="ml-0.5 text-error-600">
-              *
-            </span>
+            <span aria-hidden="true" className="ml-0.5 select-none text-error-600">*</span>
           )}
         </label>
       )}
@@ -199,23 +173,21 @@ export function ColorSelect({
           type="button"
           onClick={handleSwatchClick}
           disabled={disabled}
-          title="Click để mở bảng chọn màu hệ thống"
+          title="Click để mở bảng chọn màu"
           aria-label={`Màu hiện tại: ${safeValue}. Click để mở bảng chọn màu`}
           className={[
-            "relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-150",
-            "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1",
+            "group relative h-10 w-10 shrink-0 overflow-hidden rounded-lg border-2 transition-all duration-150",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1",
             disabled
               ? "cursor-not-allowed opacity-50"
               : "cursor-pointer hover:scale-105 hover:shadow-md",
-            safeValue === "#ffffff"
-              ? "border-secondary-300"
-              : "border-transparent",
+            safeValue === "#ffffff" ? "border-secondary-300" : "border-transparent",
           ]
             .filter(Boolean)
             .join(" ")}
           style={{ backgroundColor: safeValue }}
         >
-          {/* Eyedropper icon — subtle, shown on hover */}
+          {/* Eyedropper icon — shown on hover */}
           <span className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
             <EyeDropperIcon
               className="h-4 w-4 drop-shadow"
@@ -223,7 +195,7 @@ export function ColorSelect({
               aria-hidden
             />
           </span>
-          {/* Hidden native color input wired to the swatch */}
+          {/* Hidden native color input */}
           <input
             ref={nativeRef}
             type="color"
@@ -260,7 +232,6 @@ export function ColorSelect({
               .filter(Boolean)
               .join(" ")}
           />
-          {/* Invalid hex warning */}
           {hasError && (
             <ExclamationCircleIcon
               className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-error-500"
@@ -292,8 +263,7 @@ export function ColorSelect({
           aria-label="Màu nhanh"
         >
           {presets.map((preset) => {
-            const isSelected =
-              safeValue.toLowerCase() === preset.toLowerCase();
+            const isSelected = safeValue.toLowerCase() === preset.toLowerCase();
             const isWhite = preset === "#ffffff";
             return (
               <button
@@ -306,7 +276,7 @@ export function ColorSelect({
                 aria-pressed={isSelected}
                 className={[
                   "relative h-7 w-7 rounded-md border-2 transition-all duration-100",
-                  "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-1",
+                  "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-1",
                   "disabled:cursor-not-allowed disabled:opacity-50",
                   isSelected
                     ? "scale-110 border-primary-500 shadow-md"

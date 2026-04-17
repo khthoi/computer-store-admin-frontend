@@ -7,7 +7,8 @@ import { Textarea } from "@/src/components/ui/Textarea";
 import { Select } from "@/src/components/ui/Select";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Button } from "@/src/components/ui/Button";
-import { MediaUploadPanel, type MediaImage } from "@/src/components/admin/shared/MediaUploadPanel";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -70,10 +71,8 @@ export function BrandFormModal({
   const [websiteUrl, setWebsiteUrl] = useState(initialData?.websiteUrl ?? "");
   const [countryOfOrigin, setCountryOfOrigin] = useState(initialData?.countryOfOrigin ?? "");
   const [active, setActive] = useState(initialData?.active ?? true);
-  const [logoImages, setLogoImages] = useState<MediaImage[]>(
-    initialData?.logoUrl
-      ? [{ id: "logo-existing", url: initialData.logoUrl, alt: initialData.name ?? "Logo" }]
-      : []
+  const [logoImage, setLogoImage] = useState<ImageFieldValue>(
+    initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl) : emptyImageField()
   );
 
   // Sync form when initialData changes
@@ -85,27 +84,12 @@ export function BrandFormModal({
       setWebsiteUrl(initialData?.websiteUrl ?? "");
       setCountryOfOrigin(initialData?.countryOfOrigin ?? "");
       setActive(initialData?.active ?? true);
-      setLogoImages(
-        initialData?.logoUrl
-          ? [{ id: "logo-existing", url: initialData.logoUrl, alt: initialData.name ?? "Logo" }]
-          : []
-      );
+      setLogoImage(initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl) : emptyImageField());
     }
   }, [isOpen, initialData]);
 
   function handleAutoSlug() {
     setSlug(generateSlug(name));
-  }
-
-  function handleLogoAdd(files: File[]) {
-    const file = files[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setLogoImages([{ id: `logo-${Date.now()}`, url, alt: name || "Logo" }]);
-  }
-
-  function handleLogoRemove(_id: string) {
-    setLogoImages([]);
   }
 
   async function handleSubmit() {
@@ -116,7 +100,7 @@ export function BrandFormModal({
       websiteUrl,
       countryOfOrigin,
       active,
-      logoUrl: logoImages[0]?.url,
+      logoUrl: logoImage.displayUrl ?? undefined,
     });
   }
 
@@ -176,15 +160,13 @@ export function BrandFormModal({
         </div>
 
         {/* Logo upload */}
-        <div>
-          <p className="mb-2 block text-sm font-medium text-secondary-700">Logo thương hiệu</p>
-          <MediaUploadPanel
-            images={logoImages}
-            onAdd={handleLogoAdd}
-            onRemove={handleLogoRemove}
-            maxImages={1}
-          />
-        </div>
+        <ImageField
+          label="Logo thương hiệu"
+          value={logoImage}
+          onChange={setLogoImage}
+          aspectRatioHint="1:1 — Kích thước đề nghị 200 × 200 px (PNG/SVG nền trong)"
+          allowedTypes={["image"]}
+        />
 
         {/* Description */}
         <Textarea

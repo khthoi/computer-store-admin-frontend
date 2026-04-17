@@ -6,7 +6,8 @@ import { Squares2X2Icon } from "@heroicons/react/24/outline";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
 import { Input } from "@/src/components/ui/Input";
 import { Button } from "@/src/components/ui/Button";
-import { Dropzone } from "@/src/components/ui/Dropzone";
+import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
+import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { useToast } from "@/src/components/ui/Toast";
 import { FlatNavEditor } from "./FlatNavEditor";
 import { TrustBadgeEditor } from "./TrustBadgeEditor";
@@ -21,6 +22,49 @@ import {
   saveFooterConfig,
 } from "@/src/services/content.service";
 import type { Menu, TrustBadge, CategoryShortcut, FooterConfig } from "@/src/types/content.types";
+
+// ─── Logo header preview ──────────────────────────────────────────────────────
+
+function LogoHeaderPreview({ logoUrl, logoAlt, className }: { logoUrl?: string; logoAlt?: string; className?: string }) {
+  return (
+    <div className={`overflow-hidden rounded-xl border border-secondary-200 bg-secondary-50 p-3 ${className || ""}`}>
+      <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-secondary-400">
+        Xem trước trên storefront — Header
+      </p>
+      {/* Simulated nav bar */}
+      <div className="rounded-lg border border-secondary-200 bg-white shadow-sm">
+        <div className="flex h-14 items-center gap-4 px-5">
+          {/* Logo */}
+          <div className="flex h-8 shrink-0 items-center">
+            {logoUrl
+              // eslint-disable-next-line @next/next/no-img-element
+              ? <img src={logoUrl} alt={logoAlt ?? "Logo"} className="h-8 object-contain" />
+              : <span className="text-base font-bold text-secondary-800">{logoAlt || "PC Store"}</span>
+            }
+          </div>
+          {/* Fake nav items */}
+          <div className="flex flex-1 items-center gap-4">
+            {["Danh mục ▾", "Laptop", "PC", "Gaming"].map((label) => (
+              <span key={label} className="text-xs text-secondary-500">{label}</span>
+            ))}
+          </div>
+          {/* Fake search bar */}
+          <div className="flex w-40 items-center gap-2 rounded-full border border-secondary-200 bg-secondary-50 px-3 py-1.5">
+            <span className="text-[10px] text-secondary-400">Tìm kiếm…</span>
+          </div>
+          {/* Fake icons */}
+          <div className="flex items-center gap-3">
+            <div className="h-5 w-5 rounded-full bg-secondary-200" />
+            <div className="h-5 w-5 rounded-full bg-secondary-200" />
+          </div>
+        </div>
+      </div>
+      <p className="mt-2 text-[10px] text-secondary-400">
+        Logo hiển thị ở chiều cao 32 px — tỷ lệ 3:1 (ví dụ: 180 × 60 px) cho kết quả tốt nhất.
+      </p>
+    </div>
+  );
+}
 
 // ─── Skeleton ─────────────────────────────────────────────────────────────────
 
@@ -45,6 +89,7 @@ export function NavigationClient() {
   const [isLoading, setIsLoading]       = useState(true);
   const [footerDirty, setFooterDirty]   = useState(false);
   const [isSavingFooter, setIsSavingFooter] = useState(false);
+  const [headerLogoImage, setHeaderLogoImage] = useState<ImageFieldValue>(emptyImageField());
 
   useEffect(() => {
     Promise.all([
@@ -57,6 +102,7 @@ export function NavigationClient() {
       setTrustBadges(badges);
       setShortcuts(cats);
       setFooterConfig(footer);
+      setHeaderLogoImage(footer.brand.logoUrl ? imageFieldFromUrl(footer.brand.logoUrl) : emptyImageField());
       setIsLoading(false);
     });
   }, []);
@@ -129,17 +175,19 @@ export function NavigationClient() {
             </div>
 
             {/* Logo upload */}
-            <div>
-              <p className="mb-2 text-sm font-medium text-secondary-700">Logo cửa hàng</p>
-              <Dropzone
-                initialUrl={footerConfig.brand.logoUrl || undefined}
-                onPreviewChange={(url) =>
-                  updateFooterConfig({ brand: { ...footerConfig.brand, logoUrl: url } })
-                }
-                aspectRatioHint="3:1 — Kích thước đề nghị 180 × 60 px (PNG/SVG nền trong)"
-                maxSizeMB={1}
-              />
-              <div className="mt-3">
+            <div className="grid grid-cols-5 gap-6 items-start">
+              {/* Left: uploader (1/5) */}
+              <div className="col-span-2 space-y-3">
+                <ImageField
+                  label="Logo cửa hàng"
+                  value={headerLogoImage}
+                  onChange={(v) => {
+                    setHeaderLogoImage(v);
+                    updateFooterConfig({ brand: { ...footerConfig.brand, logoUrl: v.displayUrl ?? "" } });
+                  }}
+                  aspectRatioHint="3:1 — Đề nghị 180 × 60 px"
+                  allowedTypes={["image"]}
+                />
                 <Input
                   label="Alt text logo"
                   value={footerConfig.brand.logoAlt}
@@ -148,6 +196,14 @@ export function NavigationClient() {
                   }
                   placeholder="PC Store"
                   helperText="Văn bản thay thế khi ảnh không tải được"
+                />
+              </div>
+              {/* Right: storefront preview (3/5) */}
+              <div className="col-span-3">
+                <LogoHeaderPreview
+                  logoUrl={footerConfig.brand.logoUrl}
+                  logoAlt={footerConfig.brand.logoAlt || "PC Store"}
+                  className="mt-8"
                 />
               </div>
             </div>
