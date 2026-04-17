@@ -29,9 +29,9 @@ export default async function ProductsPage() {
       {/* ── Page header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Products</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">Các sản phẩm hiện hữu của cửa hàng </h1>
           <p className="mt-1 text-sm text-secondary-500">
-            Manage your product catalogue, variants, and inventory.
+            Quản lý danh mục sản phẩm, biến thể và tồn kho của bạn. Bạn có thể chỉnh sửa, lưu trữ hoặc xoá sản phẩm từ đây.
           </p>
         </div>
 
@@ -40,7 +40,7 @@ export default async function ProductsPage() {
           className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
         >
           <PlusIcon className="w-4 h-4" aria-hidden="true" />
-          Add Product
+          Thêm Sản Phẩm
         </Link>
       </div>
 

@@ -18,7 +18,7 @@ export function VariantHeader({ product, variant }: VariantHeaderProps) {
         {/* Breadcrumb */}
         <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
           <Link href="/products" className="transition-colors hover:text-secondary-700">
-            Products
+            Danh sách sản phẩm
           </Link>
           <span aria-hidden="true">›</span>
           <Link
@@ -33,7 +33,7 @@ export function VariantHeader({ product, variant }: VariantHeaderProps) {
             href={`/products/${product.id}/variants`}
             className="transition-colors hover:text-secondary-700"
           >
-            Variants
+            Phiên bản
           </Link>
           <span aria-hidden="true">›</span>
           <span className="text-secondary-600">{variant.name}</span>
@@ -53,7 +53,7 @@ export function VariantHeader({ product, variant }: VariantHeaderProps) {
         className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
       >
         <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
-        Edit Variant
+        Chỉnh sửa
       </Link>
     </div>
   );

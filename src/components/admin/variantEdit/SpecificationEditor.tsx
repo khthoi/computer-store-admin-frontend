@@ -20,7 +20,7 @@ export function SpecificationEditor({ groups, onChange }: SpecificationEditorPro
   return (
     <div className="space-y-4">
       <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-        Specifications
+        Thông số kỹ thuật
       </h2>
       {groups.map((group) => (
         <SpecificationGroupEditor

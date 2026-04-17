@@ -20,9 +20,9 @@ interface PricingStatusFormProps {
 }
 
 const STATUS_OPTIONS: { value: DetailVariantStatus; label: string; description: string }[] = [
-  { value: "visible",      label: "Visible",       description: "Visible to customers" },
-  { value: "hidden",       label: "Hidden",        description: "Hidden from storefront" },
-  { value: "out_of_stock", label: "Out of Stock",  description: "Not available for purchase" },
+  { value: "visible",      label: "Hiển thị",       description: "Hiển thị cho khách hàng" },
+  { value: "hidden",       label: "Ẩn",        description: "Ẩn khỏi cửa hàng" },
+  { value: "out_of_stock", label: "Hết hàng",  description: "Không khả dụng để mua" },
 ];
 
 export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatusFormProps) {
@@ -42,13 +42,13 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
   return (
     <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-        Pricing &amp; Status
+        Giá bán &amp; Trạng thái
       </h2>
 
       {/* Pricing */}
       <div className="space-y-4">
         <Input
-          label="Original Price (₫)"
+          label="Giá gốc (₫)"
           type="number"
           min={0}
           step={1000}
@@ -60,7 +60,7 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
         />
 
         <Input
-          label="Sale Price (₫)"
+          label="Giá bán (₫)"
           type="number"
           min={0}
           step={1000}
@@ -75,7 +75,7 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
         <div className="min-h-[36px]">
           {discount > 0 && (
             <div className="flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 px-3 py-2">
-              <span className="text-sm text-success-700">Discount applied:</span>
+              <span className="text-sm text-success-700">Giảm giá:</span>
               <Badge variant="success" size="sm">−{discount}%</Badge>
             </div>
           )}
@@ -86,7 +86,7 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
 
       {/* Status radio cards */}
       <div>
-        <p className="mb-3 text-sm font-medium text-secondary-700">Status</p>
+        <p className="mb-3 text-sm font-medium text-secondary-700">Trạng thái</p>
         <div className="space-y-2">
           {STATUS_OPTIONS.map((opt) => {
             const checked = value.status === opt.value;

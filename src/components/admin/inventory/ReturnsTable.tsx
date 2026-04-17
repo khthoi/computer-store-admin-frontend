@@ -62,7 +62,7 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
   },
   {
     key: "orderId",
-    header: "Order",
+    header: "Đơn hàng",
     render: (_, row) => (
       <Link
         href={`/orders/${row.orderId as string}`}
@@ -74,7 +74,7 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
   },
   {
     key: "customerName",
-    header: "Customer",
+    header: "Khách hàng",
     sortable: true,
     render: (_, row) => (
       <span className="text-sm text-secondary-800">{row.customerName as string}</span>
@@ -82,13 +82,13 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
   },
   {
     key: "status",
-    header: "Status",
+    header: "Trạng thái",
     sortable: true,
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "reason",
-    header: "Reason",
+    header: "Lý do",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">
         {REASON_LABELS[row.reason as string] ?? (row.reason as string)}
@@ -97,12 +97,12 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
   },
   {
     key: "resolution",
-    header: "Resolution",
+    header: "Giải quyết",
     render: (_, row) => <StatusBadge status={row.resolution as string} size="sm" />,
   },
   {
     key: "refundAmount",
-    header: "Refund",
+    header: "Hoàn tiền",
     sortable: true,
     render: (_, row) => (
       <span className="text-sm font-semibold text-secondary-900">
@@ -112,7 +112,7 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
   },
   {
     key: "requestedAt",
-    header: "Requested",
+    header: "Yêu cầu lúc",
     sortable: true,
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-500">
@@ -208,7 +208,7 @@ export function ReturnsTable({
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
       searchQuery={q}
       onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder="Search by return ID, order ID or customer…"
+      searchPlaceholder="Tìm kiếm theo mã ĐH, mã hoàn trả, tên KH hoặc SĐT..."
       toolbarActions={toolbarActions}
       page={page}
       pageSize={pageSize}

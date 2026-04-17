@@ -37,7 +37,7 @@ export function VariantSalesStatsCard({ stats }: VariantSalesStatsCardProps) {
     <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-secondary-500">
         <ShoppingBagIcon className="w-4 h-4" aria-hidden="true" />
-        Sales Overview
+        Thống kê đơn
       </h2>
 
       <ul>

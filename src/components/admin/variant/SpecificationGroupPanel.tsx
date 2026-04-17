@@ -25,11 +25,11 @@ export function SpecificationGroupPanel({ group }: SpecificationGroupPanelProps)
       <table className="w-full">
         <thead>
           <tr className="border-b border-secondary-100">
-            <th className="pb-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500 w-40">
-              Specification
+            <th className="pb-2 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500 w-90">
+              Thông số kỹ thuật
             </th>
             <th className="pb-2 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
-              Value
+              Giá trị
             </th>
           </tr>
         </thead>

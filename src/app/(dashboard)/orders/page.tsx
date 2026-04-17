@@ -21,9 +21,9 @@ export default async function OrdersPage() {
       {/* ── Page header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Orders</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">Danh sách đơn hàng</h1>
           <p className="mt-1 text-sm text-secondary-500">
-            {total} order{total !== 1 ? "s" : ""} total
+            {total} đơn hàng tổng cộng
           </p>
         </div>
       </div>

@@ -53,7 +53,7 @@ export default async function VariantDetailPage({
     <div className="space-y-6 p-6">
       <VariantHeader product={product} variant={variant} />
 
-      <div className="grid gap-6 xl:grid-cols-[300px_1fr]">
+      <div className="grid gap-6 xl:grid-cols-[400px_1fr]">
         {/* ── Left column ── */}
         <div className="space-y-4">
           <ProductSummaryCard product={product} />
@@ -70,7 +70,7 @@ export default async function VariantDetailPage({
           {variant.specificationGroups.length > 0 && (
             <div className="space-y-4">
               <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-                Specifications
+                Thông số kỹ thuật
               </h2>
               {variant.specificationGroups.map((group) => (
                 <SpecificationGroupPanel key={group.id} group={group} />

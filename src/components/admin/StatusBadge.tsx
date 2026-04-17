@@ -46,6 +46,7 @@ export type AdminStatus =
   | "visible"
   | "hidden"
   | "out_of_stock"
+  | "has_active_orders"
   // ── Order statuses ──
   | "confirmed"
   | "processing"
@@ -109,6 +110,7 @@ const CONFIG: Record<
   online:       { label: "Online",        wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
   offline:      { label: "Offline",       wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <XCircleIcon aria-hidden="true" /> },
   banned:       { label: "Banned",        wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
+  has_active_orders: { label: "Has Active Orders", wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
   // ── Variant detail statuses ──
   visible:      { label: "Visible",       wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <EyeIcon aria-hidden="true" /> },
   hidden:       { label: "Hidden",        wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <EyeSlashIcon aria-hidden="true" /> },

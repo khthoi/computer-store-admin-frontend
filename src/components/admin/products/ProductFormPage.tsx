@@ -188,12 +188,12 @@ export function ProductFormPage({
       {/* Page header */}
       <div>
         <h1 className="text-2xl font-bold text-secondary-900">
-          {mode === "create" ? "Add Product" : `Edit: ${product!.name}`}
+          {mode === "create" ? "Thêm Sản Phẩm" : `Chỉnh Sửa: ${product!.name}`}
         </h1>
         <p className="mt-1 text-sm text-secondary-500">
           {mode === "create"
-            ? "Fill in the details below to create a new product."
-            : "Update the product details below."}
+            ? "Điền thông tin bên dưới để thêm sản phẩm mới."
+            : "Cập nhật thông tin sản phẩm bên dưới."}
         </p>
       </div>
 
@@ -201,14 +201,14 @@ export function ProductFormPage({
         {/* ── Basic Info ── */}
         <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
           <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-            Basic Info
+            Thông tin cơ bản
           </h2>
 
           <div className="space-y-5">
             {/* Name + Slug */}
             <div className="grid gap-5 sm:grid-cols-2">
               <Input
-                label="Product Name"
+                label="Tên sản phẩm"
                 value={name}
                 onChange={(e) => handleNameChange(e.target.value)}
                 placeholder="e.g. ASUS ROG Strix GeForce RTX 4090"
@@ -222,7 +222,7 @@ export function ProductFormPage({
                 onChange={(e) => handleSlugChange(e.target.value)}
                 placeholder="auto-generated from name"
                 fullWidth
-                helperText="Used in the URL. Auto-generated from name."
+                helperText="Dùng trong URL, chỉ chứa chữ thường, số, và dấu gạch ngang."
               />
             </div>
 
@@ -236,13 +236,13 @@ export function ProductFormPage({
                   setCategory(id);
                   setErrors((prev) => ({ ...prev, category: undefined }));
                 }}
-                placeholder="Select a category"
+                placeholder="Chọn danh mục"
                 required
-                helperText="Browse the hierarchy and select the most specific category."
+                helperText="Duyệt qua cấu trúc và chọn danh mục cụ thể nhất."
                 errorMessage={errors.category}
               />
               <Select
-                label="Brand"
+                label="Thương hiệu"
                 value={brand}
                 onChange={(v) => setBrand(v as string[])}
                 placeholder="e.g. ASUS"
@@ -251,7 +251,7 @@ export function ProductFormPage({
                 searchable
                 clearable
                 creatable
-                helperText="Select existing brands or type to create a new one."
+                helperText="Chọn thương hiệu hiện có hoặc nhập để tạo mới."
                 options={brands.map((b) => ({ value: b, label: b }))}
                 errorMessage={errors.brand}
               />
@@ -260,7 +260,7 @@ export function ProductFormPage({
             {/* Status */}
             <div className="grid gap-5 sm:grid-cols-2">
               <Select
-                label="Status"
+                label="Trạng thái"
                 options={STATUS_OPTIONS}
                 value={status}
                 onChange={(v) => setStatus(v as string)}
@@ -274,7 +274,7 @@ export function ProductFormPage({
         <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
           <div className="mb-5 flex items-center justify-between">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Variants
+              Phiên bản sản phẩm
               {variantList.length > 0 && (
                 <span className="ml-2 font-normal normal-case text-secondary-400">
                   ({variantList.length})
@@ -286,8 +286,8 @@ export function ProductFormPage({
           {variantList.length === 0 ? (
             <p className="py-6 text-center text-sm text-secondary-400">
               {mode === "create"
-                ? "Variants can be added after saving the product."
-                : "No variants yet."}
+                ? "Phiên bản sẽ khả dụng sau khi bạn tạo sản phẩm."
+                : "Chưa có phiên bản nào."}
             </p>
           ) : (
             <div className="overflow-x-auto">
@@ -295,22 +295,22 @@ export function ProductFormPage({
                 <thead>
                   <tr className="border-b border-secondary-100">
                     <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
-                      Variant
+                      Phiên bản
                     </th>
                     <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
                       SKU
                     </th>
                     <th className="pb-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
-                      Price
+                      Giá
                     </th>
                     <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
-                      Stock
+                      Tồn kho
                     </th>
                     <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
-                      Status
+                      Trạng thái
                     </th>
                     <th className="pb-3 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
-                      Actions
+                      Hành động
                     </th>
                   </tr>
                 </thead>
@@ -333,9 +333,9 @@ export function ProductFormPage({
                       </td>
                       <td className="py-3 pr-4 text-center">
                         {v.stock === 0 ? (
-                          <Badge variant="error" size="sm">Out of stock</Badge>
+                          <Badge variant="error" size="sm">Hết hàng</Badge>
                         ) : v.stock <= 5 ? (
-                          <Badge variant="warning" size="sm">{v.stock} left</Badge>
+                          <Badge variant="warning" size="sm">{v.stock} còn lại</Badge>
                         ) : (
                           <span className="text-secondary-700">{v.stock.toLocaleString()}</span>
                         )}
@@ -369,10 +369,10 @@ export function ProductFormPage({
             href={backHref}
             className="inline-flex items-center justify-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary-400"
           >
-            Cancel
+            Hủy
           </Link>
           <Button type="submit" variant="primary" isLoading={isSubmitting}>
-            {mode === "create" ? "Create Product" : "Save Changes"}
+            {mode === "create" ? "Tạo Sản Phẩm" : "Lưu Thay Đổi"}
           </Button>
         </div>
       </form>
@@ -382,9 +382,9 @@ export function ProductFormPage({
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleVariantDeleteConfirm}
-        title="Delete Variant"
-        description={`This will permanently delete "${deleteTarget?.name}" (${deleteTarget?.sku}). This action cannot be undone.`}
-        confirmLabel="Delete Variant"
+        title="Xoá phiên bản sản phẩm"
+        description={`Bạn có chắc chắn muốn xóa phiên bản "${deleteTarget?.name}" (${deleteTarget?.sku})? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá phiên bản"
         requiredPhrase={deleteTarget?.sku}
         isConfirming={isDeleting}
       />

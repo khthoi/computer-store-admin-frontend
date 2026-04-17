@@ -76,7 +76,8 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
   },
   {
     key: "createdAt",
-    header: "Date",
+    header: "Ngày tạo",
+    align: "left",
     sortable: true,
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-600">
@@ -86,7 +87,7 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
   },
   {
     key: "customerName",
-    header: "Customer",
+    header: "Khách hàng",
     sortable: true,
     render: (_, row) => (
       <div>
@@ -97,13 +98,13 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
   },
   {
     key: "status",
-    header: "Order Status",
+    header: "Trạng thái",
     sortable: true,
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "paymentStatus",
-    header: "Payment",
+    header: "Thanh toán",
     sortable: true,
     render: (_, row) => (
       <div className="space-y-1">
@@ -116,7 +117,7 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
   },
   {
     key: "itemCount",
-    header: "Items",
+    header: "Tổng SP",
     align: "center",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.itemCount as number}</span>
@@ -124,7 +125,7 @@ const COLUMNS: ColumnDef<OrderRow>[] = [
   },
   {
     key: "grandTotal",
-    header: "Total",
+    header: "Tổng cộng",
     sortable: true,
     render: (_, row) => (
       <span className="text-sm font-semibold text-secondary-900">
@@ -223,7 +224,7 @@ export function OrdersTable({ initialOrders }: OrdersTableProps) {
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
       searchQuery={q}
       onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder="Search by order ID, customer name or phone…"
+      searchPlaceholder="Tìm kiếm theo mã đơn hàng, tên KH hoặc SĐT..."
       toolbarActions={toolbarActions}
       page={page}
       pageSize={pageSize}

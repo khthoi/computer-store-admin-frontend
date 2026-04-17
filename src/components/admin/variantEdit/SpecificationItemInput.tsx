@@ -19,6 +19,11 @@ export function SpecificationItemInput({ item, onChange }: SpecificationItemInpu
         {item.description && (
           <span className="mt-0.5 block text-[10px] text-secondary-400">{item.description}</span>
         )}
+        {item.maKyThuat && (
+          <code className="mt-1 inline-block rounded bg-secondary-100 px-1.5 py-0.5 font-mono text-[10px] text-secondary-500">
+            {item.maKyThuat}
+          </code>
+        )}
       </div>
 
       {/* Value editor */}

@@ -80,18 +80,18 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   // ── Products ─────────────────────────────────────────────────────────────────
   {
     value: "products",
-    label: "Products",
+    label: "Sản phẩm",
     icon: <CubeIcon className="w-5 h-5" />,
     children: [
       {
         value: "products-list",
-        label: "All Products",
+        label: "Tất cả sản phẩm",
         href: "/products",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
       {
         value: "products-new",
-        label: "Add Product",
+        label: "Thêm sản phẩm",
         href: "/products/new",
         icon: <PlusIcon className="w-4 h-4" />,
       },
@@ -101,18 +101,18 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   // ── Categories & Brands ──────────────────────────────────────────────────────
   {
     value: "categories",
-    label: "Categories & Brands",
+    label: "Các danh mục",
     icon: <TagIcon className="w-5 h-5" />,
     children: [
       {
         value: "categories-list",
-        label: "Categories",
+        label: "Danh mục",
         href: "/categories",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
       {
         value: "brands-list",
-        label: "Brands",
+        label: "Thương hiệu",
         href: "/brands",
         icon: <BuildingStorefrontIcon className="w-4 h-4" />,
       },
@@ -127,7 +127,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     children: [
       {
         value: "orders-list",
-        label: "All Orders",
+        label: "Tất cả đơn hàng",
         href: "/orders",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
@@ -140,7 +140,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
       },
       {
         value: "orders-returns",
-        label: "Returns",
+        label: "Trả hàng & Hoàn tiền",
         href: "/orders/returns",
         icon: <ArrowPathIcon className="w-4 h-4" />,
       },
@@ -150,25 +150,25 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   // ── Users ────────────────────────────────────────────────────────────────────
   {
     value: "users",
-    label: "Users",
+    label: "Người dùng",
     icon: <UsersIcon className="w-5 h-5" />,
     children: [
       {
         value: "customers",
-        label: "Customers",
+        label: "Khách hàng",
         href: "/customers",
         icon: <UserGroupIcon className="w-4 h-4" />,
       },
       {
         value: "employees",
-        label: "Employees",
+        label: "Nhân viên",
         href: "/employees",
         icon: <UsersIcon className="w-4 h-4" />,
         requiredRoles: ["admin"],
       },
       {
         value: "roles",
-        label: "Roles & Permissions",
+        label: "Vai trò & Phân quyền",
         href: "/roles",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
         requiredRoles: ["admin"],
@@ -179,49 +179,49 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   // ── Inventory ────────────────────────────────────────────────────────────────
   {
     value: "inventory",
-    label: "Inventory",
+    label: "Kho hàng",
     icon: <ArchiveBoxIcon className="w-5 h-5" />,
     requiredRoles: ["admin", "warehouse"],
     children: [
       {
         value: "inventory-overview",
-        label: "Overview",
+        label: "Tổng quan",
         href: "/inventory",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-items",
-        label: "Stock Items",
+        label: "Kho hàng",
         href: "/inventory/items",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-stock-in",
-        label: "Stock In",
+        label: "Nhập kho",
         href: "/inventory/stock-in",
         icon: <ArrowUpTrayIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-stock-out",
-        label: "Stock Out",
+        label: "Xuất kho",
         href: "/inventory/stock-out",
         icon: <ArrowPathIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-low-stock",
-        label: "Low Stock Alerts",
+        label: "Cảnh báo tồn kho",
         href: "/inventory/low-stock",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-movements",
-        label: "Movements Log",
+        label: "Nhật ký hoạt động",
         href: "/inventory/movements",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-suppliers",
-        label: "Suppliers",
+        label: "Nhà cung cấp",
         href: "/inventory/suppliers",
         icon: <BuildingStorefrontIcon className="w-4 h-4" />,
       },
@@ -231,19 +231,19 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
    // ── Promotions ───────────────────────────────────────────────────────────────
   {
     value: "promotions",
-    label: "Promos & Coupons",
+    label: "Khuyến mãi",
     icon: <TicketIcon className="w-5 h-5" />,
     dividerAfter: true,
     children: [
       {
         value: "promotions-list",
-        label: "All Promos & Coupons",
+        label: "Tất cả khuyến mãi",
         href: "/promotions",
         icon: <ListBulletIcon className="w-4 h-4" />,
       },
       {
         value: "promotions-new",
-        label: "New Promotion",
+        label: "Thêm khuyến mãi",
         href: "/promotions/new",
         icon: <PlusIcon className="w-4 h-4" />,
       },

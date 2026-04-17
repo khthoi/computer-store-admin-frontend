@@ -25,12 +25,12 @@ export function VariantInfoForm({ value, onChange, errors = {} }: VariantInfoFor
   return (
     <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-        Variant Info
+        Thông tin phiên bản
       </h2>
 
       <div className="space-y-4">
         <Input
-          label="Name"
+          label="Tên phiên bản"
           required
           value={value.name}
           onChange={set("name")}
@@ -48,14 +48,14 @@ export function VariantInfoForm({ value, onChange, errors = {} }: VariantInfoFor
         />
 
         <Input
-          label="Weight (kg)"
+          label="Khối lượng (kg)"
           type="number"
           min={0}
           step={0.01}
           value={value.weight}
           onChange={set("weight")}
           placeholder="e.g. 1.85"
-          helperText="Leave blank if not applicable"
+          helperText="Để trống nếu không áp dụng."
           errorMessage={errors.weight}
         />
       </div>

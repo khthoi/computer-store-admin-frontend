@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { Badge } from "@/src/components/ui/Badge";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import type { Product } from "@/src/types/product.types";
 
 // ─── ProductSummaryCard ───────────────────────────────────────────────────────
@@ -13,15 +14,16 @@ export function ProductSummaryCard({ product }: ProductSummaryCardProps) {
   return (
     <div className="rounded-xl border border-secondary-200 bg-white p-4 shadow-sm">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-secondary-500">
-        Parent Product
+        Sản phẩm gốc
       </p>
 
+      <Tooltip content={product.name} placement="right">
       <p
         className="truncate text-sm font-semibold text-secondary-900"
-        title={product.name}
       >
         {product.name}
       </p>
+      </Tooltip>
       <p className="mt-0.5 font-mono text-xs text-secondary-400">{product.slug}</p>
 
       <div className="mt-2">
@@ -40,7 +42,7 @@ export function ProductSummaryCard({ product }: ProductSummaryCardProps) {
         href={`/products/${product.id}`}
         className="mt-3 inline-flex items-center text-xs font-medium text-primary-600 transition-colors hover:text-primary-800"
       >
-        View product →
+        Xem chi tiết →
       </Link>
     </div>
   );

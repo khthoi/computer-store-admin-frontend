@@ -113,7 +113,7 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
             <Link href="/products" className="transition-colors hover:text-secondary-700">
-              Products
+              Danh sách sản phẩm
             </Link>
             <span aria-hidden="true">›</span>
             <Link
@@ -128,37 +128,37 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
               href={`/products/${productId}/variants`}
               className="transition-colors hover:text-secondary-700"
             >
-              Variants
+              Phiên bản
             </Link>
             <span aria-hidden="true">›</span>
-            <span className="text-secondary-600">New Variant</span>
+            <span className="text-secondary-600">Thêm mới</span>
           </nav>
 
           {/* Title */}
-          <h1 className="mt-2 text-2xl font-bold text-secondary-900">Add Variant</h1>
+          <h1 className="mt-2 text-2xl font-bold text-secondary-900">Thêm mới phiên bản</h1>
         </div>
 
         {/* Actions */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-3 fixed right-8 top-25 z-30">
           <Link
             href={`/products/${productId}`}
             className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
           >
             <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
-            Cancel
+            Huỷ
           </Link>
           <Button
             variant="primary"
             isLoading={isSaving}
             onClick={handleCreate}
           >
-            Create Variant
+            Xác nhận
           </Button>
         </div>
       </div>
 
       {/* ── Two-column layout ── */}
-      <div className="grid gap-6 xl:grid-cols-[300px_1fr] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[400px_1fr] xl:items-start">
 
         {/* ── Left column ── */}
         <div className="space-y-4 xl:relative xl:top-0">
@@ -179,7 +179,7 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
           {/* Description */}
           <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Description
+              Mô tả phiên bản
             </h2>
             <RichTextEditor
               value={description}

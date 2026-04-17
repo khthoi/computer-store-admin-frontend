@@ -168,7 +168,7 @@ export function MediaUploader({ onAdd, folderId = null }: MediaUploaderProps) {
       </div>
 
       {/* Hint */}
-      <p className="text-[10px] text-secondary-400">
+      <p className="text-[11px] text-secondary-400">
         Alt text và loại ảnh sẽ được áp dụng cho ảnh tiếp theo bạn chọn.
       </p>
 

@@ -21,20 +21,20 @@ export function PricingStatusSection({ variant }: PricingStatusSectionProps) {
   return (
     <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-        Pricing &amp; Status
+        Giá bán &amp; Trạng thái
       </h2>
 
       {/* Pricing */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-secondary-500">Original Price</span>
+          <span className="text-sm text-secondary-500">Giá gốc</span>
           <span className="text-lg font-bold tabular-nums text-secondary-900">
             {formatVND(variant.originalPrice)}
           </span>
         </div>
 
         <div className="flex items-center justify-between">
-          <span className="text-sm text-secondary-500">Sale Price</span>
+          <span className="text-sm text-secondary-500">Giá bán</span>
           <span className="text-lg font-bold tabular-nums text-primary-700">
             {formatVND(variant.salePrice)}
           </span>
@@ -42,7 +42,7 @@ export function PricingStatusSection({ variant }: PricingStatusSectionProps) {
 
         {discount > 0 && (
           <div className="flex items-center justify-between">
-            <span className="text-sm text-secondary-500">Discount</span>
+            <span className="text-sm text-secondary-500">Giảm giá</span>
             <Badge variant="success" size="sm">−{discount}%</Badge>
           </div>
         )}
@@ -53,7 +53,7 @@ export function PricingStatusSection({ variant }: PricingStatusSectionProps) {
       {/* Status */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <span className="text-sm text-secondary-500">Status</span>
+          <span className="text-sm text-secondary-500">Trạng thái</span>
           <StatusBadge status={variant.status} size="sm" />
         </div>
         <p className="text-right text-xs text-secondary-400">

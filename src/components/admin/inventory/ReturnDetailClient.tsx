@@ -19,12 +19,12 @@ function formatDate(s?: string) {
 }
 
 const REASON_LABELS: Record<string, string> = {
-  defective: "Defective Product",
-  wrong_item: "Wrong Item Sent",
-  damaged_in_transit: "Damaged in Transit",
-  not_as_described: "Not as Described",
-  customer_changed_mind: "Customer Changed Mind",
-  other: "Other",
+  defective: "Sản phẩm lỗi",
+  wrong_item: "Sai sản phẩm",
+  damaged_in_transit: "Hỏng trong quá trình vận chuyển",
+  not_as_described: "Không như mô tả",
+  customer_changed_mind: "Khách hàng thay đổi ý định",
+  other: "Khác",
 };
 
 const CONDITION_BADGES: Record<string, string> = {
@@ -121,10 +121,10 @@ export function ReturnDetailClient({
         <div className="space-y-6">
           {/* Return details */}
           <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold text-secondary-900">Return Details</h2>
+            <h2 className="mb-4 text-sm font-semibold text-secondary-900">Chi tiết hoàn trả</h2>
             <div className="grid gap-4 sm:grid-cols-2">
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Order</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Đơn hàng</p>
                 <Link
                   href={`/orders/${ret.orderId}`}
                   className="mt-1 block font-mono text-sm font-medium text-primary-600 hover:underline"
@@ -133,46 +133,46 @@ export function ReturnDetailClient({
                 </Link>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Customer</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Khách hàng</p>
                 <p className="mt-1 text-sm font-medium text-secondary-800">{ret.customerName}</p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Reason</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Lý do</p>
                 <p className="mt-1 text-sm text-secondary-700">
                   {REASON_LABELS[ret.reason] ?? ret.reason}
                 </p>
               </div>
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Resolution</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Giải quyết</p>
                 <div className="mt-1">
                   <StatusBadge status={ret.resolution} size="sm" />
                 </div>
               </div>
               {ret.refundAmount > 0 && (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Refund Amount</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Số tiền hoàn trả</p>
                   <p className="mt-1 text-sm font-semibold text-secondary-900">{formatVND(ret.refundAmount)}</p>
                 </div>
               )}
               <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Requested</p>
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Yêu cầu lúc</p>
                 <p className="mt-1 text-sm text-secondary-700">{formatDate(ret.requestedAt)}</p>
               </div>
               {ret.approvedAt && (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Approved</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Đã duyệt lúc</p>
                   <p className="mt-1 text-sm text-secondary-700">{formatDate(ret.approvedAt)}</p>
                 </div>
               )}
               {ret.receivedAt && (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Received</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Đã nhận lúc</p>
                   <p className="mt-1 text-sm text-secondary-700">{formatDate(ret.receivedAt)}</p>
                 </div>
               )}
               {ret.completedAt && (
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Completed</p>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Đã hoàn thành lúc</p>
                   <p className="mt-1 text-sm text-secondary-700">{formatDate(ret.completedAt)}</p>
                 </div>
               )}
@@ -183,13 +183,13 @@ export function ReturnDetailClient({
               <div className="mt-5 space-y-3 border-t border-secondary-100 pt-4">
                 {ret.customerNote && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Customer Note</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Ghi chú của khách hàng</p>
                     <p className="mt-1 text-sm text-secondary-700">{ret.customerNote}</p>
                   </div>
                 )}
                 {ret.adminNote && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Admin Note</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Ghi chú của quản trị viên</p>
                     <p className="mt-1 text-sm text-secondary-700">{ret.adminNote}</p>
                   </div>
                 )}
@@ -200,16 +200,16 @@ export function ReturnDetailClient({
           {/* Line items */}
           <div className="rounded-2xl border border-secondary-100 bg-white shadow-sm">
             <div className="border-b border-secondary-100 px-6 py-4">
-              <h2 className="text-sm font-semibold text-secondary-900">Returned Items</h2>
+              <h2 className="text-sm font-semibold text-secondary-900">Mặt hàng đã trả</h2>
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-secondary-50 text-left text-xs font-semibold uppercase tracking-wide text-secondary-500">
                   <tr>
                     <th className="px-4 py-3">Product / SKU</th>
-                    <th className="px-4 py-3 text-center">Qty</th>
-                    <th className="px-4 py-3">Condition</th>
-                    <th className="px-4 py-3">Note</th>
+                    <th className="px-4 py-3 text-center">Số lượng</th>
+                    <th className="px-4 py-3">Trạng thái</th>
+                    <th className="px-4 py-3">Ghi chú</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-secondary-100">
@@ -248,10 +248,10 @@ export function ReturnDetailClient({
           <ol className="space-y-4">
             {(
               [
-                { label: "Requested", date: ret.requestedAt, done: true },
-                { label: "Approved", date: ret.approvedAt, done: !!ret.approvedAt },
-                { label: "Received", date: ret.receivedAt, done: !!ret.receivedAt },
-                { label: "Completed", date: ret.completedAt, done: !!ret.completedAt },
+                { label: "Yêu cầu", date: ret.requestedAt, done: true },
+                { label: "Đã duyệt", date: ret.approvedAt, done: !!ret.approvedAt },
+                { label: "Đã nhận", date: ret.receivedAt, done: !!ret.receivedAt },
+                { label: "Đã hoàn thành", date: ret.completedAt, done: !!ret.completedAt },
               ] as { label: string; date?: string; done: boolean }[]
             ).map((step) => (
               <li key={step.label} className="flex items-start gap-3">

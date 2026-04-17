@@ -6,7 +6,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { formatDateTime } from "@/src/lib/format";
 import type { ProductVariantDetail } from "@/src/types/product.types";
-
+import { Tooltip } from "recharts";
+import { Tooltip as UITooltip } from "@/src/components/ui/Tooltip";
 // ─── VariantInfoSection ───────────────────────────────────────────────────────
 
 interface VariantInfoSectionProps {
@@ -17,25 +18,27 @@ export function VariantInfoSection({ variant }: VariantInfoSectionProps) {
   return (
     <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
       <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-        Variant Info
+        Thông tin phiên bản
       </h2>
 
       <ul className="space-y-3">
-        <InfoRow icon={<CubeIcon />} label="Name">
-          <span className="text-sm text-secondary-800">{variant.name}</span>
+        <InfoRow icon={<CubeIcon />} label="Tên phiên bản">
+          <UITooltip content={variant.name} placement="right">
+            <span className="text-sm text-secondary-800">{variant.name}</span>
+          </UITooltip>
         </InfoRow>
 
         <InfoRow icon={<TagIcon />} label="SKU">
           <span className="font-mono text-xs text-secondary-600">{variant.sku}</span>
         </InfoRow>
 
-        <InfoRow icon={<ScaleIcon />} label="Weight">
+        <InfoRow icon={<ScaleIcon />} label="Trọng lượng">
           <span className="text-sm text-secondary-800">
             {variant.weight !== undefined ? `${variant.weight} kg` : "—"}
           </span>
         </InfoRow>
 
-        <InfoRow icon={<CalendarDaysIcon />} label="Updated">
+        <InfoRow icon={<CalendarDaysIcon />} label="Cập nhật">
           <span className="text-sm text-secondary-800">
             {formatDateTime(variant.updatedAt)}
           </span>

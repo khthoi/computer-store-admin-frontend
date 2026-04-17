@@ -80,6 +80,11 @@ export interface SpecificationItem {
   typeLabel: string;
   /** Optional description / hint for this spec attribute */
   description?: string;
+  /**
+   * Machine-readable key for the Build PC compatibility engine.
+   * Format: lowercase letters, digits, underscores only (e.g. "cpu_socket").
+   */
+  maKyThuat?: string;
   /** Lightweight HTML — plain text, ul/li, bold/italic only */
   value: string;
 }

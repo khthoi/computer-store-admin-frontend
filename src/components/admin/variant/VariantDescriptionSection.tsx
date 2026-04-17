@@ -63,7 +63,7 @@ export function VariantDescriptionSection({
       {/* Card header */}
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
-          Description
+          Mô tả
         </h2>
         {!isEditing && (
           <button

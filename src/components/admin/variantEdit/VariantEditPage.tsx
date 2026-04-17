@@ -112,7 +112,7 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
           {/* Breadcrumb */}
           <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
             <Link href="/products" className="transition-colors hover:text-secondary-700">
-              Products
+              Danh sách sản phẩm
             </Link>
             <span aria-hidden="true">›</span>
             <Link
@@ -127,7 +127,7 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
               href={`/products/${product.id}/variants`}
               className="transition-colors hover:text-secondary-700"
             >
-              Variants
+              Phiên bản
             </Link>
             <span aria-hidden="true">›</span>
             <Link
@@ -138,11 +138,11 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
               {variant.name}
             </Link>
             <span aria-hidden="true">›</span>
-            <span className="text-secondary-600">Edit</span>
+            <span className="text-secondary-600">Chỉnh sửa</span>
           </nav>
 
           {/* Title */}
-          <h1 className="mt-2 text-2xl font-bold text-secondary-900">Edit Variant</h1>
+          <h1 className="mt-2 text-2xl font-bold text-secondary-900">Chỉnh sửa Phiên bản</h1>
           <p className="mt-0.5 font-mono text-xs text-secondary-400">{variant.sku}</p>
         </div>
 
@@ -155,16 +155,16 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
             className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 shadow-sm transition-colors hover:bg-secondary-50"
           >
             <ArrowLeftIcon className="h-4 w-4" aria-hidden="true" />
-            Cancel
+            Hủy
           </Link>
           <Button variant="primary" isLoading={isSaving} onClick={handleSave}>
-            Save Changes
+            Lưu Thay Đổi
           </Button>
         </div>
       </div>
 
       {/* ── Two-column layout ── */}
-      <div className="grid gap-6 xl:grid-cols-[300px_1fr] xl:items-start">
+      <div className="grid gap-6 xl:grid-cols-[400px_1fr] xl:items-start">
 
         {/* ── Left column ── */}
         <div className="space-y-4">
@@ -185,7 +185,7 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
           {/* Description */}
           <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Description
+              Mô tả phiên bản
             </h2>
             <RichTextEditor
               value={description}

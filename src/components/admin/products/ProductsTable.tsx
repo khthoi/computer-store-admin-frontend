@@ -407,7 +407,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       // col 3 — Product name + slug
       {
         key: "name",
-        header: "Product",
+        header: "Sản phẩm",
         sortable: true,
         tooltip: true,
         render: (value, row) => (
@@ -424,7 +424,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       // col 4 — Category
       {
         key: "category",
-        header: "Category",
+        header: "Danh mục",
         width: "w-28",
         align: "center",
         render: (value) => (
@@ -434,7 +434,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       // col 5 — Base price (derived from variants; no basePrice field on Product)
       {
         key: "variants",
-        header: "Base Price",
+        header: "Giá cơ bản",
         sortable: false,
         align: "right",
         width: "w-36",
@@ -451,16 +451,16 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       // col 6 — Total stock
       {
         key: "totalStock",
-        header: "Stock",
+        header: "Tồn kho",
         sortable: true,
         align: "center",
-        width: "w-20",
+        width: "w-32",
         render: (value) => <StockCell stock={value as number} />,
       },
       // col 7 — Status
       {
         key: "status",
-        header: "Status",
+        header: "Trạng thái",
         width: "w-28",
         align: "center",
         render: (value) => (
@@ -617,13 +617,13 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   const toolbarActions = (
     <>
       <FilterDropdown
-        label="Status"
+        label="Trạng thái"
         options={statusOptions}
         selected={statusFilter}
         onChange={setStatusFilter}
       />
       <FilterDropdown
-        label="Category"
+        label="Danh mục"
         options={categoryOptions}
         selected={categoryFilter}
         onChange={setCategoryFilter}
@@ -635,7 +635,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         className="flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-2 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
       >
         <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
-        Export
+        Xuất
       </button>
     </>
   );
@@ -660,7 +660,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         >
           <span className="text-sm font-medium text-primary-700">
             {selectedVariantIds.length}&nbsp;
-            {selectedVariantIds.length === 1 ? "variant" : "variants"} selected
+            {selectedVariantIds.length === 1 ? "variant" : "variants"} đã chọn
           </span>
 
           <div className="flex flex-wrap gap-2">
@@ -670,7 +670,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
               className={`${bulkBtnBase} border-secondary-200 bg-white text-secondary-700 hover:bg-secondary-50 focus-visible:ring-primary-500`}
             >
               <CheckCircleIcon className="w-3.5 h-3.5" aria-hidden="true" />
-              Set Active
+              Kích hoạt
             </button>
             <button
               type="button"
@@ -678,7 +678,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
               className={`${bulkBtnBase} border-secondary-200 bg-white text-secondary-700 hover:bg-secondary-50 focus-visible:ring-primary-500`}
             >
               <XCircleIcon className="w-3.5 h-3.5" aria-hidden="true" />
-              Set Inactive
+              Lưu trữ
             </button>
             <button
               type="button"
@@ -686,7 +686,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
               className={`${bulkBtnBase} border-error-300 bg-white text-error-600 hover:bg-error-50 focus-visible:ring-error-500`}
             >
               <TrashIcon className="w-3.5 h-3.5" aria-hidden="true" />
-              Delete
+              Xoá
             </button>
           </div>
 
@@ -695,7 +695,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
             onClick={() => setSelectedVariantIds([])}
             className="ml-auto text-xs text-secondary-500 hover:text-secondary-800 focus-visible:outline-none"
           >
-            Clear selection
+            Bỏ chọn
           </button>
         </div>
       )}
@@ -712,19 +712,19 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         bulkActions={[
           {
             id: "publish",
-            label: "Publish",
+            label: "Kích hoạt",
             icon: <GlobeAltIcon className="w-3.5 h-3.5" />,
             onClick: handleBulkPublish,
           },
           {
             id: "archive",
-            label: "Archive",
+            label: "Lưu trữ",
             icon: <ArchiveBoxIcon className="w-3.5 h-3.5" />,
             onClick: handleBulkArchive,
           },
           {
             id: "delete",
-            label: "Delete",
+            label: "Xoá",
             icon: <TrashIcon className="w-3.5 h-3.5" />,
             isDanger: true,
             onClick: handleBulkDeleteClick,
@@ -735,7 +735,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         onSortChange={handleSortChange}
         searchQuery={search}
         onSearchChange={setSearch}
-        searchPlaceholder="Search by name, SKU, brand…"
+        searchPlaceholder="Tìm kiếm theo tên, slug, thương hiệu, danh mục, SKU..."
         toolbarActions={toolbarActions}
         page={page}
         pageSize={pageSize}
@@ -756,7 +756,7 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
             href="/products/new"
             className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
           >
-            Add Product
+            Thêm sản phẩm
           </Link>
         }
       />
@@ -766,9 +766,9 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        title="Delete Product"
-        description={`This will permanently delete "${deleteTarget?.name}" and all its variants. This action cannot be undone.`}
-        confirmLabel="Delete Product"
+        title="Xoá Sản Phẩm"
+        description={`Hành động này sẽ xoá vĩnh viễn "${deleteTarget?.name}" và tất cả các biến thể của nó. Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá Sản Phẩm"
         requiredPhrase={deleteTarget?.name}
         isConfirming={isDeleting}
       />
@@ -778,11 +778,11 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         isOpen={!!deleteBlocked}
         onClose={() => setDeleteBlocked(null)}
         onConfirm={() => setDeleteBlocked(null)}
-        title="Cannot Delete Product"
-        description={`"${deleteBlocked?.name}" has active orders and cannot be deleted. Archive it instead to remove it from the storefront.`}
+        title="Không thể xoá sản phẩm"
+        description={`"${deleteBlocked?.name}" có đơn hàng đang hoạt động liên quan đến sản phẩm này. Vui lòng hủy tất cả đơn hàng liên quan trước khi xoá.`}
         variant="warning"
-        confirmLabel="Got it"
-        cancelLabel="Close"
+        confirmLabel="Đã hiểu"
+        cancelLabel="Đóng"
       />
 
       {/* ── Product: bulk delete confirm ── */}
@@ -790,9 +790,9 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         isOpen={bulkDeleteTargets.length > 0}
         onClose={() => setBulkDeleteTargets([])}
         onConfirm={handleBulkDeleteConfirm}
-        title={`Delete ${bulkDeleteTargets.length} Product${bulkDeleteTargets.length !== 1 ? "s" : ""}`}
-        description={`This will permanently delete ${bulkDeleteTargets.length} product(s) and all their variants. This action cannot be undone.`}
-        confirmLabel="Delete All"
+        title={`Xoá ${bulkDeleteTargets.length} Sản Phẩm`}
+        description={`Hành động này sẽ xoá vĩnh viễn ${bulkDeleteTargets.length} sản phẩm và tất cả các biến thể của chúng. Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá Tất Cả"
         requiredPhrase="DELETE"
         isConfirming={isBulkDeleting}
       />
@@ -802,9 +802,9 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         isOpen={!!deleteVariantTarget}
         onClose={() => setDeleteVariantTarget(null)}
         onConfirm={handleVariantDeleteConfirm}
-        title="Delete Variant"
-        description={`This will permanently delete the variant "${deleteVariantTarget?.name}" (${deleteVariantTarget?.sku}). This action cannot be undone.`}
-        confirmLabel="Delete Variant"
+        title="Xoá Biến Thể"
+        description={`Hành động này sẽ xoá vĩnh viễn biến thể "${deleteVariantTarget?.name}" (${deleteVariantTarget?.sku}). Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá Biến Thể"
         requiredPhrase={deleteVariantTarget?.sku}
         isConfirming={isDeletingVariant}
       />
@@ -814,9 +814,9 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         isOpen={showBulkVariantDeleteConfirm}
         onClose={() => setShowBulkVariantDeleteConfirm(false)}
         onConfirm={handleBulkVariantDeleteConfirm}
-        title={`Delete ${selectedVariantIds.length} Variant${selectedVariantIds.length !== 1 ? "s" : ""}`}
-        description={`This will permanently delete ${selectedVariantIds.length} variant(s). This action cannot be undone.`}
-        confirmLabel="Delete All"
+        title={`Xoá ${selectedVariantIds.length} Biến Thể`}
+        description={`Hành động này sẽ xoá vĩnh viễn ${selectedVariantIds.length} biến thể(s). Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá Tất Cả"
         requiredPhrase="DELETE"
         isConfirming={isBulkVariantDeleting}
       />

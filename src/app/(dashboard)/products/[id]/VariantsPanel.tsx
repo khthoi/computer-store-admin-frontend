@@ -62,12 +62,12 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
   if (variants.length === 0) {
     return (
       <div className="py-12 text-center">
-        <p className="text-sm text-secondary-500">No variants yet.</p>
+        <p className="text-sm text-secondary-500">Chưa có phiên bản nào.</p>
         <Link
           href={`/products/${productId}/variants/new`}
           className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
         >
-          Add the first variant
+          Thêm phiên bản đầu tiên
         </Link>
       </div>
     );
@@ -78,14 +78,14 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
       {/* Header row — count + Add Variant button */}
       <div className="mb-4 flex items-center justify-between">
         <p className="text-sm text-secondary-500">
-          {variants.length} variant{variants.length !== 1 ? "s" : ""}
+          {variants.length} phiên bản
         </p>
         <Link
           href={`/products/${productId}/variants/new`}
           className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
         >
           <PlusIcon className="h-4 w-4" aria-hidden="true" />
-          Add Variant
+          Thêm phiên bản
         </Link>
       </div>
 
@@ -94,22 +94,22 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
           <thead>
             <tr className="border-b border-secondary-100">
               <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Variant
+                Phiên bản
               </th>
               <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
                 SKU
               </th>
               <th className="pb-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Price
+                Giá
               </th>
               <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Stock
+                Tồn kho
               </th>
               <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Status
+                Trạng thái
               </th>
               <th className="pb-3 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Actions
+                Hành động
               </th>
             </tr>
           </thead>
@@ -168,9 +168,9 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
         isOpen={!!deleteTarget}
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDeleteConfirm}
-        title="Delete Variant"
-        description={`This will permanently delete "${deleteTarget?.name}" (${deleteTarget?.sku}). This action cannot be undone.`}
-        confirmLabel="Delete Variant"
+        title="Xoá phiên bản"
+        description={`Bạn có chắc chắn muốn xoá phiên bản "${deleteTarget?.name}" (${deleteTarget?.sku})? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá phiên bản"
         requiredPhrase={deleteTarget?.sku}
         isConfirming={isDeleting}
       />

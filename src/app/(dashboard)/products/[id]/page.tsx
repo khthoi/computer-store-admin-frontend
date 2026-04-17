@@ -86,7 +86,7 @@ export default async function ProductDetailPage({
         className="inline-flex items-center gap-1.5 text-sm text-secondary-500 transition-colors hover:text-secondary-700"
       >
         <ArrowLeftIcon className="h-4 w-4" />
-        Products
+        Danh sách sản phẩm
       </Link>
 
       {/* Header */}
@@ -98,7 +98,7 @@ export default async function ProductDetailPage({
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <StatusBadge status={product.status} />
             {product.hasActiveOrders && (
-              <Badge variant="warning" size="sm">Has active orders</Badge>
+              <StatusBadge status="has_active_orders" />
             )}
           </div>
 
@@ -106,7 +106,7 @@ export default async function ProductDetailPage({
           {product.createdBy && (
             <div className="mt-3 flex items-center gap-2">
               <UserCircleIcon className="h-4 w-4 shrink-0 text-secondary-400" />
-              <span className="text-sm text-secondary-400">Created by</span>
+              <span className="text-sm text-secondary-400">Được tạo bởi</span>
               {/*
                * Superscript / exponent layout:
                * The role Badge sits on a raised baseline (-top-2) relative to the
@@ -134,7 +134,7 @@ export default async function ProductDetailPage({
           className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
         >
           <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
-          Edit Product
+          Chỉnh sửa
         </Link>
       </div>
 
@@ -145,13 +145,13 @@ export default async function ProductDetailPage({
           {/* Product info card */}
           <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Product Info
+              Thông tin sản phẩm
             </h2>
             <ul className="space-y-3 text-sm">
               <li className="flex items-start gap-3 text-secondary-700">
                 <TagIcon className="mt-0.5 h-4 w-4 shrink-0 text-secondary-400" />
                 <span>
-                  <span className="text-secondary-400">Category: </span>
+                  <span className="text-secondary-400">Danh mục: </span>
                   {product.category}
                 </span>
               </li>
@@ -161,7 +161,7 @@ export default async function ProductDetailPage({
                 <CubeIcon className="mt-0.5 h-4 w-4 shrink-0 text-secondary-400" />
                 <div>
                   <span className="text-secondary-400">
-                    {product.brands.length === 1 ? "Brand" : "Brands"}
+                    {product.brands.length === 1 ? "Thương hiệu" : "Các thương hiệu"}
                   </span>
                   <div className="mt-1.5 flex flex-wrap gap-1.5">
                     {product.brands.map((b) => (
@@ -174,7 +174,7 @@ export default async function ProductDetailPage({
               <li className="flex items-start gap-3 text-secondary-700">
                 <ArchiveBoxIcon className="mt-0.5 h-4 w-4 shrink-0 text-secondary-400" />
                 <span>
-                  <span className="text-secondary-400">Total stock: </span>
+                  <span className="text-secondary-400">Tổng tồn kho: </span>
                   <span
                     className={`font-medium ${
                       product.totalStock === 0
@@ -194,7 +194,7 @@ export default async function ProductDetailPage({
                 <li className="flex items-start gap-3 text-secondary-700">
                   <StarIcon className="mt-0.5 h-4 w-4 shrink-0 text-secondary-400" />
                   <span>
-                    <span className="text-secondary-400">Rating: </span>
+                    <span className="text-secondary-400">Đánh giá: </span>
                     <span className="font-medium text-secondary-900">
                       {product.averageRating.toFixed(1)}
                     </span>
@@ -211,14 +211,14 @@ export default async function ProductDetailPage({
               <li className="flex items-start gap-3 text-secondary-700">
                 <CalendarDaysIcon className="mt-0.5 h-4 w-4 shrink-0 text-secondary-400" />
                 <span>
-                  <span className="text-secondary-400">Created: </span>
+                  <span className="text-secondary-400">Tạo lúc: </span>
                   {formatDate(product.createdAt)}
                 </span>
               </li>
               <li className="flex items-start gap-3 text-secondary-700">
                 <CalendarDaysIcon className="mt-0.5 h-4 w-4 shrink-0 text-secondary-400" />
                 <span>
-                  <span className="text-secondary-400">Updated: </span>
+                  <span className="text-secondary-400">Cập nhật: </span>
                   {formatDateTime(product.updatedAt)}
                 </span>
               </li>
@@ -228,28 +228,28 @@ export default async function ProductDetailPage({
           {/* Variant summary stats */}
           <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Variant Summary
+              các phiên bản
             </h2>
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-secondary-500">Total variants</span>
+                <span className="text-sm text-secondary-500">Tổng số phiên bản</span>
                 <span className="font-semibold text-secondary-900">
                   {product.variants.length}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-secondary-500">Active</span>
+                <span className="text-sm text-secondary-500">Đang hoạt động</span>
                 <span className="font-semibold text-secondary-900">{activeCount}</span>
               </div>
               {lowStockCount > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-secondary-500">Low stock (≤ 5)</span>
+                  <span className="text-sm text-secondary-500">Tồn kho thấp (≤ 5)</span>
                   <span className="font-semibold text-warning-600">{lowStockCount}</span>
                 </div>
               )}
               {outOfStock > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-secondary-500">Out of stock</span>
+                  <span className="text-sm text-secondary-500">Hết hàng</span>
                   <span className="font-semibold text-error-600">{outOfStock}</span>
                 </div>
               )}
@@ -263,7 +263,7 @@ export default async function ProductDetailPage({
             tabs={[
               {
                 value: "variants",
-                label: `Variants (${product.variants.length})`,
+                label: `Phiên bản (${product.variants.length})`,
                 icon: <CubeIcon className="h-4 w-4" />,
               },
             ]}
