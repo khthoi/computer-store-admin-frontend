@@ -18,6 +18,7 @@ import { OrderShippingPanel } from "@/src/components/admin/orders/OrderShippingP
 import { OrderNotesPanel } from "@/src/components/admin/orders/OrderNotesPanel";
 import { OrderRefundModal } from "@/src/components/admin/orders/OrderRefundModal";
 import { OrderActivityLog } from "@/src/components/admin/orders/OrderActivityLog";
+import { PaymentInfoCard } from "@/src/components/admin/orders/PaymentInfoCard";
 import {
   updateOrderStatus,
   updateOrderShipping,
@@ -348,6 +349,8 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
 
         {/* ── Right column ── */}
         <div className="space-y-4">
+          <PaymentInfoCard donHangId={Number(order.id)} />
+
           <OrderShippingPanel
             shipping={order.shipping}
             onUpdate={handleShippingUpdate}

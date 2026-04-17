@@ -17,6 +17,7 @@ import {
   ChevronDownIcon,
   ChevronUpIcon,
   ClockIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 
 // ─── Public types ──────────────────────────────────────────────────────────────
@@ -481,16 +482,18 @@ export function DateInput({
     return `${datePart}T${time}`;
   }, [showTime, showSeconds]);
 
-  const triggerRef  = useRef<HTMLButtonElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef   = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef  = useRef<HTMLDivElement>(null);
 
   // ── Panel height (for flip-up detection) ─────────────────────────────────
   const PANEL_H = showTime ? (showSeconds ? 465 : 435) : 335;
 
   // ── Position: portal alignment ────────────────────────────────────────────
   const updatePosition = useCallback(() => {
-    if (!triggerRef.current) return;
-    const rect       = triggerRef.current.getBoundingClientRect();
+    const el = containerRef.current ?? triggerRef.current;
+    if (!el) return;
+    const rect       = el.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const flipUp     = spaceBelow < PANEL_H && rect.top > spaceBelow;
     setDropdownPos({ top: flipUp ? rect.top : rect.bottom + 4, left: rect.left, width: rect.width, flipUp });
@@ -512,7 +515,7 @@ export function DateInput({
     if (!open) return;
     const handler = (e: MouseEvent) => {
       const t = e.target as Node;
-      if (!triggerRef.current?.contains(t) && !dropdownRef.current?.contains(t)) setOpen(false);
+      if (!containerRef.current?.contains(t) && !dropdownRef.current?.contains(t)) setOpen(false);
     };
     document.addEventListener("mousedown", handler);
     return () => document.removeEventListener("mousedown", handler);
@@ -564,34 +567,58 @@ export function DateInput({
         </label>
       )}
 
-      {/* Trigger */}
-      <button
-        ref={triggerRef}
-        type="button"
-        id={id}
-        aria-haspopup="dialog"
-        aria-expanded={open}
-        aria-invalid={hasError || undefined}
-        aria-describedby={describedBy}
-        disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
-        onKeyDown={handleTriggerKeyDown}
-        className={[
-          TRIGGER_BASE,
-          TRIGGER_SIZE[size],
-          hasError ? TRIGGER_ERROR : open ? TRIGGER_OPEN : TRIGGER_NORMAL,
-          className,
-        ].filter(Boolean).join(" ")}
-      >
-        <span className={value ? "text-secondary-900" : "text-secondary-400"}>
-          {value ? formatDisplay(value, showTime, showSeconds) : resolvedPlaceholder}
-        </span>
-        {showTime ? (
-          <ClockIcon className={["h-4 w-4 shrink-0 transition-colors duration-150", open ? "text-primary-600" : "text-secondary-400"].join(" ")} aria-hidden />
-        ) : (
-          <CalendarDaysIcon className={["h-4 w-4 shrink-0 transition-colors duration-150", open ? "text-primary-600" : "text-secondary-400"].join(" ")} aria-hidden />
+      {/* Trigger + clear button wrapper */}
+      <div ref={containerRef} className="relative w-full">
+        <button
+          ref={triggerRef}
+          type="button"
+          id={id}
+          aria-haspopup="dialog"
+          aria-expanded={open}
+          aria-invalid={hasError || undefined}
+          aria-describedby={describedBy}
+          disabled={disabled}
+          onClick={() => setOpen((o) => !o)}
+          onKeyDown={handleTriggerKeyDown}
+          className={[
+            TRIGGER_BASE,
+            TRIGGER_SIZE[size],
+            hasError ? TRIGGER_ERROR : open ? TRIGGER_OPEN : TRIGGER_NORMAL,
+            className,
+          ].filter(Boolean).join(" ")}
+        >
+          <span className={value ? "text-secondary-900" : "text-secondary-400"}>
+            {value ? formatDisplay(value, showTime, showSeconds) : resolvedPlaceholder}
+          </span>
+          {/* Ẩn icon khi đang hiện clear button để tránh chồng lên nhau */}
+          {!(value && !disabled && onChange) && (
+            showTime ? (
+              <ClockIcon className={["h-4 w-4 shrink-0 transition-colors duration-150", open ? "text-primary-600" : "text-secondary-400"].join(" ")} aria-hidden />
+            ) : (
+              <CalendarDaysIcon className={["h-4 w-4 shrink-0 transition-colors duration-150", open ? "text-primary-600" : "text-secondary-400"].join(" ")} aria-hidden />
+            )
+          )}
+        </button>
+
+        {/* Clear button — shown when a value is selected and the field is editable */}
+        {value && !disabled && onChange && (
+          <button
+            type="button"
+            aria-label="Xóa ngày"
+            tabIndex={-1}
+            onClick={() => { onChange(""); setOpen(false); }}
+            className={[
+              "absolute top-1/2 -translate-y-1/2 z-10",
+              "flex items-center justify-center rounded",
+              "text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100",
+              "transition-colors focus-visible:outline-none",
+              size === "lg" ? "right-3 w-6 h-6" : "right-2 w-5 h-5",
+            ].join(" ")}
+          >
+            <XMarkIcon className="h-3.5 w-3.5" aria-hidden />
+          </button>
         )}
-      </button>
+      </div>
 
       {/* Validation messages */}
       {hasError && (

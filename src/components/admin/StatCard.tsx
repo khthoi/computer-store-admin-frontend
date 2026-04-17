@@ -157,12 +157,6 @@ export function StatCard({
         .filter(Boolean)
         .join(" ")}
     >
-      {/* Accent stripe */}
-      <div
-        aria-hidden="true"
-        className={`absolute left-0 top-0 h-full w-1 rounded-l-xl ${styles.accent}`}
-      />
-
       {/* Header row */}
       <div className="flex items-start justify-between gap-3 pl-2">
         <p className="text-sm font-medium text-secondary-500">{title}</p>

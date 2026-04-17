@@ -41,7 +41,7 @@ export function AdminPageWrapper({
   return (
     <div
       className={[
-        "px-4 py-6 sm:px-6 lg:px-8 max-w-screen-2xl mx-auto w-full",
+        "px-5 py-5 mx-auto w-full",
         className,
       ]
         .filter(Boolean)

@@ -22,7 +22,6 @@ import {
   BuildingStorefrontIcon,
   ArrowUpTrayIcon,
   AdjustmentsHorizontalIcon,
-  GlobeAltIcon,
   CreditCardIcon,
   TruckIcon,
   BellIcon,
@@ -131,6 +130,13 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         label: "All Orders",
         href: "/orders",
         icon: <ListBulletIcon className="w-4 h-4" />,
+      },
+      {
+        value: "orders-transactions",
+        label: "Giao dịch TT",
+        href: "/orders/transactions",
+        icon: <CreditCardIcon className="w-4 h-4" />,
+        requiredRoles: ["admin"],
       },
       {
         value: "orders-returns",
@@ -250,31 +256,35 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     ],
   },
 
-  // ── Reports ──────────────────────────────────────────────────────────────────
+  // ── Phân tích & Hỗ trợ ───────────────────────────────────────────────────────
   {
-    value: "reports",
-    label: "Reports",
-    href: "/reports",
+    value: "analytics",
+    label: "Phân tích & Hỗ trợ",
     icon: <ChartBarIcon className="w-5 h-5" />,
-    requiredRoles: ["admin"],
-  },
-
-  // ── Support ──────────────────────────────────────────────────────────────────
-  {
-    value: "support",
-    label: "Support",
-    href: "/support",
-    icon: <ChatBubbleLeftRightIcon className="w-5 h-5" />,
-    requiredRoles: ["admin", "cskh"],
-  },
-
-  // ── Reviews ───────────────────────────────────────────────────────────────────
-  {
-    value: "reviews",
-    label: "Đánh giá",
-    href:  "/reviews",
-    icon:  <StarIcon className="w-5 h-5" />,
-    requiredRoles: ["admin", "cskh"],
+    dividerAfter: true,
+    children: [
+      {
+        value: "reports",
+        label: "Báo cáo",
+        href: "/reports",
+        icon: <ChartBarIcon className="w-4 h-4" />,
+        requiredRoles: ["admin"],
+      },
+      {
+        value: "support",
+        label: "Hỗ trợ khách hàng",
+        href: "/support",
+        icon: <ChatBubbleLeftRightIcon className="w-4 h-4" />,
+        requiredRoles: ["admin", "cskh"],
+      },
+      {
+        value: "reviews",
+        label: "Đánh giá sản phẩm",
+        href: "/reviews",
+        icon: <StarIcon className="w-4 h-4" />,
+        requiredRoles: ["admin", "cskh"],
+      },
+    ],
   },
 
   // ── Nội dung ─────────────────────────────────────────────────────────────────
@@ -361,68 +371,50 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     value: "system",
     label: "Hệ thống",
-    icon: <ClipboardDocumentListIcon className="w-5 h-5" />,
+    icon: <Cog6ToothIcon className="w-5 h-5" />,
     requiredRoles: ["admin"],
-    dividerAfter: true,
     children: [
       {
         value: "audit-logs",
         label: "Nhật ký hoạt động",
         href: "/audit-logs",
-        icon: <ListBulletIcon className="w-4 h-4" />,
-        requiredRoles: ["admin"],
+        icon: <ClipboardDocumentListIcon className="w-4 h-4" />,
       },
-    ],
-  },
-
-  // ── Settings ─────────────────────────────────────────────────────────────────
-  {
-    value: "settings",
-    label: "Settings",
-    icon: <Cog6ToothIcon className="w-5 h-5" />,
-    requiredRoles: ["admin"],
-    children: [
       {
         value: "settings-general",
-        label: "General",
+        label: "Cài đặt chung",
         href: "/settings/general",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
       },
       {
         value: "settings-payments",
-        label: "Payments",
+        label: "Thanh toán",
         href: "/settings/payments",
         icon: <CreditCardIcon className="w-4 h-4" />,
       },
       {
         value: "settings-shipping",
-        label: "Shipping",
+        label: "Vận chuyển",
         href: "/settings/shipping",
         icon: <TruckIcon className="w-4 h-4" />,
       },
       {
         value: "settings-notifications",
-        label: "Notifications",
+        label: "Thông báo hệ thống",
         href: "/settings/notifications",
         icon: <BellIcon className="w-4 h-4" />,
       },
       {
         value: "settings-tax",
-        label: "Tax",
+        label: "Thuế",
         href: "/settings/tax",
         icon: <ReceiptPercentIcon className="w-4 h-4" />,
       },
       {
         value: "settings-integrations",
-        label: "Integrations",
+        label: "Tích hợp",
         href: "/settings/integrations",
         icon: <PuzzlePieceIcon className="w-4 h-4" />,
-      },
-      {
-        value: "settings-staff",
-        label: "Staff & Roles",
-        href: "/roles",
-        icon: <GlobeAltIcon className="w-4 h-4" />,
       },
     ],
   },

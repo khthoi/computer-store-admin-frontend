@@ -171,10 +171,10 @@ let MOCK_RULES: BuildPCRule[] = [
 const MOCK_BUILDS: BuildPCBuild[] = [
   {
     id: "build-1",
-    userId: "u-101",
-    customerId: "kh-101",
-    tenNguoiDung: "Nguyễn Văn An",
-    email: "an.nguyen@gmail.com",
+    userId: "u-001",
+    customerId: "kh-001",
+    tenNguoiDung: "Nguyễn Quốc Bảo",
+    email: "bao.nguyen@gmail.com",
     tenBuild: "PC Gaming Tầm Trung 2024",
     moTa: "Build cho game AAA 1080p ultra settings, ưu tiên RTX 4060 Ti",
     trangThai: "complete",
@@ -187,10 +187,10 @@ const MOCK_BUILDS: BuildPCBuild[] = [
   },
   {
     id: "build-2",
-    userId: "u-102",
-    customerId: "kh-102",
-    tenNguoiDung: "Trần Thị Bảo",
-    email: "bao.tran@techsv.vn",
+    userId: "u-002",
+    customerId: "kh-002",
+    tenNguoiDung: "Trần Văn Khoa",
+    email: "khoa.tran@techsv.vn",
     tenBuild: "Workstation đồ họa render phim 4K chuyên nghiệp",
     moTa: "Dùng cho Premiere Pro, After Effects, Blender render",
     trangThai: "complete",
@@ -203,10 +203,10 @@ const MOCK_BUILDS: BuildPCBuild[] = [
   },
   {
     id: "build-3",
-    userId: "u-103",
-    customerId: "kh-103",
-    tenNguoiDung: "Lê Quốc Cường",
-    email: "cuong.le@mail.com",
+    userId: "u-001",
+    customerId: "kh-001",
+    tenNguoiDung: "Nguyễn Quốc Bảo",
+    email: "bao.nguyen@gmail.com",
     tenBuild: "PC văn phòng tiết kiệm",
     trangThai: "draft",
     tongGia: 7200000,
@@ -218,10 +218,10 @@ const MOCK_BUILDS: BuildPCBuild[] = [
   },
   {
     id: "build-4",
-    userId: "u-104",
-    customerId: "kh-104",
-    tenNguoiDung: "Phạm Hữu Đức",
-    email: "duc.pham@gamer.vn",
+    userId: "u-004",
+    customerId: "kh-004",
+    tenNguoiDung: "Phạm Đức Minh",
+    email: "minh.pham@gamer.vn",
     tenBuild: "Build AMD All-In",
     moTa: "Ryzen 7 7700X + RX 7800 XT — toàn bộ platform AMD",
     trangThai: "complete",
@@ -234,10 +234,10 @@ const MOCK_BUILDS: BuildPCBuild[] = [
   },
   {
     id: "build-5",
-    userId: "u-105",
-    customerId: "kh-105",
-    tenNguoiDung: "Hoàng Minh Em",
-    email: "em.hoang@student.edu.vn",
+    userId: "u-005",
+    customerId: "kh-005",
+    tenNguoiDung: "Hoàng Thị Bích Ngọc",
+    email: "ngoc.hoang@student.edu.vn",
     tenBuild: "PC học tập + game nhẹ",
     trangThai: "complete",
     tongGia: 9500000,
@@ -431,6 +431,13 @@ export async function deleteRule(id: string): Promise<void> {
 export async function fetchBuilds(): Promise<BuildPCBuild[]> {
   await delay(500);
   return [...MOCK_BUILDS].sort(
+    (a, b) => new Date(b.ngayCapNhat).getTime() - new Date(a.ngayCapNhat).getTime()
+  );
+}
+
+export async function fetchBuildsByCustomerId(customerId: string): Promise<BuildPCBuild[]> {
+  await delay(400);
+  return MOCK_BUILDS.filter((b) => b.customerId === customerId).sort(
     (a, b) => new Date(b.ngayCapNhat).getTime() - new Date(a.ngayCapNhat).getTime()
   );
 }

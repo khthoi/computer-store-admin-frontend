@@ -9,6 +9,10 @@ import {
   ShoppingBagIcon,
   UserIcon,
   CakeIcon,
+  MapPinIcon,
+  ClipboardDocumentListIcon,
+  SparklesIcon,
+  CpuChipIcon,
 } from "@heroicons/react/24/outline";
 import { getCustomerById } from "@/src/services/customer.service";
 import { getOrdersByCustomerId } from "@/src/services/order.service";
@@ -19,12 +23,8 @@ import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
 import { CustomerDetailActions } from "@/src/components/admin/customers/CustomerDetailActions";
 import { CustomerAddressesTable } from "@/src/components/admin/customers/CustomerAddressesTable";
 import { formatVND } from "@/src/lib/format";
-import {
-  MapPinIcon,
-  ClipboardDocumentListIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
 import { CustomerLoyaltyTab } from "@/src/components/admin/customers/CustomerLoyaltyTab";
+import { CustomerBuildsTab } from "@/src/components/admin/customers/CustomerBuildsTab";
 
 export const dynamic = "force-dynamic";
 
@@ -197,6 +197,11 @@ export default async function CustomerDetailPage({
                 label: "Loyalty & Points",
                 icon: <SparklesIcon className="h-4 w-4" />,
               },
+              {
+                value: "builds",
+                label: "Build PC",
+                icon: <CpuChipIcon className="h-4 w-4" />,
+              },
             ]}
             defaultValue="addresses"
             className="border-b border-secondary-200 px-6"
@@ -214,6 +219,10 @@ export default async function CustomerDetailPage({
 
             <TabPanel value="loyalty" className="p-6">
               <CustomerLoyaltyTab customerId={customer.id} />
+            </TabPanel>
+
+            <TabPanel value="builds" className="p-6">
+              <CustomerBuildsTab customerId={customer.id} />
             </TabPanel>
           </Tabs>
         </div>
