@@ -26,6 +26,28 @@ Port: 3001 | Backend: NestJS port 4000 | Auth: NextAuth.js JWT + RBAC
 - `.ai/FOLDER_STRUCTURE.md` — where to place new files
 - `.ai/API_CONTRACT.md` — backend endpoint reference
 
+## Reading .docx Files
+Both `pandoc` (preferred) and `python-docx` are installed. Use a **single Bash call** — never chain multiple commands.
+
+```bash
+# PREFERRED — pandoc: renders tables as clean markdown tables (best for DB design docs)
+pandoc "path/to/file.docx" -t markdown --wrap=none
+
+# Headings only — use first on large documents to get an outline, then target sections
+pandoc "path/to/file.docx" -t markdown --wrap=none | grep "^#"
+
+# Fallback — python-docx: plain text only, tables lose formatting
+python -c "
+import docx, sys
+doc = docx.Document(sys.argv[1])
+for p in doc.paragraphs:
+    if p.text.strip(): print(p.text)
+for t in doc.tables:
+    for row in t.rows:
+        print(' | '.join(c.text.strip() for c in row.cells if c.text.strip()))
+" "path/to/file.docx"
+```
+
 ## graphify
 Knowledge graph at `graphify-out/` (18k-line JSON, AST-only).
 - To find a specific file/function: `grep -A5 '"label": "TargetName"' graphify-out/graph.json`

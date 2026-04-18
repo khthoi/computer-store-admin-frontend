@@ -5,6 +5,40 @@
 
 ---
 
+## 0. Reading .docx Files
+
+Both `pandoc` (v3.9, preferred) and `python-docx` (Python 3.14) are installed. Use a **single Bash call** — never chain multiple commands.
+
+**Preferred — pandoc** (renders tables as clean markdown, ideal for DB design / ERD docs):
+```bash
+# Full document — tables become readable markdown tables
+pandoc "path/to/file.docx" -t markdown --wrap=none
+
+# Headings outline — use first on large documents, then read targeted sections
+pandoc "path/to/file.docx" -t markdown --wrap=none | grep "^#"
+```
+
+**Fallback — python-docx** (plain text, use only when pandoc is unavailable):
+```bash
+python -c "
+import docx, sys
+doc = docx.Document(sys.argv[1])
+for p in doc.paragraphs:
+    if p.text.strip(): print(p.text)
+for t in doc.tables:
+    for row in t.rows:
+        print(' | '.join(c.text.strip() for c in row.cells if c.text.strip()))
+" "path/to/file.docx"
+```
+
+Rules:
+- **pandoc is always preferred** — it preserves table structure as markdown, critical for DB design docs
+- Read headings first on large documents (>30 pages), then pipe through `grep` or read full output for the relevant section
+- Never run separate commands to extract headings then content — do it in one call
+- Paths with spaces must be quoted: `"path/to/my file.docx"`
+
+---
+
 ## 1. Core Technology Stack
 
 | Layer | Technology | Notes |
