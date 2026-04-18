@@ -121,13 +121,13 @@ export function AdminUserMenu({ user, onSignOut }: AdminUserMenuProps) {
           {/* Menu items */}
           <div className="py-1">
             <a
-              href="/admin/profile"
+              href="/profile"
               role="menuitem"
               onClick={close}
               className="flex w-full items-center gap-3 px-4 py-2 text-sm text-secondary-700 hover:bg-secondary-50 transition-colors"
             >
               <UserCircleIcon className="w-4 h-4 shrink-0 text-secondary-400" aria-hidden="true" />
-              My Profile
+              Hồ sơ cá nhân
             </a>
           </div>
 
