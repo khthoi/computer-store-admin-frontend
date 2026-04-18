@@ -1,51 +1,83 @@
 # CODING RULES — computer-store-admin
-# All rules from frontend repo apply PLUS these admin-specific rules.
 
-## RULE 1: Shared components first (same as frontend)
-# ls node_modules/@computer-store/ui/src/components/
-# Import from "@computer-store/ui" if exists. Never recreate.
+## RULE 1: UI Primitives from local src/components/ui/
+`@computer-store/ui` is NOT installed. Import all base UI locally:
+```ts
+import { Button } from "@/src/components/ui/Button";
+import { Modal }  from "@/src/components/ui/Modal";
+```
+Never recreate components that exist in `src/components/ui/`.
 
-## RULE 2: Role check on every page (admin-specific)
-# Every page in (dashboard)/ must include role validation:
-# Option A: middleware.ts route-level guard (preferred)
-# Option B: useRoleGuard() hook in page component
-# NEVER skip role check assuming middleware handles it — double-check.
+## RULE 2: Role check on every protected page
+Option A (preferred): `middleware.ts` route-level guard.
+Option B: `useRoleGuard()` hook in page component.
+NEVER skip role check assuming middleware handles it alone — double-check.
 
-## RULE 3: No ISR, no static — admin data must be fresh
-# Do NOT use: export const revalidate = 3600
-# Do NOT use: { cache: "force-cache" } in fetch
-# DO use: React Query with staleTime: 30000
-# DO use: export const dynamic = "force-dynamic" on admin pages
+## RULE 3: No ISR, no static — admin data must always be fresh
+```ts
+// DO: React Query with staleTime: 30000
+// DO: export const dynamic = "force-dynamic" on admin pages
+// DON'T: export const revalidate = 3600
+// DON'T: { cache: "force-cache" } in fetch
+```
 
-## RULE 4: DataTable from shared package
-# NEVER build a custom table from <table> tags.
-# ALWAYS use: import { DataTable } from "@computer-store/ui"
-# DataTable accepts: columns (TanStack Table config), data, loading, onFilter
+## RULE 4: DataTable from admin package
+```ts
+import { DataTable } from "@/src/components/admin/DataTable";
+// NEVER build a custom table from <table> tags
+```
 
 ## RULE 5: Form validation is mandatory
-# Every admin form (ProductForm, ImportForm, PromotionForm...)
-# MUST use: react-hook-form + Zod schema validation
-# Zod schemas go in: src/lib/validators.ts
+Every admin form MUST use `react-hook-form` + Zod schema.
+Zod schemas go in: `src/lib/validators/{resource}.ts`
 
 ## RULE 6: Destructive actions require ConfirmDialog
-# Delete product, reject return, close ticket, ban customer
-# MUST show: import { ConfirmDialog } from "@computer-store/ui"
-# With typed confirmation for extra-destructive actions
+```ts
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
+// Delete, reject, ban, close: always wrap in ConfirmDialog
+// Extra-destructive actions: use requiredPhrase for typed confirmation
+```
 
-## RULE 7: Violet accent — admin sidebar/header only
-# bg-violet-600 and text-violet-* ONLY for AdminSidebar and AdminHeader
-# Content area uses same blue primary tokens as frontend (shared)
-# Admin badge status colors: same semantic colors as frontend (success/warning/error)
+## RULE 7: Violet accent — sidebar/header ONLY
+- `--sidebar-bg` / `accent-600` / `accent-700`: AdminSidebar + AdminHeader only
+- Content area buttons use `primary-600` (blue)
+- Never use violet in form fields, tables, or content sections
 
-## RULE 8: Always show loading + error + empty in DataTable
-# loading: <DataTable isLoading={true} />
-# error: <DataTable error="Không thể tải dữ liệu" />
-# empty: <DataTable emptyText="Không có kết quả" />
+## RULE 8: DataTable loading/error/empty states always present
+```tsx
+<DataTable isLoading={isLoading} error={error} emptyText="Không có kết quả" />
+```
 
 ## RULE 9: No client-side role escalation
-# Role info comes from JWT (server-verified). Never compute role client-side.
-# Use: const { user } = useSession() — trust session.user.role only.
+Role comes from JWT (server-verified). Never compute role client-side.
+Use `const { user } = useSession()` — trust `session.user.role` only.
 
-## RULE 10: Export reports via backend
-# Never generate PDF/Excel in the browser.
-# Call: GET /admin/reports/export?type=revenue&format=excel → file download
+## RULE 10: Export reports via backend endpoint
+Never generate PDF/Excel in the browser.
+```ts
+// Trigger: GET /admin/reports/export?type=revenue&format=excel → file download
+```
+
+## RULE 11: Icons
+Primary: `@heroicons/react/24/outline` (default) and `/24/solid` (emphasis).
+Allowed secondary: `react-icons` for icons not available in Heroicons.
+Never paste raw `<svg>` code.
+
+## RULE 12: Vietnamese UI text
+All labels, placeholders, tooltips, error messages must be in Vietnamese.
+Use `formatVND()` from `@/src/lib/format.ts` for all monetary values.
+
+## Anti-patterns
+```
+✗ Import from "@computer-store/ui" — not installed
+✗ Custom <table> instead of DataTable
+✗ ISR/cache on any admin page
+✗ Hide UI as sole auth check — backend must also check
+✗ Violet outside AdminSidebar/AdminHeader
+✗ Form without Zod validation
+✗ Destructive action without ConfirmDialog
+✗ Client-side PDF/Excel generation
+✗ Server data in Zustand store
+✗ New admin components under src/components/layout/ or other non-admin dirs
+✗ Pass active prop to AdminSidebar — active state is auto from usePathname()
+```

@@ -1,13 +1,16 @@
 # COMPONENT GUIDELINES — computer-store-admin
 
-## UI Primitive imports (CORRECT path)
-# All base UI lives in src/components/ui/ — import locally:
-import { Button } from "@/src/components/ui/Button";
-import { Input }  from "@/src/components/ui/Input";
-import { Modal }  from "@/src/components/ui/Modal";
-# Do NOT use "@computer-store/ui" — this package is not installed.
+## Import Paths (Critical)
 
-## Admin component imports
+```ts
+// UI primitives — local only (@computer-store/ui NOT installed)
+import { Button }       from "@/src/components/ui/Button";
+import { Input }        from "@/src/components/ui/Input";
+import { Modal }        from "@/src/components/ui/Modal";
+import { Select }       from "@/src/components/ui/Select";
+import { Badge }        from "@/src/components/ui/Badge";
+
+// Admin components
 import { DataTable }      from "@/src/components/admin/DataTable";
 import { StatCard }       from "@/src/components/admin/StatCard";
 import { StatusBadge }    from "@/src/components/admin/StatusBadge";
@@ -15,129 +18,159 @@ import { ConfirmDialog }  from "@/src/components/admin/ConfirmDialog";
 import { FileUpload }     from "@/src/components/admin/FileUpload";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 
-## DataTable Pattern (most used in admin)
-import { DataTable } from "@/src/components/admin/DataTable";
+// Shared admin
+import { TableToolbar }          from "@/src/components/admin/shared/TableToolbar";
+import { AdminSearchBar }        from "@/src/components/admin/shared/AdminSearchBar";
+import { AdminEmptyState }       from "@/src/components/admin/shared/AdminEmptyState";
+import { ExportButton }          from "@/src/components/admin/shared/ExportButton";
+import { InlineEditField }       from "@/src/components/admin/shared/InlineEditField";
+import { AuditLogViewer }        from "@/src/components/admin/shared/AuditLogViewer";
+import { MediaUploadPanel }      from "@/src/components/admin/shared/MediaUploadPanel";
+import { BulkActionBar }         from "@/src/components/admin/shared/BulkActionBar";
+import { AdminDateRangePicker }  from "@/src/components/admin/shared/AdminDateRangePicker";
 
-# Column definition pattern (TanStack Table):
+// Layout
+import { AdminPageWrapper }   from "@/src/components/admin/layout/AdminPageWrapper";
+import { AdminDetailLayout }  from "@/src/components/admin/layout/AdminDetailLayout";
+```
+
+---
+
+## DataTable Pattern
+
+```tsx
 const columns: ColumnDef<Product>[] = [
-  { accessorKey: "name", header: "Tên sản phẩm", ... },
-  { accessorKey: "status", header: "Trạng thái",
+  { accessorKey: "name", header: "Tên sản phẩm" },
+  {
+    accessorKey: "status",
+    header: "Trạng thái",
     cell: ({ row }) => <StatusBadge status={row.original.status} />,
   },
-  { id: "actions", cell: ({ row }) => <ActionMenu item={row.original} />,
-  },
+  { id: "actions", cell: ({ row }) => <ActionMenu item={row.original} /> },
 ];
 
-# Always wrap DataTable with TableToolbar:
-import { TableToolbar }  from "@/src/components/admin/shared/TableToolbar";
-import { AdminEmptyState } from "@/src/components/admin/shared/AdminEmptyState";
 <TableToolbar
   search={<AdminSearchBar value={q} onChange={setQ} placeholder="Tìm sản phẩm…" />}
-  filters={<FilterDropdown ... />}
-  actions={<Button>Thêm mới</Button>}
+  filters={<FilterDropdown options={statusOptions} value={status} onChange={setStatus} />}
+  actions={<Button href="/products/new">+ Thêm</Button>}
   selectedCount={selectedRows.length}
   bulkActions={[{ label: "Xóa đã chọn", icon: <TrashIcon />, onClick: handleBulkDelete, variant: "danger" }]}
   onClearSelection={() => setSelectedRows([])}
 />
-<DataTable columns={columns} data={data} isLoading={isLoading} />
+<DataTable columns={columns} data={data} isLoading={isLoading} emptyText="Không có sản phẩm" />
+```
 
-## StatCard Pattern (dashboard)
-import { StatCard } from "@/src/components/admin/StatCard";
+---
+
+## StatCard Pattern
+
+```tsx
 <StatCard
   title="Doanh thu hôm nay"
   value={formatVND(stats.todayRevenue)}
-  change={+12.5}  // percentage
-  icon={<DollarIcon />}
+  change={+12.5}
+  icon={<BanknotesIcon className="w-6 h-6" />}
   trend="up"
 />
+```
 
-## Chart Pattern (local, using Recharts)
-// Dashboard widgets: src/components/admin/dashboard/{ChartName}.tsx
-// Reports charts:    src/components/admin/reports/{ChartName}.tsx
+---
+
+## Chart Pattern (Recharts)
+
+```tsx
+// Dashboard: src/components/admin/dashboard/{ChartName}.tsx
+// Reports:   src/components/admin/reports/{ChartName}.tsx
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-// Use violet-700 (#6d28d9) as primary chart series colour in admin
-// Use secondary-200 (#e2e8f0) for grid lines
-// Use DM Sans font in chart tooltips
+
+// Primary chart color in admin: accent-500 (#8b5cf6)
+// Grid lines: secondary-200 (#e2e8f0)
+// Font: DM Sans
+<ResponsiveContainer width="100%" height={300}>
+  <LineChart data={data}>
+    <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2} dot={false} />
+    <XAxis dataKey="date" />
+    <YAxis tickFormatter={formatVND} />
+    <Tooltip formatter={(v) => formatVND(Number(v))} />
+  </LineChart>
+</ResponsiveContainer>
+```
+
+---
 
 ## Admin Form Pattern
-import { useForm }       from 'react-hook-form';
-import { zodResolver }   from '@hookform/resolvers/zod';
-import { productSchema } from '@/src/lib/validators';
-import { Input }         from "@/src/components/ui/Input";
-import { Select }        from "@/src/components/ui/Select";
-import { Button }        from "@/src/components/ui/Button";
 
-# Multi-tab forms (products, promotions): use ProductFormTabs / PromotionFormTabs
-# pattern — dirty-state dot, keepMounted tabs, onFormChange per section.
+```tsx
+import { useForm }     from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { productSchema } from '@/src/lib/validators/product';
 
-## Page Template (Admin List Page)
-// Wrap page body in AdminPageWrapper:
-<AdminPageWrapper title="Quản lý Sản phẩm" action={<Button href="/products/new">+ Thêm</Button>}>
-  <TableToolbar ... />
-  <DataTable ... />
-</AdminPageWrapper>
+const form = useForm<ProductForm>({ resolver: zodResolver(productSchema) });
 
-## Page Template (Admin Detail / Edit Page)
-// Wrap in AdminDetailLayout for split-pane:
+<Input {...form.register("name")} label="Tên sản phẩm" error={form.formState.errors.name?.message} />
+<Select {...form.register("status")} options={statusOptions} label="Trạng thái" />
+<Button type="submit" loading={form.formState.isSubmitting}>Lưu</Button>
+```
+
+---
+
+## Page Templates
+
+### List page
+```tsx
+export const dynamic = "force-dynamic";
+
+export default function ProductsPage() {
+  return (
+    <AdminPageWrapper title="Quản lý Sản phẩm" action={<Button href="/products/new">+ Thêm</Button>}>
+      <TableToolbar ... />
+      <DataTable ... />
+    </AdminPageWrapper>
+  );
+}
+```
+
+### Detail / edit page
+```tsx
 <AdminPageWrapper title="Chỉnh sửa sản phẩm">
   <AdminDetailLayout
-    main={<ProductFormTabs ... />}
-    aside={<ProductStatusPanel ... />}
+    main={<ProductFormTabs productId={id} initialData={product} />}
+    aside={<ProductStatusPanel status={product.status} onPublish={handlePublish} />}
   />
 </AdminPageWrapper>
+```
 
-## AdminSidebar Nav Item (role-filtered)
-// AdminSidebar reads userRole and filters items with requiredRoles[].
-// Active state is derived automatically via usePathname() — do NOT pass active prop.
-// All items must have href (rendered as <Link>) or children (rendered as toggle button).
+---
 
-## Layout Shell Integration
-// The (dashboard)/layout.tsx renders AdminLayout which provides:
-//   - SidebarContext (collapse state + localStorage)
-//   - AdminSidebar (left, violet-700)
-//   - AdminHeader (top, sticky)
-//   - <main> scrollable area
-// Individual pages only need AdminPageWrapper — no need to render header/sidebar.
+## Shared Component Quick Reference
 
-## Shared Component Patterns
-
-# InlineEditField — quick single-field edits in detail views:
+```tsx
+// InlineEditField — quick single-field edit in detail views
 <InlineEditField
   value={order.trackingNumber}
   fieldType="input"
   label="Số vận đơn"
-  onSave={async (v) => await updateTracking(order.id, v)}
+  onSave={async (v) => updateTracking(order.id, v)}
 />
 
-# AuditLogViewer — history timeline in detail pages:
+// AuditLogViewer — history timeline
 <AuditLogViewer events={product.auditLog} isLoading={isLoading} />
 
-# ExportButton — consistent export control:
-<ExportButton
-  scope="42 đơn hàng"
-  isExporting={isExporting}
-  onExport={(format) => triggerExport(format)}
-/>
+// ExportButton
+<ExportButton scope="42 đơn hàng" isExporting={isExporting} onExport={(fmt) => triggerExport(fmt)} />
 
-# MediaUploadPanel — multi-image management:
-<MediaUploadPanel
-  images={product.images}
-  maxImages={8}
-  onAdd={handleAdd}
-  onRemove={handleRemove}
-  onReorder={handleReorder}
-/>
+// MediaUploadPanel
+<MediaUploadPanel images={product.images} maxImages={8} onAdd={handleAdd} onRemove={handleRemove} onReorder={handleReorder} />
 
-# RolePermissionSelector — staff permission matrix:
-<RolePermissionSelector
-  value={{ roles: ["staff"], permissions: overrides }}
-  onChange={({ roles, permissions }) => setPerms({ roles, permissions })}
-/>
+// RolePermissionSelector (employee forms)
+<RolePermissionSelector value={{ roles: ["staff"], permissions: overrides }} onChange={setPerms} />
+```
+
+---
 
 ## Settings Section Pattern
-// All settings pages render inside src/app/(dashboard)/settings/layout.tsx
-// which wraps with <SettingsLayout>.
-// Add new settings page:
-//   1. Create src/app/(dashboard)/settings/{section}/page.tsx
-//   2. Add entry to SettingsLayout nav array with href + label + icon
-//   3. Create form component in src/components/admin/settings/{Section}Form.tsx
+
+1. Create `src/app/(dashboard)/settings/{section}/page.tsx`
+2. Add entry to `SettingsLayout.tsx` nav array with `{ href, label, icon }`
+3. Create `src/components/admin/settings/{Section}Form.tsx`
+4. Active state: automatic via `SettingsNavLink` (usePathname-based)

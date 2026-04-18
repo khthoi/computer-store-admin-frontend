@@ -1,90 +1,137 @@
 # AI DEVELOPMENT GUIDE — computer-store-admin
-# Follow this workflow for every task in this repo.
 
-## MANDATORY PRE-TASK CHECKLIST
-□ Read .ai/CODING_RULES.md (admin edition)
+## Pre-Task Checklist
+```
+□ Read .ai/CODING_RULES.md
 □ Read .ai/FEATURE_SPEC.md — find the admin screen (AD-xx)
-□ Check src/components/admin/ for existing components before creating new ones
-□ Check src/components/ui/ for available UI primitives (NOT @computer-store/ui)
-□ Identify required role for this feature
-□ Confirm whether the page is a list (→ TableToolbar + DataTable) or
-  a detail/edit page (→ AdminDetailLayout) or a settings form (→ SettingsLayout)
+□ Check src/components/admin/{domain}/ for existing components
+□ Check src/components/ui/ for available UI primitives
+□ Identify required role(s) for this feature
+□ Confirm page type: list (TableToolbar + DataTable) | detail (AdminDetailLayout) | settings
+```
 
-## ADMIN TASK RECIPES
+---
 
-# RECIPE: New CRUD list page (most common)
-1. Find spec in FEATURE_SPEC.md (e.g., AD-02 Products)
-2. Add types to src/types/{resource}.types.ts
-3. Add service to src/services/{resource}.service.ts
-4. Create page at src/app/(dashboard)/{route}/page.tsx:
-   a. Wrap in <AdminPageWrapper title="..." action={<Button>Thêm mới</Button>}>
-   b. <TableToolbar search={<AdminSearchBar />} filters={...} actions={...}
-                    selectedCount={...} bulkActions={[...]} onClearSelection={...} />
-   c. <DataTable columns={columns} data={data} isLoading={isLoading} />
-   d. <AdminEmptyState> passed to DataTable for empty/no-results states
-5. Create loading.tsx with Skeleton rows
-6. AdminSidebar already has the 10 domain nav items — no change needed
-7. Add to middleware.ts if route needs role restriction beyond defaults
+## RECIPE: New CRUD list page
 
-# RECIPE: New detail / edit page
-1. Create page at src/app/(dashboard)/{route}/[id]/page.tsx
-2. Fetch record server-side, pass as props
-3. Wrap in <AdminPageWrapper title="Chỉnh sửa …">
-4. Use <AdminDetailLayout main={...} aside={...} />:
-   - main: form component(s), tabs, DataTable sub-sections
-   - aside: status panel, metadata cards, AuditLogViewer
-5. Add InlineEditField for quick single-field corrections
-6. Destructive actions (delete, suspend): always ConfirmDialog
+1. Find spec in FEATURE_SPEC.md
+2. Add types → `src/types/{resource}.types.ts`
+3. Add service → `src/services/{resource}.service.ts`
+4. Create page at `src/app/(dashboard)/{route}/page.tsx`:
+```tsx
+export const dynamic = "force-dynamic";
 
-# RECIPE: Product form (create/edit)
-1. Create Zod schema in src/lib/validators.ts
-2. Page wraps <AdminDetailLayout>:
-   Left:  <ProductFormTabs productId={id} initialData={product} />
-   Right: <ProductStatusPanel status={product.status} onPublish={...} />
-3. ProductFormTabs renders: ProductGeneralForm, ProductVariantsForm,
-   MediaUploadPanel (images), ProductSEOForm, ProductSpecificationsForm
-4. Page routes: /products/new (create) | /products/:id/edit (edit)
+<AdminPageWrapper title="..." action={<Button>Thêm mới</Button>}>
+  <TableToolbar
+    search={<AdminSearchBar />}
+    filters={<FilterDropdown />}
+    actions={<ExportButton />}
+    selectedCount={selectedRows.length}
+    bulkActions={[{ label: "Xóa đã chọn", icon: <TrashIcon />, onClick: handleBulkDelete, variant: "danger" }]}
+    onClearSelection={() => setSelectedRows([])}
+  />
+  <DataTable columns={columns} data={data} isLoading={isLoading} />
+</AdminPageWrapper>
+```
+5. Create `loading.tsx` with Skeleton rows
+6. Add role guard to `middleware.ts` if route needs restriction
 
-# RECIPE: Dashboard widget
-1. Create component in src/components/admin/dashboard/{WidgetName}.tsx
-2. Use StatCard from "@/src/components/admin/StatCard" for KPI boxes
-3. Use Recharts (LineChart / BarChart / PieChart) for charts
-4. Dashboard page (src/app/(dashboard)/page.tsx) composes all widgets
-   with export const dynamic = "force-dynamic"
+---
 
-# RECIPE: Reports section addition
-1. Create chart/table component in src/components/admin/reports/
-2. Connect to ReportsFilterBar state via props (from, to, channel, category)
-3. Add to the reports page grid below SalesOverviewPanel
-4. All data fetching: React Query with staleTime: 30000
+## RECIPE: New detail / edit page
 
-# RECIPE: New settings sub-page
-1. Create src/app/(dashboard)/settings/{section}/page.tsx
-2. Create src/components/admin/settings/{Section}Form.tsx
-3. Add nav entry to SettingsLayout.tsx (href, label, icon)
-4. Form uses react-hook-form + Zod + onSave callback
+1. Create `src/app/(dashboard)/{route}/[id]/page.tsx`
+2. Fetch record server-side, pass as `initialData`
+3. Wrap in `<AdminDetailLayout main={...} aside={...} />`:
+   - `main`: form, tabs, DataTable sub-sections
+   - `aside`: status panel, metadata, AuditLogViewer
+4. Use `InlineEditField` for quick single-field corrections
+5. Destructive actions: always `ConfirmDialog`
 
-# RECIPE: Role-protected page
+---
+
+## RECIPE: Product form (create/edit)
+
+```
+Left (ProductFormTabs):
+  → ProductGeneralForm (name, SKU, brand, category, tags, RTE description)
+  → ProductVariantsForm (attribute builder + variant matrix)
+  → MediaUploadPanel (images, max 8, drag-reorder)
+  → ProductSpecificationsForm (spec group rows)
+  → ProductSEOForm (meta title/desc, slug, SERP preview)
+Right:
+  → ProductStatusPanel (publish / draft / schedule)
+```
+
+Routes: `/products/new` (create) | `/products/:id/edit` (edit)
+
+---
+
+## RECIPE: Dashboard widget
+
+```tsx
+// src/components/admin/dashboard/{WidgetName}.tsx
+// Use StatCard for KPI boxes
+// Use Recharts (LineChart / BarChart / PieChart) for charts
+// Dashboard page: src/app/(dashboard)/page.tsx
+// export const dynamic = "force-dynamic"
+```
+
+---
+
+## RECIPE: Role-protected page
+
+```ts
 // Option A — middleware.ts (preferred for route-level):
-import { getToken } from 'next-auth/jwt';
-if (pathname.startsWith("/staff") && token.role !== "admin") {
+if (pathname.startsWith("/employees") && token.role !== "admin") {
   return NextResponse.redirect(new URL("/dashboard", req.url));
 }
 
 // Option B — page level with hook:
 const { hasRole } = useRoleGuard();
 if (!hasRole("admin")) return <Unauthorized />;
+```
 
-## ANTI-PATTERNS (admin-specific)
-  ✗ Importing from "@computer-store/ui" — package not installed; use @/src/components/ui/
-  ✗ Building custom <table> instead of DataTable from @/src/components/admin/DataTable
-  ✗ Using ISR/cache on admin pages (data must be fresh; use force-dynamic)
-  ✗ Hiding UI elements as the only auth check (backend must also check)
-  ✗ Using violet-700 colors outside AdminSidebar/AdminHeader (content uses primary-600)
-  ✗ Creating form without Zod validation
-  ✗ Destructive action without ConfirmDialog (use requiredPhrase for irreversible)
-  ✗ Generating files client-side (PDFs/Excel must come from backend endpoint)
-  ✗ Storing server data in Zustand store
-  ✗ Placing new admin components under src/components/layout/ or src/components/{other}
-    → Always place under src/components/admin/{domain}/
-  ✗ Passing active prop to AdminSidebar nav items — active state is auto-derived from usePathname()
+---
+
+## RECIPE: New settings sub-page
+
+1. `src/app/(dashboard)/settings/{section}/page.tsx`
+2. `src/components/admin/settings/{Section}Form.tsx`
+3. Add nav entry to `SettingsLayout.tsx` (href, label, icon)
+4. Form: react-hook-form + Zod + `onSave` callback
+
+---
+
+## RECIPE: Promotion form (create/edit)
+
+```
+Left (PromotionFormTabs):
+  → General: name, type, status
+  → Rules: DiscountRuleBuilder (conditions + discount value)
+           CouponCodeManager (when type = coupon)
+           FlashSaleScheduler (when type = flash_sale)
+  → Applicability: PromotionApplicabilityPicker
+  → Schedule: start/end AdminDateRangePicker
+  → Stats: read-only redemption count + revenue impact
+Right:
+  → Promotion status panel (publish / draft / archive)
+```
+
+---
+
+## Common Anti-patterns
+
+```
+✗ import from "@computer-store/ui" — not installed
+✗ Custom <table> instead of DataTable
+✗ ISR / cache on admin pages → must be force-dynamic
+✗ UI hiding as sole auth check — backend must also enforce
+✗ violet outside AdminSidebar/AdminHeader
+✗ Form without Zod validation
+✗ Destructive action without ConfirmDialog
+✗ Client-side PDF/Excel generation
+✗ Server data in Zustand
+✗ Admin components under src/components/layout/ (use src/components/admin/)
+✗ Passing active prop to AdminSidebar nav items
+```

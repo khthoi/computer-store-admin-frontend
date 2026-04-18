@@ -1,49 +1,37 @@
-# ICON SYSTEM
+# ICON SYSTEM — computer-store-admin
 
-STRICT RULE:
-This project uses **Heroicons ONLY**.
+## Primary: Heroicons
 
-Library:
-
-@heroicons/react
-
-Allowed icon styles:
-
-* /24/outline → default UI icons
-* /24/solid → emphasis icons (active state, important actions)
-
-DO NOT USE:
-
-* Font Awesome
-* Lucide
-* Material Icons
-* Inline `<svg>` elements
-* Any other icon library
-
-Always import icons from **@heroicons/react**.
-
-Example (Outline icon):
+The preferred icon library is `@heroicons/react` (already installed).
 
 ```tsx
-import { ShoppingCartIcon } from '@heroicons/react/24/outline'
-
+// Outline — default for all UI icons
+import { ShoppingCartIcon } from '@heroicons/react/24/outline';
 <ShoppingCartIcon className="w-5 h-5 text-slate-600" />
-```
 
-Example (Solid icon):
-
-```tsx
-import { HeartIcon } from '@heroicons/react/24/solid'
-
+// Solid — active states, important actions, emphasis
+import { HeartIcon } from '@heroicons/react/24/solid';
 <HeartIcon className="w-5 h-5 text-red-500" />
 ```
 
-Rules:
+Sizing convention:
+- `w-4 h-4` → small (badge, tight spacing)
+- `w-5 h-5` → default (buttons, nav items, table actions)
+- `w-6 h-6` → large (section headers, stat card icons)
 
-* Always use Heroicons React components.
-* Do NOT paste raw SVG code.
-* Icons must follow the same Tailwind sizing convention:
+## Secondary: react-icons
 
-  * `w-4 h-4` → small
-  * `w-5 h-5` → default
-  * `w-6 h-6` → large
+`react-icons` is also installed and may be used for icons not available in Heroicons (e.g., brand icons, specific tech icons).
+
+```tsx
+import { FaGooglePay } from 'react-icons/fa';
+<FaGooglePay className="w-5 h-5" />
+```
+
+## Rules
+
+- Prefer Heroicons for all general UI icons
+- Use `react-icons` only when Heroicons doesn't have the specific icon
+- Never paste raw `<svg>` code inline
+- Never import from Font Awesome, Lucide, or Material Icons packages
+- Always use Tailwind sizing classes (`w-* h-*`), never inline `style`
