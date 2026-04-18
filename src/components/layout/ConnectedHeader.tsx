@@ -18,7 +18,7 @@ export function ConnectedHeader() {
   const { state: cartState } = useCart();
 
   const user = authState.user
-    ? { name: authState.user.name, email: authState.user.email }
+    ? { name: authState.user.name ?? authState.user.fullName, email: authState.user.email }
     : null;
 
   return (

@@ -40,20 +40,13 @@ import {
   ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 
+import { useRouter } from "next/navigation";
 import { SidebarProvider, useSidebar } from "@/src/components/admin/layout/SidebarContext";
 import { AdminSidebar, type AdminNavItem } from "@/src/components/admin/AdminSidebar";
 import { AdminHeader } from "@/src/components/admin/layout/AdminHeader";
-import type { AdminUser } from "@/src/components/admin/layout/AdminUserMenu";
 import type { AdminNotification } from "@/src/components/admin/layout/NotificationBell";
 import { ToastProvider } from "@/src/components/ui/Toast";
-
-// ─── Mock data (replace with real auth + SSE) ─────────────────────────────────
-
-const MOCK_USER: AdminUser = {
-  name: "Admin User",
-  email: "admin@techstore.vn",
-  role: "admin",
-};
+import { useAuth } from "@/src/store/auth.store";
 
 const MOCK_NOTIFICATIONS: AdminNotification[] = [];
 
@@ -434,6 +427,21 @@ function AdminLogo() {
 
 function AdminLayoutInner({ children }: { children: ReactNode }) {
   const { mobileOpen, setMobileOpen } = useSidebar();
+  const { state: authState, logout } = useAuth();
+  const router = useRouter();
+
+  const currentUser = authState.user;
+  const adminUser = {
+    name: currentUser?.fullName ?? "Nhân viên",
+    email: currentUser?.email ?? "",
+    role: currentUser?.roles?.[0] ?? "staff",
+    avatarUrl: currentUser?.avatar ?? undefined,
+  };
+
+  function handleSignOut() {
+    logout();
+    router.push("/login");
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-secondary-50">
@@ -467,9 +475,9 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
       {/* Right column */}
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <AdminHeader
-          user={MOCK_USER}
+          user={adminUser}
           notifications={MOCK_NOTIFICATIONS}
-          onSignOut={() => {}}
+          onSignOut={handleSignOut}
           onMarkRead={() => {}}
           onMarkAllRead={() => {}}
         />

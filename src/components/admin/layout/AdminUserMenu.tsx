@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   UserCircleIcon,
-  ArrowRightOnRectangleIcon,
+  ArrowLeftStartOnRectangleIcon,
 } from "@heroicons/react/24/outline";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { Badge, type BadgeVariant } from "@/src/components/ui/Badge";
@@ -89,7 +89,7 @@ export function AdminUserMenu({ user, onSignOut }: AdminUserMenuProps) {
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg p-1 transition-colors hover:bg-violet-600/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        className="flex items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:bg-violet-600/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <Avatar
           src={user.avatarUrl}
@@ -138,8 +138,8 @@ export function AdminUserMenu({ user, onSignOut }: AdminUserMenuProps) {
               onClick={() => { close(); onSignOut(); }}
               className="flex w-full items-center gap-3 px-4 py-2 text-sm text-error-600 hover:bg-error-50 transition-colors"
             >
-              <ArrowRightOnRectangleIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
-              Sign Out
+              <ArrowLeftStartOnRectangleIcon className="w-4 h-4 shrink-0" aria-hidden="true" />
+              Đăng xuất
             </button>
           </div>
         </div>

@@ -1,19 +1,7 @@
 import type { Metadata } from "next";
 import { DM_Sans, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
-import { AdminLayout } from "@/src/components/admin/layout/AdminLayout";
-
-/**
- * ADMIN DASHBOARD — Root Layout
- *
- * Font strategy:
- *   DM Sans         → --font-dm-sans  → picked up by --font-sans in globals.css
- *   JetBrains Mono  → --font-jetbrains-mono → picked up by --font-mono
- *
- * AdminLayout is mounted here (not in a route group) so the sidebar + header
- * shell is shared by every admin route, including future routes added outside
- * the (dashboard) group.
- */
+import { AuthProvider } from "@/src/store/auth.store";
 
 const dmSans = DM_Sans({
   variable: "--font-dm-sans",
@@ -49,7 +37,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${dmSans.variable} ${jetbrainsMono.variable}`}>
       <body className="antialiased">
-        <AdminLayout>{children}</AdminLayout>
+        <AuthProvider>{children}</AuthProvider>
       </body>
     </html>
   );

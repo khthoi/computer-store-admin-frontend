@@ -76,7 +76,7 @@ export function ProfileAvatarUploader({
       isOpen={isOpen}
       onClose={handleClose}
       title="Đổi ảnh đại diện"
-      size="sm"
+      size="lg"
       animated
       footer={
         <>
