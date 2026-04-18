@@ -155,8 +155,10 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
   const [items,          setItems]          = useState<FlashSaleItemPayload[]>(
     initialData?.items.map((i) => ({
       phienBanId:     i.phienBanId,
+      sanPhamId:      i.sanPhamId,
       giaFlash:       i.giaFlash,
       giaGocSnapshot: i.giaGocSnapshot,
+      giaGoc:         i.giaGoc,
       soLuongGioiHan: i.soLuongGioiHan,
       thuTuHienThi:   i.thuTuHienThi,
       tenPhienBan:    i.tenPhienBan,

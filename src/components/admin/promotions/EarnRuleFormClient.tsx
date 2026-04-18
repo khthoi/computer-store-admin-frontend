@@ -29,16 +29,16 @@ type Props =
 // ─── Select options ───────────────────────────────────────────────────────────
 
 const BONUS_OPTIONS: SelectOption[] = [
-  { value: "",            label: "None" },
-  { value: "first_order", label: "First Order", description: "Bonus on customer's very first order" },
-  { value: "birthday",    label: "Birthday",    description: "Bonus on customer's birthday month" },
-  { value: "manual",      label: "Manual",      description: "Manually triggered by admin" },
+  { value: "", label: "Không có" },
+  { value: "first_order", label: "Đơn hàng đầu tiên", description: "Thưởng cho đơn hàng đầu tiên của khách hàng" },
+  { value: "birthday", label: "Sinh nhật", description: "Thưởng vào tháng sinh nhật của khách hàng" },
+  { value: "manual", label: "Thủ công", description: "Được kích hoạt thủ công bởi quản trị viên" },
 ];
 
 const BONUS_LABELS: Record<string, string> = {
-  first_order: "First Order",
-  birthday:    "Birthday",
-  manual:      "Manual",
+  first_order: "Đơn hàng đầu tiên",
+  birthday: "Sinh nhật",
+  manual: "Thủ công",
 };
 
 // ─── Section card ─────────────────────────────────────────────────────────────
@@ -69,20 +69,20 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
   const isEdit = mode === "edit";
 
   // ── Basic ──────────────────────────────────────────────────────────────────
-  const [name, setName]               = useState(rule?.name ?? "");
+  const [name, setName] = useState(rule?.name ?? "");
   const [description, setDescription] = useState(rule?.description ?? "");
-  const [isActive, setIsActive]       = useState(rule?.isActive ?? true);
-  const [priority, setPriority]       = useState(rule?.priority != null ? String(rule.priority) : "10");
+  const [isActive, setIsActive] = useState(rule?.isActive ?? true);
+  const [priority, setPriority] = useState(rule?.priority != null ? String(rule.priority) : "10");
 
   // ── Points Rate ────────────────────────────────────────────────────────────
-  const [pointsPerUnit, setPointsPerUnit]         = useState(rule?.pointsPerUnit != null ? String(rule.pointsPerUnit) : "1");
-  const [spendPerUnit, setSpendPerUnit]           = useState(rule?.spendPerUnit != null ? String(rule.spendPerUnit) : "10000");
-  const [minOrderValue, setMinOrderValue]         = useState(rule?.minOrderValue != null ? String(rule.minOrderValue) : "");
+  const [pointsPerUnit, setPointsPerUnit] = useState(rule?.pointsPerUnit != null ? String(rule.pointsPerUnit) : "1");
+  const [spendPerUnit, setSpendPerUnit] = useState(rule?.spendPerUnit != null ? String(rule.spendPerUnit) : "10000");
+  const [minOrderValue, setMinOrderValue] = useState(rule?.minOrderValue != null ? String(rule.minOrderValue) : "");
   const [maxPointsPerOrder, setMaxPointsPerOrder] = useState(rule?.maxPointsPerOrder != null ? String(rule.maxPointsPerOrder) : "");
 
   // ── Bonus ──────────────────────────────────────────────────────────────────
   const [bonusTrigger, setBonusTrigger] = useState<string>(rule?.bonusTrigger ?? "");
-  const [bonusPoints, setBonusPoints]   = useState(rule?.bonusPoints != null ? String(rule.bonusPoints) : "");
+  const [bonusPoints, setBonusPoints] = useState(rule?.bonusPoints != null ? String(rule.bonusPoints) : "");
 
   // ── Scope multipliers ──────────────────────────────────────────────────────
   const [scopes, setScopes] = useState<ScopeEntry[]>(
@@ -95,7 +95,7 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
   );
 
   // ── Validity ───────────────────────────────────────────────────────────────
-  const [validFrom, setValidFrom]   = useState(rule?.validFrom ?? "");
+  const [validFrom, setValidFrom] = useState(rule?.validFrom ?? "");
   const [validUntil, setValidUntil] = useState(rule?.validUntil ?? "");
 
   // ── Validation / save ──────────────────────────────────────────────────────
@@ -129,18 +129,18 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
     const lines: ReactNode[] = [];
     const spuK = spu >= 1000 ? `${(spu / 1000).toFixed(0)}k` : spu.toLocaleString("vi-VN");
-    lines.push(`Earn ${ppu} pt per ${spuK}₫ spent.`);
+    lines.push(`Tích ${ppu} điểm mỗi ${spuK}₫ chi tiêu.`);
 
     if (minOrderValue && Number(minOrderValue) > 0)
-      lines.push(`Min order: ${Number(minOrderValue).toLocaleString("vi-VN")}₫.`);
+      lines.push(`Đơn tối thiểu: ${Number(minOrderValue).toLocaleString("vi-VN")}₫.`);
     if (maxPointsPerOrder && Number(maxPointsPerOrder) > 0)
-      lines.push(`Cap: ${Number(maxPointsPerOrder).toLocaleString("vi-VN")} pts/order.`);
+      lines.push(`Giới hạn: ${Number(maxPointsPerOrder).toLocaleString("vi-VN")} điểm/đơn.`);
 
     const validScopes = scopes.filter((s) => s.scopeRefLabel.trim() && Number(s.multiplier) > 0);
     if (validScopes.length > 0) {
       lines.push(
         <span>
-          Multipliers:{" "}
+          Hệ số:{" "}
           {validScopes.map((s, idx) => (
             <span key={idx}>
               {idx > 0 && ", "}
@@ -152,12 +152,12 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
     }
 
     if (bonusTrigger && bonusPoints && Number(bonusPoints) > 0)
-      lines.push(`+${Number(bonusPoints).toLocaleString("vi-VN")} bonus pts on ${BONUS_LABELS[bonusTrigger] ?? bonusTrigger}.`);
+      lines.push(`+${Number(bonusPoints).toLocaleString("vi-VN")} điểm thưởng khi ${BONUS_LABELS[bonusTrigger] ?? bonusTrigger}.`);
 
     if (validFrom || validUntil) {
-      lines.push(`Valid: ${validFrom || "—"} – ${validUntil || "—"}.`);
+      lines.push(`Hiệu lực: ${validFrom || "—"} – ${validUntil || "—"}.`);
     } else {
-      lines.push("Always active (no date restriction).");
+      lines.push("Luôn hoạt động (không giới hạn thời gian).");
     }
 
     return lines;
@@ -168,31 +168,31 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
     e.preventDefault();
 
     const newErrors: Record<string, string> = {};
-    if (!name.trim()) newErrors.name = "Name is required.";
+    if (!name.trim()) newErrors.name = "Tên là bắt buộc.";
 
     const ppu = Number(pointsPerUnit);
     if (!pointsPerUnit || isNaN(ppu) || ppu <= 0)
-      newErrors.pointsPerUnit = "Must be greater than 0.";
+      newErrors.pointsPerUnit = "Phải lớn hơn 0.";
 
     const spu = Number(spendPerUnit);
     if (!spendPerUnit || isNaN(spu) || spu <= 0)
-      newErrors.spendPerUnit = "Must be greater than 0.";
+      newErrors.spendPerUnit = "Phải lớn hơn 0.";
 
     const pri = Number(priority);
-    if (priority === "" || isNaN(pri)) newErrors.priority = "Priority is required.";
+    if (priority === "" || isNaN(pri)) newErrors.priority = "Độ ưu tiên là bắt buộc.";
 
     if (bonusTrigger && (!bonusPoints || isNaN(Number(bonusPoints)) || Number(bonusPoints) <= 0))
-      newErrors.bonusPoints = "Bonus points must be greater than 0 when a trigger is set.";
+      newErrors.bonusPoints = "Điểm thưởng phải lớn hơn 0 khi có điều kiện kích hoạt.";
 
     if (validFrom && validUntil && validUntil <= validFrom)
-      newErrors.validUntil = "Valid Until must be after Valid From.";
+      newErrors.validUntil = "Ngày kết thúc phải sau ngày bắt đầu.";
 
     scopes.forEach((s, i) => {
       if (!s.scopeRefId.trim())
-        newErrors[`scope_ref_${i}`] = "Please select a target.";
+        newErrors[`scope_ref_${i}`] = "Vui lòng chọn đối tượng áp dụng.";
       const m = Number(s.multiplier);
       if (isNaN(m) || m <= 0)
-        newErrors[`scope_multiplier_${i}`] = "Multiplier must be > 0.";
+        newErrors[`scope_multiplier_${i}`] = "Hệ số phải lớn hơn 0.";
     });
 
     setErrors(newErrors);
@@ -223,15 +223,15 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
       if (isEdit) {
         await updateEarnRule(rule.id, payload);
-        showToast("Earn rule updated.", "success");
+        showToast("Đã cập nhật quy tắc tích điểm.", "success");
         router.push(`/promotions/earn-rules/${rule.id}`);
       } else {
         const created = await createEarnRule(payload);
-        showToast("Earn rule created.", "success");
+        showToast("Đã tạo quy tắc tích điểm.", "success");
         router.push(`/promotions/earn-rules/${created.id}`);
       }
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to save.", "error");
+      showToast(err instanceof Error ? err.message : "Lưu thất bại.", "error");
     } finally {
       setSaving(false);
     }
@@ -251,9 +251,9 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
         </Link>
         <div>
           <nav className="flex items-center gap-1.5 text-xs text-secondary-400 mb-0.5">
-            <Link href="/promotions" className="hover:text-secondary-600 transition-colors">Promos & Coupons</Link>
+            <Link href="/promotions" className="hover:text-secondary-600 transition-colors">Khuyến mãi & Mã giảm giá</Link>
             <span>›</span>
-            <Link href="/promotions?tab=earn-rules" className="hover:text-secondary-600 transition-colors">Earn Rules</Link>
+            <Link href="/promotions?tab=earn-rules" className="hover:text-secondary-600 transition-colors">Quy tắc tích điểm</Link>
             {isEdit && (
               <>
                 <span>›</span>
@@ -263,10 +263,10 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
               </>
             )}
             <span>›</span>
-            <span className="text-secondary-600">{isEdit ? "Edit" : "New"}</span>
+            <span className="text-secondary-600">{isEdit ? "Chỉnh sửa" : "Mới"}</span>
           </nav>
           <h1 className="text-xl font-bold text-secondary-900">
-            {isEdit ? `Edit: ${rule.name}` : "New Earn Rule"}
+            {isEdit ? `Chỉnh sửa: ${rule.name}` : "Quy tắc tích điểm mới"}
           </h1>
         </div>
       </div>
@@ -278,19 +278,19 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
         <div className="space-y-4">
 
           {/* 1. Basic Info */}
-          <Section title="Basic Info" description="Name, description and activation status for this rule.">
+          <Section title="Thông tin cơ bản" description="Tên, mô tả và trạng thái kích hoạt cho quy tắc này.">
             <Input
-              label="Name"
+              label="Tên"
               required
-              placeholder="e.g. Base Rate"
+              placeholder="VD: Tỷ lệ cơ bản"
               value={name}
               onChange={(e) => setName(e.target.value)}
               errorMessage={errors.name}
               fullWidth
             />
             <Textarea
-              label="Description"
-              placeholder="Optional — describe when this rule applies."
+              label="Mô tả"
+              placeholder="Tùy chọn — mô tả khi nào quy tắc này áp dụng."
               rows={2}
               maxCharCount={300}
               showCharCount
@@ -301,15 +301,15 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
               <Toggle
                 checked={isActive}
                 onChange={(e) => setIsActive(e.target.checked)}
-                label="Active"
+                label="Đang hoạt động"
               />
               <Input
-                label="Priority"
+                label="Độ ưu tiên"
                 type="number"
                 min={0}
                 required
-                placeholder="e.g. 10"
-                helperText="Higher number = evaluated first when multiple rules apply."
+                placeholder="VD: 10"
+                helperText="Số cao hơn = được ưu tiên xét trước khi nhiều quy tắc cùng áp dụng."
                 value={priority}
                 onChange={(e) => setPriority(e.target.value)}
                 errorMessage={errors.priority}
@@ -319,28 +319,28 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
           {/* 2. Points Rate */}
           <Section
-            title="Points Rate"
-            description="How many points a customer earns per amount spent."
+            title="Tỷ lệ tích điểm"
+            description="Số điểm khách hàng nhận được trên mỗi số tiền chi tiêu."
           >
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Points awarded"
+                label="Điểm thưởng"
                 type="number"
                 min={1}
                 required
-                placeholder="e.g. 1"
+                placeholder="VD: 1"
                 value={pointsPerUnit}
                 onChange={(e) => setPointsPerUnit(e.target.value)}
                 errorMessage={errors.pointsPerUnit}
                 fullWidth
               />
               <Input
-                label="Per (VND)"
+                label="Mỗi (VND)"
                 type="number"
                 min={1}
                 required
-                placeholder="e.g. 10000"
-                helperText="e.g. 10000 → 1 pt per 10,000₫ spent"
+                placeholder="VD: 10000"
+                helperText="VD: 10000 → 1 điểm mỗi 10.000₫ chi tiêu"
                 value={spendPerUnit}
                 onChange={(e) => setSpendPerUnit(e.target.value)}
                 errorMessage={errors.spendPerUnit}
@@ -349,21 +349,21 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <Input
-                label="Min order value (VND)"
+                label="Giá trị đơn tối thiểu (VND)"
                 type="number"
                 min={0}
-                placeholder="Blank = no minimum"
-                helperText="Order must be at least this value to earn points."
+                placeholder="Bỏ trống = không giới hạn"
+                helperText="Đơn hàng phải đạt giá trị này mới được tích điểm."
                 value={minOrderValue}
                 onChange={(e) => setMinOrderValue(e.target.value)}
                 fullWidth
               />
               <Input
-                label="Max points per order"
+                label="Điểm tối đa mỗi đơn"
                 type="number"
                 min={1}
-                placeholder="Blank = unlimited"
-                helperText="Cap on points earned from a single order."
+                placeholder="Bỏ trống = không giới hạn"
+                helperText="Giới hạn điểm tích được từ một đơn hàng."
                 value={maxPointsPerOrder}
                 onChange={(e) => setMaxPointsPerOrder(e.target.value)}
                 fullWidth
@@ -372,18 +372,18 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
             {pointsPerUnit && spendPerUnit && Number(pointsPerUnit) > 0 && Number(spendPerUnit) > 0 && (
               <div className="rounded-xl bg-primary-50 border border-primary-100 px-4 py-3 text-sm text-primary-800">
-                <span className="font-semibold">Preview: </span>
-                Customer spending{" "}
+                <span className="font-semibold">Xem trước: </span>
+                Khách hàng chi tiêu{" "}
                 <span className="font-semibold">
                   {(Number(spendPerUnit) * 10).toLocaleString("vi-VN")}₫
                 </span>{" "}
-                earns{" "}
+                nhận được{" "}
                 <span className="font-semibold">
-                  {(Number(pointsPerUnit) * 10).toLocaleString("vi-VN")} pts
+                  {(Number(pointsPerUnit) * 10).toLocaleString("vi-VN")} điểm
                 </span>
                 {maxPointsPerOrder && Number(maxPointsPerOrder) > 0 && (
                   <span className="text-primary-600">
-                    {" "}(capped at {Number(maxPointsPerOrder).toLocaleString("vi-VN")} pts/order)
+                    {" "}(tối đa {Number(maxPointsPerOrder).toLocaleString("vi-VN")} điểm/đơn)
                   </span>
                 )}
                 .
@@ -393,28 +393,28 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
           {/* 3. Fixed Bonus */}
           <Section
-            title="Fixed Bonus"
-            description="Award a one-time flat bonus when a specific event occurs."
+            title="Thưởng cố định"
+            description="Trao một khoản thưởng một lần khi xảy ra sự kiện cụ thể."
           >
             <Select
-              label="Bonus trigger"
+              label="Điều kiện kích hoạt thưởng"
               options={BONUS_OPTIONS}
               value={bonusTrigger}
               onChange={(v) => {
                 setBonusTrigger(v as string);
                 if (!v) setBonusPoints("");
               }}
-              placeholder="None"
-              helperText="Leave blank if this rule has no fixed bonus."
+              placeholder="Không có"
+              helperText="Bỏ trống nếu quy tắc này không có thưởng cố định."
             />
             {bonusTrigger && (
               <Input
-                label="Bonus points"
+                label="Điểm thưởng"
                 type="number"
                 min={1}
                 required
-                placeholder="e.g. 200"
-                helperText="Number of bonus points awarded when the trigger fires."
+                placeholder="VD: 200"
+                helperText="Số điểm thưởng được trao khi điều kiện kích hoạt."
                 value={bonusPoints}
                 onChange={(e) => setBonusPoints(e.target.value)}
                 errorMessage={errors.bonusPoints}
@@ -425,8 +425,8 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
           {/* 4. Scope Multipliers */}
           <Section
-            title="Scope Multipliers"
-            description="Override the earn rate for specific categories, brands, or product variants. Customers earn multiplier × base points when buying from these scopes."
+            title="Hệ số phạm vi"
+            description="Ghi đè tỷ lệ tích điểm cho danh mục, thương hiệu hoặc sản phẩm cụ thể. Khách hàng nhận được hệ số × điểm cơ bản khi mua trong các phạm vi này."
           >
             <ScopeMultipliersSection
               scopes={scopes}
@@ -437,13 +437,13 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
           {/* 5. Validity Period */}
           <Section
-            title="Validity Period"
-            description="Leave both fields blank to make the rule apply at all times."
+            title="Thời gian hiệu lực"
+            description="Bỏ trống cả hai ô để áp dụng quy tắc mọi thời điểm."
           >
             <div className="grid grid-cols-2 gap-4">
-              <DateInput label="Valid From" value={validFrom} onChange={setValidFrom} />
+              <DateInput label="Hiệu lực từ" value={validFrom} onChange={setValidFrom} />
               <DateInput
-                label="Valid Until"
+                label="Hiệu lực đến"
                 value={validUntil}
                 onChange={setValidUntil}
                 errorMessage={errors.validUntil}
@@ -453,14 +453,12 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
           {/* Footer actions */}
           <div className="flex items-center justify-between pt-2">
-            <Link
-              href={backHref}
-              className="text-sm text-secondary-500 hover:text-secondary-700 transition-colors"
-            >
-              Cancel
-            </Link>
-            <Button type="submit" variant="primary" isLoading={saving} disabled={saving || !isValid}>
-              {isEdit ? "Save Changes" : "Create Earn Rule"}
+            <Button variant="secondary" onClick={() => router.back()} disabled={saving} className="rounded-lg"
+              >
+              Hủy
+            </Button>
+            <Button type="submit" variant="primary" isLoading={saving} disabled={saving || !isValid} className="rounded-lg">
+              {isEdit ? "Lưu thay đổi" : "Tạo quy tắc tích điểm"}
             </Button>
           </div>
         </div>
@@ -469,14 +467,14 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
         <div className="lg:sticky lg:top-6 h-fit">
           <div className="rounded-2xl border border-secondary-100 bg-white p-5 shadow-sm space-y-4">
             <h3 className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
-              Rule Preview
+              Xem trước quy tắc
             </h3>
 
             {previewText ? (
               <>
                 <div className="rounded-xl bg-primary-50 border border-primary-100 px-4 py-3">
                   <p className="text-sm font-semibold text-primary-800">
-                    {name.trim() || "Untitled Rule"}
+                    {name.trim() || "Quy tắc chưa đặt tên"}
                   </p>
                   {description.trim() && (
                     <p className="mt-1 text-xs text-primary-600">{description.trim()}</p>
@@ -494,22 +492,22 @@ export function EarnRuleFormClient({ mode, rule }: Props) {
 
                 <div className="flex items-center gap-2 pt-1">
                   <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${isActive ? "bg-success-50 text-success-700" : "bg-secondary-100 text-secondary-500"}`}>
-                    {isActive ? "Active" : "Inactive"}
+                    {isActive ? "Đang hoạt động" : "Không hoạt động"}
                   </span>
-                  <span className="text-xs text-secondary-400">Priority {priority || "—"}</span>
+                  <span className="text-xs text-secondary-400">Độ ưu tiên {priority || "—"}</span>
                 </div>
               </>
             ) : (
               <div className="rounded-xl border-2 border-dashed border-secondary-200 p-6 text-center">
                 <p className="text-sm text-secondary-400">
-                  Fill in the rule name and rate to see a preview.
+                  Điền tên và tỷ lệ để xem trước quy tắc.
                 </p>
               </div>
             )}
 
             {!isValid && name.trim() && (
               <p className="text-xs text-warning-600 bg-warning-50 rounded-lg px-3 py-2">
-                Complete all required fields to enable saving.
+                Điền đầy đủ các trường bắt buộc để có thể lưu.
               </p>
             )}
           </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
+import Link, { type LinkProps } from "next/link";
 import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -11,11 +12,23 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outl
 /** Size of the button */
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
-export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+/**
+ * Color theme for the `outline` variant.
+ * Has no effect on other variants.
+ * @default "primary"
+ */
+export type ButtonColor = "primary" | "secondary" | "danger" | "warning" | "success";
+
+interface ButtonBaseProps {
   /** Visual style variant
    * @default "primary"
    */
   variant?: ButtonVariant;
+  /**
+   * Color theme — only applies when `variant="outline"`.
+   * @default "primary"
+   */
+  color?: ButtonColor;
   /** Button size
    * @default "md"
    */
@@ -32,7 +45,21 @@ export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
    * @default false
    */
   fullWidth?: boolean;
+  /**
+   * Disables the button. When `href` is set, applies visual disabled styles
+   * and prevents navigation via `aria-disabled`.
+   * @default false
+   */
+  disabled?: boolean;
+  children?: ReactNode;
+  className?: string;
 }
+
+/** Button rendered as a native <button> element */
+export type ButtonProps = ButtonBaseProps & ButtonHTMLAttributes<HTMLButtonElement> & { href?: undefined };
+
+/** Button rendered as a Next.js <Link> — same visual appearance, navigates on click */
+export type ButtonLinkProps = ButtonBaseProps & Omit<LinkProps, "className"> & { href: string };
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
 
@@ -62,10 +89,36 @@ const VARIANT: Record<ButtonVariant, string> = {
     "hover:bg-error-700 active:bg-error-800 " +
     "focus-visible:ring-error-500",
 
-  outline:
-    "bg-transparent text-primary-600 border border-primary-400 " +
+  // Base outline styles — color is injected via OUTLINE_COLOR
+  outline: "bg-transparent border",
+};
+
+/** Color-specific styles applied on top of the base `outline` variant */
+const OUTLINE_COLOR: Record<ButtonColor, string> = {
+  primary:
+    "text-primary-600 border-primary-400 " +
     "hover:bg-primary-50 active:bg-primary-100 " +
     "focus-visible:ring-primary-500",
+
+  secondary:
+    "text-secondary-600 border-secondary-400 " +
+    "hover:bg-secondary-50 active:bg-secondary-100 " +
+    "focus-visible:ring-secondary-400",
+
+  danger:
+    "text-error-600 border-error-400 " +
+    "hover:bg-error-50 active:bg-error-100 " +
+    "focus-visible:ring-error-500",
+
+  warning:
+    "text-warning-600 border-warning-400 " +
+    "hover:bg-warning-50 active:bg-warning-100 " +
+    "focus-visible:ring-warning-500",
+
+  success:
+    "text-success-600 border-success-400 " +
+    "hover:bg-success-50 active:bg-success-100 " +
+    "focus-visible:ring-success-500",
 };
 
 const SIZE: Record<ButtonSize, string> = {
@@ -83,60 +136,25 @@ const ICON_SIZE: Record<ButtonSize, string> = {
   lg: "size-5",
 };
 
+// ─── Shared inner content ─────────────────────────────────────────────────────
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-/**
- * Button — primary interactive element.
- *
- * ```tsx
- * // Primary CTA
- * <Button onClick={handleAddToCart} leftIcon={<CartIcon />}>Add to Cart</Button>
- *
- * // Loading state
- * <Button isLoading>Processing…</Button>
- *
- * // Destructive action
- * <Button variant="danger" size="sm">Remove</Button>
- * ```
- */
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button(
-  {
-    variant = "primary",
-    size = "md",
-    isLoading = false,
-    leftIcon,
-    rightIcon,
-    fullWidth = false,
-    disabled,
-    children,
-    className = "",
-    ...rest
-  },
-  ref
-) {
+function ButtonContent({
+  isLoading,
+  size,
+  leftIcon,
+  rightIcon,
+  children,
+}: {
+  isLoading: boolean;
+  size: ButtonSize;
+  leftIcon?: ReactNode;
+  rightIcon?: ReactNode;
+  children?: ReactNode;
+}) {
   return (
-    <button
-      ref={ref}
-      disabled={disabled || isLoading}
-      aria-busy={isLoading || undefined}
-      className={[
-        BASE,
-        VARIANT[variant],
-        SIZE[size],
-        fullWidth ? "w-full" : "",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-      {...rest}
-    >
-      {/* Left slot: spinner replaces leftIcon while loading */}
+    <>
       {isLoading ? (
-        <ArrowPathIcon
-          className={`${ICON_SIZE[size]} animate-spin`}
-          aria-hidden="true"
-        />
+        <ArrowPathIcon className={`${ICON_SIZE[size]} animate-spin`} aria-hidden="true" />
       ) : (
         leftIcon && (
           <span className={`${ICON_SIZE[size]} flex shrink-0 items-center`} aria-hidden="true">
@@ -147,12 +165,103 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 
       {children}
 
-      {/* Right icon is hidden while loading to avoid layout shift */}
       {!isLoading && rightIcon && (
         <span className={`${ICON_SIZE[size]} flex shrink-0 items-center`} aria-hidden="true">
           {rightIcon}
         </span>
       )}
+    </>
+  );
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+/**
+ * Button — primary interactive element. Supports two rendering modes:
+ * - **Button** (default): renders a native `<button>` element.
+ * - **Link**: pass `href` to render a Next.js `<Link>` with identical visual styles.
+ *
+ * ```tsx
+ * // Native button
+ * <Button onClick={handleSave} leftIcon={<SaveIcon />}>Lưu</Button>
+ *
+ * // Link button — navigates on click
+ * <Button href="/inventory" variant="secondary" leftIcon={<ArrowLeftIcon />}>Quay lại</Button>
+ *
+ * // Outline with color theme
+ * <Button variant="outline" color="danger">Xoá</Button>
+ * <Button variant="outline" color="warning">Cảnh báo</Button>
+ * <Button variant="outline" color="success">Xác nhận</Button>
+ *
+ * // Loading state
+ * <Button isLoading>Đang xử lý…</Button>
+ * ```
+ */
+export const Button = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProps>(function Button(
+  props,
+  ref
+) {
+  const {
+    variant = "primary",
+    color = "primary",
+    size = "md",
+    isLoading = false,
+    leftIcon,
+    rightIcon,
+    fullWidth = false,
+    disabled = false,
+    children,
+    className = "",
+    href,
+    ...rest
+  } = props;
+
+  const variantClass =
+    variant === "outline"
+      ? `${VARIANT.outline} ${OUTLINE_COLOR[color]}`
+      : VARIANT[variant];
+
+  const isDisabled = disabled || isLoading;
+
+  const resolvedClassName = [
+    BASE,
+    variantClass,
+    SIZE[size],
+    fullWidth ? "w-full" : "",
+    className,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+  const content = (
+    <ButtonContent isLoading={isLoading} size={size} leftIcon={leftIcon} rightIcon={rightIcon}>
+      {children}
+    </ButtonContent>
+  );
+
+  if (href !== undefined) {
+    return (
+      <Link
+        href={href}
+        aria-disabled={isDisabled || undefined}
+        tabIndex={isDisabled ? -1 : undefined}
+        className={[resolvedClassName, isDisabled ? "pointer-events-none opacity-50" : ""].filter(Boolean).join(" ")}
+        {...(rest as Omit<LinkProps, "href" | "className">)}
+      >
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      ref={ref}
+      disabled={isDisabled}
+      aria-busy={isLoading || undefined}
+      className={resolvedClassName}
+      {...(rest as ButtonHTMLAttributes<HTMLButtonElement>)}
+    >
+      {content}
     </button>
   );
 });
@@ -160,19 +269,22 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
 /*
  * ─── Prop Table ───────────────────────────────────────────────────────────────
  *
- * Name        Type                                      Default      Description
+ * Name        Type                                       Default      Description
  * ──────────────────────────────────────────────────────────────────────────────
- * variant     "primary"|"secondary"|"ghost"|            "primary"    Visual style
+ * href        string                                     —            If set, renders as Next.js Link
+ * variant     "primary"|"secondary"|"ghost"|             "primary"    Visual style
  *             "danger"|"outline"
- * size        "xs"|"sm"|"md"|"lg"                       "md"         Dimensions
- * isLoading   boolean                                   false        Spinner + disabled
- * leftIcon    ReactNode                                 —            Left icon slot
- * rightIcon   ReactNode                                 —            Right icon slot
- * fullWidth   boolean                                   false        100% width
- * disabled    boolean                                   false        Native disabled
- * onClick     React.MouseEventHandler<HTMLButtonElement> —           Click handler
- * className   string                                    ""           Extra Tailwind classes
- * children    ReactNode                                 —            Button label/content
+ * color       "primary"|"secondary"|"danger"|            "primary"    Color theme (outline only)
+ *             "warning"|"success"
+ * size        "xs"|"sm"|"md"|"lg"                        "md"         Dimensions
+ * isLoading   boolean                                    false        Spinner + disabled
+ * leftIcon    ReactNode                                  —            Left icon slot
+ * rightIcon   ReactNode                                  —            Right icon slot
+ * fullWidth   boolean                                    false        100% width
+ * disabled    boolean                                    false        Native disabled (button only)
+ * onClick     React.MouseEventHandler<HTMLButtonElement> —            Click handler (button only)
+ * className   string                                     ""           Extra Tailwind classes
+ * children    ReactNode                                  —            Button label/content
  *
- * All native <button> HTML attributes are also supported via spread.
+ * All native <button> or Next.js <Link> props are also supported via spread.
  */

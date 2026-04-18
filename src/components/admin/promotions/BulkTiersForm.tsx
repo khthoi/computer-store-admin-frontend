@@ -42,21 +42,21 @@ export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
   return (
     <div className="space-y-3">
       <p className="text-xs text-secondary-500">
-        Define quantity tiers. The highest applicable tier will be applied.
-        Leave "Max qty" blank for the top tier (unlimited upper bound).
+        Xác định các bậc số lượng. Bậc cao nhất phù hợp sẽ được áp dụng.
+        Để trống "SL tối đa" cho bậc cao nhất (không giới hạn trên).
       </p>
 
       {tiers.length === 0 && (
-        <p className="text-sm text-secondary-400 italic">No tiers defined.</p>
+        <p className="text-sm text-secondary-400 italic">Chưa có bậc nào.</p>
       )}
 
       {/* Header */}
       {tiers.length > 0 && (
         <div className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 px-3 text-[10px] font-semibold uppercase tracking-wide text-secondary-400">
-          <span>Min Qty</span>
-          <span>Max Qty</span>
-          <span>Discount</span>
-          <span>Type</span>
+          <span>SL tối thiểu</span>
+          <span>SL tối đa</span>
+          <span>Giảm giá</span>
+          <span>Loại</span>
           <span />
         </div>
       )}
@@ -104,8 +104,8 @@ export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
           {/* Discount type */}
           <Select
             options={[
-              { value: "percentage", label: "% off" },
-              { value: "fixed",      label: "₫ off/item" },
+              { value: "percentage", label: "% giảm" },
+              { value: "fixed",      label: "₫ giảm/SP" },
             ]}
             value={tier.discountType}
             onChange={(v) => updateTier(idx, { discountType: v as DiscountType })}
@@ -129,20 +129,20 @@ export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
         className="inline-flex items-center gap-2 rounded-lg border border-dashed border-secondary-300 px-4 py-2 text-sm font-medium text-secondary-500 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
       >
         <PlusIcon className="w-4 h-4" />
-        Add Tier
+        Thêm bậc
       </button>
 
       {/* Preview */}
       {tiers.length > 0 && (
         <div className="rounded-xl bg-secondary-50 border border-secondary-200 px-4 py-3 space-y-1">
-          <p className="text-xs font-semibold text-secondary-600">Tier preview:</p>
+          <p className="text-xs font-semibold text-secondary-600">Xem trước bậc:</p>
           {tiers.map((tier, idx) => (
             <p key={idx} className="text-xs text-secondary-600">
-              • Buy {tier.minQuantity}{tier.maxQuantity ? `–${tier.maxQuantity}` : "+"} items →{" "}
+              • Mua {tier.minQuantity}{tier.maxQuantity ? `–${tier.maxQuantity}` : "+"} sản phẩm →{" "}
               <span className="font-semibold text-primary-700">
                 {tier.discountType === "percentage"
-                  ? `${tier.discountValue}% off`
-                  : `${formatVND(tier.discountValue)} off per item`}
+                  ? `${tier.discountValue}% giảm`
+                  : `${formatVND(tier.discountValue)} giảm/sản phẩm`}
               </span>
             </p>
           ))}

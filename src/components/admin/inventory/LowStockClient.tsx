@@ -93,13 +93,13 @@ export function LowStockClient({ allItems }: { allItems: InventoryItem[] }) {
           <p className="font-mono text-xs text-secondary-400">{item.sku}</p>
           <div className="mt-1 flex items-center gap-3">
             <span className="text-xs text-secondary-500">
-              On hand: <strong className="text-secondary-900">{item.quantityOnHand}</strong>
+              Tồn kho: <strong className="text-secondary-900">{item.quantityOnHand}</strong>
             </span>
             <span className="text-xs text-secondary-500">
-              Threshold: <strong className="text-secondary-700">{item.lowStockThreshold}</strong>
+              Ngưỡng cảnh báo: <strong className="text-secondary-700">{item.lowStockThreshold}</strong>
             </span>
             <span className="text-xs text-secondary-500">
-              Cost: <strong className="text-secondary-700">{formatVND(item.costPrice)}</strong>
+              Giá gốc: <strong className="text-secondary-700">{formatVND(item.costPrice)}</strong>
             </span>
           </div>
         </div>
@@ -110,13 +110,13 @@ export function LowStockClient({ allItems }: { allItems: InventoryItem[] }) {
             onClick={() => setAdjustingItem(item)}
             className="rounded-lg border border-secondary-200 px-3 py-1.5 text-xs font-medium text-secondary-700 hover:bg-secondary-50 transition-colors"
           >
-            Adjust
+            Điều chỉnh
           </button>
           <Link
             href="/inventory/stock-in/new"
             className="rounded-lg border border-primary-200 px-3 py-1.5 text-xs font-medium text-primary-700 hover:bg-primary-50 transition-colors"
           >
-            Restock
+            Bổ sung
           </Link>
         </div>
       </div>
@@ -138,7 +138,7 @@ export function LowStockClient({ allItems }: { allItems: InventoryItem[] }) {
           ].join(" ")}
         >
           <ExclamationTriangleIcon className="w-4 h-4" />
-          Active Alerts
+          Các cảnh báo
           {alertItems.length > 0 && (
             <span className={[
               "rounded-full px-1.5 py-0.5 text-xs font-semibold",
@@ -161,7 +161,7 @@ export function LowStockClient({ allItems }: { allItems: InventoryItem[] }) {
           ].join(" ")}
         >
           <AdjustmentsHorizontalIcon className="w-4 h-4" />
-          Configure Thresholds
+          Thiết lập ngưỡng
         </button>
       </div>
 
@@ -173,11 +173,11 @@ export function LowStockClient({ allItems }: { allItems: InventoryItem[] }) {
             <div className="mb-3 flex items-center gap-2">
               <NoSymbolIcon className="w-5 h-5 text-error-600" />
               <h2 className="text-base font-semibold text-secondary-900">
-                Out of Stock ({outOfStock.length})
+                Hết hàng ({outOfStock.length})
               </h2>
             </div>
             {outOfStock.length === 0 ? (
-              <p className="text-sm text-secondary-400">No out-of-stock items.</p>
+              <p className="text-sm text-secondary-400">Không có sản phẩm nào hết hàng.</p>
             ) : (
               <div className="space-y-2">
                 {outOfStock.map((item) => (
@@ -192,11 +192,11 @@ export function LowStockClient({ allItems }: { allItems: InventoryItem[] }) {
             <div className="mb-3 flex items-center gap-2">
               <ExclamationTriangleIcon className="w-5 h-5 text-warning-600" />
               <h2 className="text-base font-semibold text-secondary-900">
-                Low Stock ({lowStock.length})
+                Tồn kho thấp ({lowStock.length})
               </h2>
             </div>
             {lowStock.length === 0 ? (
-              <p className="text-sm text-secondary-400">No low-stock items.</p>
+              <p className="text-sm text-secondary-400">Không có sản phẩm nào tồn kho thấp.</p>
             ) : (
               <div className="space-y-2">
                 {lowStock.map((item) => (

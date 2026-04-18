@@ -16,7 +16,9 @@ import { Tooltip } from "@/src/components/ui/Tooltip";
 import { formatVND } from "@/src/lib/format";
 import { adjustStock } from "@/src/services/inventory.service";
 import { useToast } from "@/src/components/ui/Toast";
+import { Button } from "@/src/components/ui/Button";
 import type { InventoryItem } from "@/src/types/inventory.types";
+import { ArrowPathIcon } from "@heroicons/react/24/outline";
 
 type Row = InventoryItem & Record<string, unknown>;
 
@@ -57,14 +59,14 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "supplierName",
-    header: "Supplier",
+    header: "Nhà cung cấp",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{(row.supplierName as string) ?? "—"}</span>
     ),
   },
   {
     key: "quantityOnHand",
-    header: "On Hand",
+    header: "Hiện có",
     sortable: true,
     align: "center",
     render: (_, row) => (
@@ -75,7 +77,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "quantityAvailable",
-    header: "Available",
+    header: "Có thể bán",
     sortable: true,
     align: "center",
     render: (_, row) => (
@@ -86,13 +88,15 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "alertLevel",
-    header: "Status",
+    header: "Tình trạng",
     sortable: true,
+    align: "center",
     render: (_, row) => <StatusBadge status={row.alertLevel as string} size="sm" />,
   },
   {
     key: "costPrice",
-    header: "Cost",
+    header: "Giá vốn",
+    align: "right",
     sortable: true,
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{formatVND(row.costPrice as number)}</span>
@@ -174,13 +178,14 @@ export function InventoryTable({ initialItems }: InventoryTableProps) {
       header: "",
       render: (_, row) => (
         <RowActions>
-          <button
-            type="button"
+          <Button
+            size="xs"
+            variant="ghost"
             onClick={() => setAdjustingItem(row as unknown as InventoryItem)}
-            className="flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-50 transition-colors"
+            leftIcon={<ArrowPathIcon className="w-4 h-4" />}
           >
             Adjust
-          </button>
+          </Button>
         </RowActions>
       ),
     },
@@ -211,7 +216,7 @@ export function InventoryTable({ initialItems }: InventoryTableProps) {
         onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
         searchQuery={q}
         onSearchChange={(val) => { setQ(val); setPage(1); }}
-        searchPlaceholder="Search by product name, SKU or supplier…"
+        searchPlaceholder="Tìm kiếm theo tên sản phẩm, SKU, hoặc nhà cung cấp..."
         toolbarActions={toolbarActions}
         page={page}
         pageSize={pageSize}

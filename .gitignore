@@ -10,6 +10,8 @@
 !.yarn/releases
 !.yarn/versions
 /graphify-out/cache
+/src/components/admin/graphify-out/cache
+/src/components/admin/graphify-out
 # testing
 /coverage
 

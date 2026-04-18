@@ -8,9 +8,9 @@ export default async function InventoryItemsPage() {
   return (
     <div className="p-6 space-y-4">
       <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Stock Items</h1>
+        <h1 className="text-2xl font-bold text-secondary-900">Tất cả sản phẩm tồn kho hiện tại</h1>
         <p className="mt-1 text-sm text-secondary-500">
-          All inventory SKUs with current stock levels.
+          Tất cả các mã SKU tồn kho với mức tồn kho hiện tại.
         </p>
       </div>
       <InventoryTable initialItems={items} />

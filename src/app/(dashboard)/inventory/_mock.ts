@@ -604,6 +604,16 @@ export const MOCK_STOCK_OUT_RECORDS: StockOutRecord[] = [
         quantity: 3,
         note: "Bent pins — not saleable",
       },
+      {
+        id: "SO-0001-L2",
+        productId: "PRD-004",
+        variantId: "VAR-004",
+        productName: "ASUS ROG Strix B650-E",
+        variantName: "ATX",
+        sku: "MB-ROG-B650E",
+        quantity: 2,
+        note: "Motherboards failed post-delivery inspection",
+      }
     ],
     completedDate: "2026-03-20",
     note: "Write-off — damaged during storage",

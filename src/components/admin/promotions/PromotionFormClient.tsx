@@ -182,92 +182,92 @@ export function PromotionFormClient({ mode, promotion }: Props) {
   // ── Live preview summary ──────────────────────────────────────────────────
   const previewText = useMemo(() => {
     const who = isCoupon
-      ? `Customers using code "${code || "…"}"`
-      : "Customers who meet the conditions";
+      ? `Khách hàng dùng mã "${code || "…"}"`
+      : "Khách hàng đáp ứng điều kiện";
 
     // ── Scope description (used where relevant) ──────────────────────────
     const scopeDesc = (() => {
-      if (scopes.length === 0) return "no items selected";
-      if (scopes.some((s) => s.scopeType === "global")) return "all products";
+      if (scopes.length === 0) return "chưa chọn sản phẩm";
+      if (scopes.some((s) => s.scopeType === "global")) return "tất cả sản phẩm";
       return scopes
-        .map((s) => s.scopeRefLabel ?? s.scopeRefId ?? "a qualifying item")
+        .map((s) => s.scopeRefLabel ?? s.scopeRefId ?? "sản phẩm đủ điều kiện")
         .join(", ");
     })();
 
     // ── Validity / limits suffix ─────────────────────────────────────────
     const validSuffix = [
-      startDate && endDate ? `Valid ${startDate} – ${endDate}.` : "",
-      totalUsageLimit ? `Max ${totalUsageLimit} total uses.` : "",
-      isCoupon && perCustomerLimit ? `Max ${perCustomerLimit} use(s) per customer.` : "",
+      startDate && endDate ? `Hiệu lực ${startDate} – ${endDate}.` : "",
+      totalUsageLimit ? `Tối đa ${totalUsageLimit} lượt dùng.` : "",
+      isCoupon && perCustomerLimit ? `Tối đa ${perCustomerLimit} lượt/khách.` : "",
     ].filter(Boolean).join(" ");
 
     // ── Per type ─────────────────────────────────────────────────────────
     if (type === "free_shipping") {
       const condNote = conditions.length > 0
-        ? ` when ${conditions.length} condition${conditions.length > 1 ? "s" : ""} are met`
+        ? ` khi đáp ứng ${conditions.length} điều kiện`
         : "";
-      return `${who} get free shipping on their entire order${condNote}. ${validSuffix}`.trim();
+      return `${who} được miễn phí vận chuyển cho toàn bộ đơn hàng${condNote}. ${validSuffix}`.trim();
     }
 
     if (type === "bundle") {
-      if (bundleComponents.length === 0) return "Add bundle components in Section 4 to preview.";
+      if (bundleComponents.length === 0) return "Thêm sản phẩm combo ở Mục 4 để xem trước.";
       const parts = bundleComponents.map((c) => c.refLabel ?? c.refId ?? "?").join(" + ");
       const discStr = discountType === "percentage"
-        ? `${discountValue || "?"}% off`
-        : `${formatVND(parseFloat(discountValue) || 0)} off`;
-      return `${who} buy [${parts}] together receive ${discStr} on the bundle. ${validSuffix}`.trim();
+        ? `giảm ${discountValue || "?"}%`
+        : `giảm ${formatVND(parseFloat(discountValue) || 0)}`;
+      return `${who} mua [${parts}] cùng nhau và nhận ${discStr} cho combo. ${validSuffix}`.trim();
     }
 
     if (type === "bxgy") {
       // Buy-side: specific product takes priority over scope
       const buySide = bxgy.buyProductLabel
         ? `${bxgy.buyQuantity}× ${bxgy.buyProductLabel}`
-        : `${bxgy.buyQuantity}× item from [${scopeDesc}]`;
+        : `${bxgy.buyQuantity}× sản phẩm từ [${scopeDesc}]`;
       // Get-side
       const getSide = bxgy.getProductLabel
         ? `${bxgy.getQuantity}× ${bxgy.getProductLabel}`
-        : `${bxgy.getQuantity}× same product`;
+        : `${bxgy.getQuantity}× sản phẩm tương tự`;
       const reward = bxgy.getDiscountPercent === 100
-        ? "FREE"
-        : `${bxgy.getDiscountPercent}% off`;
-      return `${who} buy ${buySide} → receive ${getSide} at ${reward}. Max ${bxgy.maxApplicationsPerOrder} time(s)/order. ${validSuffix}`.trim();
+        ? "MIỄN PHÍ"
+        : `giảm ${bxgy.getDiscountPercent}%`;
+      return `${who} mua ${buySide} → nhận ${getSide} ${reward}. Tối đa ${bxgy.maxApplicationsPerOrder} lần/đơn. ${validSuffix}`.trim();
     }
 
     if (type === "bulk") {
-      if (tiers.length === 0) return "Add tiers in Section 4 to preview.";
+      if (tiers.length === 0) return "Thêm bậc giá ở Mục 4 để xem trước.";
       const tierLines = tiers.map((t, i) => {
         const range = t.maxQuantity ? `${t.minQuantity}–${t.maxQuantity}` : `${t.minQuantity}+`;
         const disc = t.discountType === "percentage"
-          ? `${t.discountValue}% off`
-          : `${formatVND(t.discountValue)} off/item`;
-        return `Tier ${i + 1}: ${range} items → ${disc}`;
+          ? `giảm ${t.discountValue}%`
+          : `giảm ${formatVND(t.discountValue)}/sản phẩm`;
+        return `Bậc ${i + 1}: ${range} sản phẩm → ${disc}`;
       });
       const itemScope = scopes.some((s) => s.scopeType === "global")
-        ? "any eligible item"
-        : `items from [${scopeDesc}]`;
-      return `${who} buy ${itemScope}:\n${tierLines.join("\n")}\n${validSuffix}`.trim();
+        ? "sản phẩm đủ điều kiện"
+        : `sản phẩm từ [${scopeDesc}]`;
+      return `${who} mua ${itemScope}:\n${tierLines.join("\n")}\n${validSuffix}`.trim();
     }
 
     // standard ────────────────────────────────────────────────────────────
     if (type === "standard") {
       const discStr = discountType === "percentage"
-        ? `${discountValue || "?"}% off`
-        : `${formatVND(parseFloat(discountValue) || 0)} off`;
+        ? `giảm ${discountValue || "?"}%`
+        : `giảm ${formatVND(parseFloat(discountValue) || 0)}`;
       const capNote = discountType === "percentage" && maxDiscountAmount
-        ? ` (capped at ${formatVND(parseFloat(maxDiscountAmount))})`
+        ? ` (tối đa ${formatVND(parseFloat(maxDiscountAmount))})`
         : "";
 
       if (appLevel === "cart_total") {
-        return `${who} receive ${discStr}${capNote} on their entire cart subtotal. ${validSuffix}`.trim();
+        return `${who} được ${discStr}${capNote} trên tổng giá trị giỏ hàng. ${validSuffix}`.trim();
       }
       if (appLevel === "cheapest_item") {
-        return `${who} receive ${discStr}${capNote} on the cheapest item from [${scopeDesc}]. ${validSuffix}`.trim();
+        return `${who} được ${discStr}${capNote} trên sản phẩm rẻ nhất từ [${scopeDesc}]. ${validSuffix}`.trim();
       }
       // per_item
-      return `${who} receive ${discStr}${capNote} on each item from [${scopeDesc}]. ${validSuffix}`.trim();
+      return `${who} được ${discStr}${capNote} trên từng sản phẩm từ [${scopeDesc}]. ${validSuffix}`.trim();
     }
 
-    return "Configure the promotion above to see a preview.";
+    return "Cấu hình khuyến mãi ở trên để xem trước.";
   }, [type, isCoupon, code, scopes, conditions, bxgy, bundleComponents, tiers, discountType, discountValue, maxDiscountAmount, appLevel, startDate, endDate, totalUsageLimit, perCustomerLimit]);
 
   // ── Condition lines for preview ───────────────────────────────────────────
@@ -278,15 +278,15 @@ export function PromotionFormClient({ mode, promotion }: Props) {
       const arr: string[] = Array.isArray(raw) ? raw : (raw !== undefined && raw !== "" ? [String(raw)] : []);
       const list = arr.join(", ");
       switch (cond.type) {
-        case "min_order_value": return `Order subtotal ≥ ${formatVND(Number(raw))}`;
-        case "min_item_quantity": return `At least ${raw} eligible items in cart`;
-        case "min_item_quantity_per_product": return `At least ${raw} of the same product in cart`;
-        case "customer_group": return `Customer group is: ${list}`;
-        case "first_order_only": return "First order only";
-        case "required_products": return `Cart must contain all of: ${list}`;
-        case "required_categories": return `Cart must include any from: ${list}`;
-        case "payment_method": return `Payment via: ${list}`;
-        case "platform": return `On platform: ${list}`;
+        case "min_order_value": return `Giá trị đơn hàng ≥ ${formatVND(Number(raw))}`;
+        case "min_item_quantity": return `Ít nhất ${raw} sản phẩm đủ điều kiện trong giỏ`;
+        case "min_item_quantity_per_product": return `Ít nhất ${raw} sản phẩm giống nhau trong giỏ`;
+        case "customer_group": return `Nhóm khách hàng: ${list}`;
+        case "first_order_only": return "Chỉ áp dụng cho đơn hàng đầu tiên";
+        case "required_products": return `Giỏ hàng phải chứa tất cả: ${list}`;
+        case "required_categories": return `Giỏ hàng phải có sản phẩm từ: ${list}`;
+        case "payment_method": return `Thanh toán qua: ${list}`;
+        case "platform": return `Nền tảng: ${list}`;
         default: return `${cond.type}: ${cond.value}`;
       }
     });
@@ -340,23 +340,23 @@ export function PromotionFormClient({ mode, promotion }: Props) {
       const payload = buildPayload();
       if (mode === "create") {
         const created = await createPromotion(payload);
-        showToast(`${isCoupon ? "Coupon" : "Promotion"} created.`, "success");
+        showToast(`${isCoupon ? "Mã giảm giá" : "Khuyến mãi"} đã được tạo.`, "success");
         router.push(`/promotions/${created.id}`);
       } else {
         await updatePromotion(promotion.id, payload);
-        showToast("Changes saved.", "success");
+        showToast("Đã lưu thay đổi.", "success");
         router.push(`/promotions/${promotion.id}`);
       }
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Failed to save.";
+      const msg = err instanceof Error ? err.message : "Lưu thất bại.";
       showToast(msg, "error");
       setIsSaving(false);
     }
   }
 
   const title = mode === "create"
-    ? (isCoupon ? "New Coupon" : "New Promotion")
-    : `Edit ${promotion.isCoupon ? "Coupon" : "Promotion"}: ${promotion.name}`;
+    ? (isCoupon ? "Mã giảm giá mới" : "Khuyến mãi mới")
+    : `Chỉnh sửa ${promotion.isCoupon ? "mã giảm giá" : "khuyến mãi"}: ${promotion.name}`;
 
   const backHref = mode === "create" ? "/promotions" : `/promotions/${promotion.id}`;
 
@@ -366,7 +366,7 @@ export function PromotionFormClient({ mode, promotion }: Props) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
-            <Link href="/promotions" className="hover:text-secondary-700 transition-colors">Promotions</Link>
+            <Link href="/promotions" className="hover:text-secondary-700 transition-colors">Khuyến mãi</Link>
             {mode === "edit" && (
               <>
                 <span>›</span>
@@ -374,45 +374,41 @@ export function PromotionFormClient({ mode, promotion }: Props) {
               </>
             )}
             <span>›</span>
-            <span className="text-secondary-600">{mode === "create" ? "New" : "Edit"}</span>
+            <span className="text-secondary-600">{mode === "create" ? "Mới" : "Chỉnh sửa"}</span>
           </nav>
           <h1 className="mt-1 text-2xl font-bold text-secondary-900">{title}</h1>
         </div>
-        <Link
-          href={backHref}
-          className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 hover:bg-secondary-50 transition-colors"
-        >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Back
-        </Link>
+        <Button variant="secondary" className="rounded-lg" size="md" href={backHref} disabled={isSaving} leftIcon={<ArrowLeftIcon className="w-4 h-4" />}>
+          Quay lại
+        </Button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
 
         {/* ── Section 1: Basic Info ─────────────────────────────────────────── */}
-        <Section title="1 — Basic Info">
+        <Section title="1 — Thông tin cơ bản">
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="sm:col-span-3">
               <Input
-                label="Promotion Name"
+                label="Tên khuyến mãi"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Summer GPU Flash Sale"
+                placeholder="VD: Flash Sale GPU Mùa Hè"
                 required
               />
             </div>
 
             <div className="sm:col-span-3">
               <label className="block text-xs font-semibold uppercase tracking-wide text-secondary-500 mb-1.5">
-                Type
+                Loại
               </label>
               <div className="flex flex-wrap gap-2">
                 {([
-                  ["standard", "Standard Discount"],
-                  ["bxgy", "Buy X Get Y"],
-                  ["bundle", "Bundle / Combo"],
-                  ["bulk", "Bulk / Tiered"],
-                  ["free_shipping", "Free Shipping"],
+                  ["standard", "Giảm giá thông thường"],
+                  ["bxgy", "Mua X tặng Y"],
+                  ["bundle", "Combo / Gói sản phẩm"],
+                  ["bulk", "Số lượng lớn / Phân cấp"],
+                  ["free_shipping", "Miễn phí vận chuyển"],
                 ] as [PromotionType, string][]).map(([v, label]) => (
                   <button
                     key={v}
@@ -433,8 +429,8 @@ export function PromotionFormClient({ mode, promotion }: Props) {
 
             <div className="sm:col-span-3 flex flex-wrap gap-6 items-start">
               <Toggle
-                label="This is a Coupon"
-                description="Requires a code to activate"
+                label="Đây là mã giảm giá (Coupon)"
+                description="Yêu cầu nhập mã code để kích hoạt"
                 checked={isCoupon}
                 onChange={(e) => {
                   const next = e.target.checked;
@@ -450,14 +446,14 @@ export function PromotionFormClient({ mode, promotion }: Props) {
             {isCoupon && (
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wide text-secondary-500 mb-1.5">
-                  Coupon Code
+                  Mã giảm giá
                 </label>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, ""))}
-                    placeholder="e.g. SUMMER20"
+                    placeholder="VD: SUMMER20"
                     maxLength={30}
                     required={isCoupon}
                     className="flex-1 rounded-xl border border-secondary-300 bg-white px-3 py-2.5 font-mono text-sm font-semibold tracking-wide text-secondary-900 placeholder:font-normal focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
@@ -465,40 +461,40 @@ export function PromotionFormClient({ mode, promotion }: Props) {
                   <button
                     type="button"
                     onClick={() => setCode(generateCouponCode())}
-                    title="Generate random code"
+                    title="Tạo mã ngẫu nhiên"
                     className="rounded-xl border border-secondary-200 bg-white px-3 py-2.5 text-secondary-500 hover:bg-secondary-50 hover:text-secondary-700 transition-colors"
                   >
                     <ArrowPathIcon className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="mt-1 text-[11px] text-secondary-400">Only A–Z, 0–9, underscore, hyphen allowed.</p>
+                <p className="mt-1 text-[11px] text-secondary-400">Chỉ cho phép A–Z, 0–9, dấu gạch dưới, dấu gạch ngang.</p>
               </div>
             )}
 
             {!isCoupon && (
               <div>
                 <Input
-                  label="Priority"
+                  label="Độ ưu tiên"
                   type="number"
                   min={0}
                   step={1}
                   value={priority.toString()}
                   onChange={(e) => setPriority(parseInt(e.target.value, 10) || 0)}
                 />
-                <p className="mt-1 text-[11px] text-secondary-400">Higher = evaluated first.</p>
+                <p className="mt-1 text-[11px] text-secondary-400">Giá trị cao hơn = được ưu tiên xét trước.</p>
               </div>
             )}
 
             <div className={isCoupon ? "sm:col-span-3" : "sm:col-span-2"}>
-              <RadioGroup legend="Stacking Policy" direction="horizontal">
+              <RadioGroup legend="Chính sách kết hợp" direction="horizontal">
                 <Radio
                   name="stackingPolicy"
                   value="exclusive"
-                  label="Exclusive"
+                  label="Độc quyền"
                   description={
                     isCoupon
-                      ? "Cannot be combined with any active auto-promotion"
-                      : "Cannot stack with any other promotion"
+                      ? "Không thể kết hợp với bất kỳ khuyến mãi tự động nào đang hoạt động"
+                      : "Không thể kết hợp với bất kỳ khuyến mãi nào khác"
                   }
                   checked={stackingPolicy === "exclusive"}
                   onChange={() => setStackingPolicy("exclusive")}
@@ -506,11 +502,11 @@ export function PromotionFormClient({ mode, promotion }: Props) {
                 <Radio
                   name="stackingPolicy"
                   value="stackable"
-                  label="Stackable"
+                  label="Có thể kết hợp"
                   description={
                     isCoupon
-                      ? "Stacks on top of active stackable auto-promotions"
-                      : "Stacks with all other stackable promotions"
+                      ? "Áp dụng thêm lên các khuyến mãi tự động có thể kết hợp"
+                      : "Kết hợp được với tất cả các khuyến mãi có thể kết hợp"
                   }
                   checked={stackingPolicy === "stackable"}
                   onChange={() => setStackingPolicy("stackable")}
@@ -519,8 +515,8 @@ export function PromotionFormClient({ mode, promotion }: Props) {
                   <Radio
                     name="stackingPolicy"
                     value="stackable_with_coupons_only"
-                    label="+ Coupons Only"
-                    description="This auto-promo allows one coupon to stack at checkout"
+                    label="+ Chỉ với mã giảm giá"
+                    description="Khuyến mãi tự động này cho phép thêm một mã giảm giá khi thanh toán"
                     checked={stackingPolicy === "stackable_with_coupons_only"}
                     onChange={() => setStackingPolicy("stackable_with_coupons_only")}
                   />
@@ -531,18 +527,18 @@ export function PromotionFormClient({ mode, promotion }: Props) {
         </Section>
 
         {/* ── Section 2: Scope ──────────────────────────────────────────────── */}
-        <Section title="2 — Scope">
+        <Section title="2 — Phạm vi áp dụng">
           {/* bundle: scope is entirely defined by bundle components */}
           {type === "bundle" && (
             <p className="text-sm text-secondary-500 italic">
-              Scope is defined by the bundle components in Section 4. No additional scope needed.
+              Phạm vi được xác định bởi các sản phẩm combo trong Mục 4. Không cần chọn thêm.
             </p>
           )}
 
           {/* free_shipping: discount is on shipping fee, not on line items */}
           {type === "free_shipping" && (
             <p className="text-sm text-secondary-500 italic">
-              Free shipping applies to the entire order — not to individual cart items. Use Conditions (Section 3) to restrict eligibility (e.g. min order value, required products).
+              Miễn phí vận chuyển áp dụng cho toàn bộ đơn hàng — không áp dụng cho từng sản phẩm. Dùng Điều kiện (Mục 3) để giới hạn điều kiện áp dụng (VD: giá trị đơn tối thiểu, sản phẩm bắt buộc).
             </p>
           )}
 
@@ -550,10 +546,10 @@ export function PromotionFormClient({ mode, promotion }: Props) {
           {type === "standard" && appLevel === "cart_total" && (
             <>
               <p className="text-xs text-secondary-500">
-                Discount is applied to the entire cart subtotal — scope is automatically set to Global.
+                Giảm giá áp dụng cho toàn bộ giỏ hàng — phạm vi tự động đặt thành Toàn cầu.
               </p>
               <div className="rounded-lg border border-secondary-200 bg-secondary-50 px-4 py-2.5 text-sm text-secondary-500 italic">
-                Global (all products) — locked while "Entire Cart Total" is selected
+                Toàn cầu (tất cả sản phẩm) — bị khóa khi chọn &quot;Toàn bộ giỏ hàng&quot;
               </div>
             </>
           )}
@@ -562,7 +558,7 @@ export function PromotionFormClient({ mode, promotion }: Props) {
           {type === "bxgy" && (
             <>
               <p className="text-xs text-secondary-500">
-                Defines which products are eligible on the <span className="font-semibold text-secondary-700">Buy side</span>. Ignored when a specific Buy Product is already selected in Section 4.
+                Xác định sản phẩm đủ điều kiện ở phía <span className="font-semibold text-secondary-700">Mua</span>. Bỏ qua khi đã chọn sản phẩm cụ thể ở Mục 4.
               </p>
               <ScopeSelector scopes={scopes} onChange={setScopes} />
             </>
@@ -572,7 +568,7 @@ export function PromotionFormClient({ mode, promotion }: Props) {
           {type === "bulk" && (
             <>
               <p className="text-xs text-secondary-500">
-                Only items matching this scope count toward quantity tiers and receive the tiered discount.
+                Chỉ sản phẩm thuộc phạm vi này mới được tính vào bậc số lượng và nhận giảm giá theo bậc.
               </p>
               <ScopeSelector scopes={scopes} onChange={setScopes} />
             </>
@@ -582,7 +578,7 @@ export function PromotionFormClient({ mode, promotion }: Props) {
           {type === "standard" && appLevel !== "cart_total" && (
             <>
               <p className="text-xs text-secondary-500">
-                Define which cart items this discount can apply to.
+                Xác định sản phẩm trong giỏ hàng mà giảm giá này có thể áp dụng.
               </p>
               <ScopeSelector scopes={scopes} onChange={setScopes} />
             </>
@@ -590,12 +586,12 @@ export function PromotionFormClient({ mode, promotion }: Props) {
         </Section>
 
         {/* ── Section 3: Conditions ─────────────────────────────────────────── */}
-        <Section title="3 — Conditions (ALL must pass)">
+        <Section title="3 — Điều kiện (TẤT CẢ phải thỏa mãn)">
           <ConditionBuilder conditions={conditions} onChange={setConditions} />
         </Section>
 
         {/* ── Section 4: Action / Discount ─────────────────────────────────── */}
-        <Section title="4 — Action & Discount">
+        <Section title="4 — Hành động & Giảm giá">
           {type === "bxgy" && (
             <BxgyActionForm value={bxgy} onChange={setBxgy} />
           )}
@@ -604,28 +600,28 @@ export function PromotionFormClient({ mode, promotion }: Props) {
             <>
               <BundleActionForm components={bundleComponents} onChange={setBundleComponents} />
               <div className="mt-4 grid gap-4 sm:grid-cols-3 pt-4 border-t border-secondary-100">
-                <p className="sm:col-span-3 text-xs font-semibold text-secondary-600">Bundle Discount</p>
+                <p className="sm:col-span-3 text-xs font-semibold text-secondary-600">Giảm giá combo</p>
                 <div>
                   <Select
-                    label="Discount Type"
+                    label="Loại giảm giá"
                     options={[
-                      { value: "percentage", label: "Percentage (%)" },
-                      { value: "fixed", label: "Fixed Amount (₫)" },
+                      { value: "percentage", label: "Phần trăm (%)" },
+                      { value: "fixed", label: "Số tiền cố định (₫)" },
                     ]}
                     value={discountType}
                     onChange={(v) => setDiscountType(v as DiscountType)}
-                    helperText="Percentage: e.g. 8% off the bundle subtotal. Fixed: e.g. -200,000₫ from the bundle total."
+                    helperText="Phần trăm: VD giảm 8% tổng giá trị combo. Cố định: VD trừ 200.000₫ từ tổng giá combo."
                   />
                 </div>
                 <Input
-                  label={discountType === "percentage" ? "Discount (%)" : "Discount Amount (₫)"}
+                  label={discountType === "percentage" ? "Giảm giá (%)" : "Số tiền giảm (₫)"}
                   type="number"
                   min={0}
                   max={discountType === "percentage" ? 100 : undefined}
                   step={discountType === "percentage" ? 1 : 1000}
                   value={discountValue}
                   onChange={(e) => setDiscountValue(e.target.value)}
-                  placeholder={discountType === "percentage" ? "e.g. 8" : "e.g. 500000"}
+                  placeholder={discountType === "percentage" ? "VD: 8" : "VD: 500000"}
                 />
               </div>
             </>
@@ -637,7 +633,7 @@ export function PromotionFormClient({ mode, promotion }: Props) {
 
           {type === "free_shipping" && (
             <p className="text-sm text-secondary-600">
-              Free shipping will be applied to the entire order when conditions are met.
+              Miễn phí vận chuyển sẽ được áp dụng cho toàn bộ đơn hàng khi đáp ứng điều kiện.
             </p>
           )}
 
@@ -645,61 +641,61 @@ export function PromotionFormClient({ mode, promotion }: Props) {
             <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <Select
-                  label="Discount Type"
+                  label="Loại giảm giá"
                   options={[
-                    { value: "percentage", label: "Percentage (%)" },
-                    { value: "fixed", label: "Fixed Amount (₫)" },
+                    { value: "percentage", label: "Phần trăm (%)" },
+                    { value: "fixed", label: "Số tiền cố định (₫)" },
                   ]}
                   value={discountType}
                   onChange={(v) => setDiscountType(v as DiscountType)}
-                  helperText="Percentage: deducts a % of the eligible subtotal. Fixed: deducts a set cash amount."
+                  helperText="Phần trăm: trừ % trên giá trị đủ điều kiện. Cố định: trừ một số tiền nhất định."
                 />
               </div>
               <Input
-                label={discountType === "percentage" ? "Discount (%)" : "Discount Amount (₫)"}
+                label={discountType === "percentage" ? "Giảm giá (%)" : "Số tiền giảm (₫)"}
                 type="number"
                 min={0}
                 max={discountType === "percentage" ? 100 : undefined}
                 step={discountType === "percentage" ? 0.1 : 1000}
                 value={discountValue}
                 onChange={(e) => setDiscountValue(e.target.value)}
-                placeholder={discountType === "percentage" ? "e.g. 20" : "e.g. 100000"}
+                placeholder={discountType === "percentage" ? "VD: 20" : "VD: 100000"}
                 required
               />
               {discountType === "percentage" && (
                 <Input
-                  label="Max Discount Cap (₫)"
+                  label="Giới hạn giảm tối đa (₫)"
                   type="number"
                   min={0}
                   step={1000}
                   value={maxDiscountAmount}
                   onChange={(e) => setMaxDiscountAmount(e.target.value)}
-                  placeholder="Optional — no cap if blank"
+                  placeholder="Tùy chọn — bỏ trống = không giới hạn"
                 />
               )}
               <div className="sm:col-span-3">
-                <RadioGroup legend="Applies To" direction="horizontal">
+                <RadioGroup legend="Áp dụng cho" direction="horizontal">
                   <Radio
                     name="appLevel"
                     value="cart_total"
-                    label="Entire Cart Total"
-                    description="Discount on the full subtotal — scope auto-set to Global"
+                    label="Toàn bộ giỏ hàng"
+                    description="Giảm giá trên tổng phụ — phạm vi tự động đặt là Toàn cầu"
                     checked={appLevel === "cart_total"}
                     onChange={() => handleAppLevelChange("cart_total")}
                   />
                   <Radio
                     name="appLevel"
                     value="per_item"
-                    label="Per Eligible Item"
-                    description="Each qualifying product is discounted individually"
+                    label="Từng sản phẩm đủ điều kiện"
+                    description="Mỗi sản phẩm đủ điều kiện được giảm riêng lẻ"
                     checked={appLevel === "per_item"}
                     onChange={() => handleAppLevelChange("per_item")}
                   />
                   <Radio
                     name="appLevel"
                     value="cheapest_item"
-                    label="Cheapest Item Only"
-                    description="Only the lowest-priced item within scope is discounted"
+                    label="Chỉ sản phẩm rẻ nhất"
+                    description="Chỉ sản phẩm rẻ nhất trong phạm vi được giảm giá"
                     checked={appLevel === "cheapest_item"}
                     onChange={() => handleAppLevelChange("cheapest_item")}
                   />
@@ -710,18 +706,18 @@ export function PromotionFormClient({ mode, promotion }: Props) {
         </Section>
 
         {/* ── Section 5: Validity & Limits ─────────────────────────────────── */}
-        <Section title="5 — Validity & Limits">
+        <Section title="5 — Thời hạn & Giới hạn">
           <div className="grid gap-4 sm:grid-cols-3">
-            <DateInput label="Start Date" value={startDate} onChange={setStartDate} required />
-            <DateInput label="End Date" value={endDate} onChange={setEndDate} required />
+            <DateInput label="Ngày bắt đầu" value={startDate} onChange={setStartDate} required />
+            <DateInput label="Ngày kết thúc" value={endDate} onChange={setEndDate} required />
             <div className="sm:col-span-3 sm:max-w-xs">
               <Select
-                label="Status"
+                label="Trạng thái"
                 options={[
-                  { value: "draft", label: "Draft" },
-                  { value: "active", label: "Active" },
-                  { value: "scheduled", label: "Scheduled" },
-                  { value: "paused", label: "Paused" },
+                  { value: "draft", label: "Nháp" },
+                  { value: "active", label: "Đang hoạt động" },
+                  { value: "scheduled", label: "Đã lên lịch" },
+                  { value: "paused", label: "Tạm dừng" },
                 ]}
                 value={status}
                 onChange={(v) => setStatus(v as PromotionStatus)}
@@ -729,64 +725,64 @@ export function PromotionFormClient({ mode, promotion }: Props) {
               {/* Status description */}
               {status === "draft" && (
                 <p className="mt-2 text-xs rounded-lg bg-secondary-50 border border-secondary-200 text-secondary-600 px-3 py-2">
-                  Not visible to customers. Save progress without activating.
+                  Chưa hiển thị cho khách hàng. Lưu nháp mà không kích hoạt.
                 </p>
               )}
               {status === "active" && (
                 <p className="mt-2 text-xs rounded-lg bg-success-50 border border-success-200 text-success-700 px-3 py-2">
-                  Live now — automatically applies when all conditions are met.
+                  Đang hoạt động — tự động áp dụng khi tất cả điều kiện được thỏa mãn.
                 </p>
               )}
               {status === "scheduled" && (
                 <p className="mt-2 text-xs rounded-lg bg-info-50 border border-info-200 text-info-700 px-3 py-2">
-                  Will activate automatically on the Start Date. The engine treats it as active once that date is reached.
+                  Sẽ tự động kích hoạt vào Ngày bắt đầu. Hệ thống coi là đang hoạt động ngay khi đến ngày đó.
                 </p>
               )}
               {status === "paused" && (
                 <p className="mt-2 text-xs rounded-lg bg-warning-50 border border-warning-200 text-warning-700 px-3 py-2">
-                  Temporarily disabled. No new discounts will be applied until resumed.
+                  Tạm thời vô hiệu hóa. Không có giảm giá mới nào được áp dụng cho đến khi tiếp tục.
                 </p>
               )}
               {/* Warn if scheduled but startDate is today or in the past */}
               {status === "scheduled" && startDate && startDate <= new Date().toISOString().slice(0, 10) && (
                 <p className="mt-2 text-xs rounded-lg bg-warning-50 border border-warning-200 text-warning-700 px-3 py-2 font-medium">
-                  ⚠ The start date is today or in the past — this promotion will activate immediately once saved.
+                  ⚠ Ngày bắt đầu là hôm nay hoặc trong quá khứ — khuyến mãi này sẽ kích hoạt ngay khi lưu.
                 </p>
               )}
             </div>
             <Input
-              label="Total Usage Limit"
+              label="Tổng lượt sử dụng tối đa"
               type="number"
               min={1}
               step={1}
               value={totalUsageLimit}
               onChange={(e) => setTotalUsageLimit(e.target.value)}
-              placeholder="Blank = unlimited"
+              placeholder="Bỏ trống = không giới hạn"
             />
             {isCoupon && (
               <Input
-                label="Per Customer Limit"
+                label="Giới hạn mỗi khách hàng"
                 type="number"
                 min={1}
                 step={1}
                 value={perCustomerLimit}
                 onChange={(e) => setPerCustomerLimit(e.target.value)}
-                placeholder="Blank = unlimited"
+                placeholder="Bỏ trống = không giới hạn"
               />
             )}
           </div>
           {endDate && startDate && endDate < startDate && (
-            <p className="text-sm text-error-600 font-medium">End date must be after start date.</p>
+            <p className="text-sm text-error-600 font-medium">Ngày kết thúc phải sau ngày bắt đầu.</p>
           )}
         </Section>
 
         {/* ── Section 6: Description ────────────────────────────────────────── */}
-        <Section title="6 — Internal Description">
+        <Section title="6 — Mô tả nội bộ">
           <Textarea
-            label="Description"
+            label="Mô tả"
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Internal notes about this promotion…"
+            placeholder="Ghi chú nội bộ về khuyến mãi này…"
             rows={3}
             maxCharCount={500}
             showCharCount
@@ -794,18 +790,18 @@ export function PromotionFormClient({ mode, promotion }: Props) {
         </Section>
 
         {/* ── Section 7: Preview ────────────────────────────────────────────── */}
-        <Section title="7 — Preview">
+        <Section title="7 — Xem trước">
           <div className="rounded-xl bg-info-50 border border-info-200 px-4 py-3 space-y-3">
             {/* Core summary */}
             <div>
-              <p className="text-xs font-semibold text-info-700 mb-1">Summary</p>
+              <p className="text-xs font-semibold text-info-700 mb-1">Tóm tắt</p>
               <p className="text-sm text-info-800 whitespace-pre-line">{previewText}</p>
             </div>
             {/* Conditions */}
             {previewConditions.length > 0 && (
               <div className="pt-2.5 border-t border-info-200">
                 <p className="text-xs font-semibold text-info-700 mb-1.5">
-                  Conditions <span className="font-normal text-info-500">(ALL must pass)</span>
+                  Điều kiện <span className="font-normal text-info-500">(TẤT CẢ phải thỏa mãn)</span>
                 </p>
                 <ul className="space-y-1">
                   {previewConditions.map((line, i) => (
@@ -820,7 +816,7 @@ export function PromotionFormClient({ mode, promotion }: Props) {
             {/* No conditions hint */}
             {previewConditions.length === 0 && (
               <p className="text-xs text-info-500 italic pt-2 border-t border-info-200">
-                No conditions — applies to all eligible customers.
+                Không có điều kiện — áp dụng cho tất cả khách hàng đủ điều kiện.
               </p>
             )}
           </div>
@@ -832,10 +828,10 @@ export function PromotionFormClient({ mode, promotion }: Props) {
             href={backHref}
             className="inline-flex items-center rounded-xl border border-secondary-200 bg-white px-5 py-2.5 text-sm font-semibold text-secondary-700 hover:bg-secondary-50 transition-colors"
           >
-            Cancel
+            Hủy
           </Link>
           <Button type="submit" variant="primary" disabled={!isValid || isSaving} isLoading={isSaving}>
-            {mode === "create" ? `Create ${isCoupon ? "Coupon" : "Promotion"}` : "Save Changes"}
+            {mode === "create" ? `Tạo ${isCoupon ? "mã giảm giá" : "khuyến mãi"}` : "Lưu thay đổi"}
           </Button>
         </div>
       </form>

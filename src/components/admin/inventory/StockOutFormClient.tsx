@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon, TrashIcon, CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
-import { Select } from "@/src/components/ui/Select";
+import { Select, type SelectOption } from "@/src/components/ui/Select";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { useToast } from "@/src/components/ui/Toast";
@@ -38,139 +38,6 @@ interface LineItemDraft {
   note?: string;
 }
 
-// ─── ProductCombobox ──────────────────────────────────────────────────────────
-
-interface ProductComboboxProps {
-  inventoryItems: InventoryItem[];
-  selectedId: string;
-  disabledIds: string[];
-  onSelect: (item: InventoryItem) => void;
-}
-
-function ProductCombobox({ inventoryItems, selectedId, disabledIds, onSelect }: ProductComboboxProps) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const selected = inventoryItems.find((i) => i.id === selectedId);
-
-  const filtered = inventoryItems.filter((item) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      item.productName.toLowerCase().includes(q) ||
-      item.variantName.toLowerCase().includes(q) ||
-      item.sku.toLowerCase().includes(q)
-    );
-  });
-
-  useEffect(() => {
-    if (!open) return;
-    function handleMouseDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
-      }
-    }
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="relative">
-      <button
-        type="button"
-        onClick={() => { setOpen((v) => !v); setSearch(""); }}
-        className={[
-          "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-          open
-            ? "border-primary-500 ring-2 ring-primary-500/20"
-            : "border-secondary-300 hover:border-secondary-400",
-          selected ? "text-secondary-900" : "text-secondary-400",
-        ].join(" ")}
-      >
-        <span className="truncate">
-          {selected
-            ? `${selected.productName} — ${selected.variantName}`
-            : "Select product…"}
-        </span>
-        <ChevronDownIcon
-          className={["w-4 h-4 shrink-0 text-secondary-400 transition-transform", open ? "rotate-180" : ""].join(" ")}
-        />
-      </button>
-
-      {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full min-w-[320px] rounded-xl border border-secondary-200 bg-white shadow-xl">
-          <div className="border-b border-secondary-100 p-2">
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, variant or SKU…"
-              className="w-full rounded-lg border border-secondary-200 px-3 py-1.5 text-sm text-secondary-900 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            />
-          </div>
-
-          <ul className="max-h-56 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-secondary-400">No products found.</li>
-            ) : (
-              filtered.map((item) => {
-                const isSelected = item.id === selectedId;
-                const isDisabled = disabledIds.includes(item.id) && !isSelected;
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      disabled={isDisabled}
-                      onClick={() => {
-                        if (isDisabled) return;
-                        onSelect(item);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                      className={[
-                        "flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors",
-                        isDisabled ? "cursor-not-allowed opacity-40" : "hover:bg-primary-50",
-                        isSelected ? "bg-primary-50" : "",
-                      ].join(" ")}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-secondary-900">
-                          {item.productName}
-                        </p>
-                        <p className="text-xs text-secondary-500">{item.variantName}</p>
-                        <p className="font-mono text-xs text-secondary-400">{item.sku}</p>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <span
-                          className={[
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                            item.quantityAvailable === 0
-                              ? "bg-error-50 text-error-700"
-                              : item.quantityAvailable <= item.lowStockThreshold
-                              ? "bg-warning-50 text-warning-700"
-                              : "bg-success-50 text-success-700",
-                          ].join(" ")}
-                        >
-                          Available: {item.quantityAvailable}
-                        </span>
-                        {isSelected && <CheckIcon className="w-4 h-4 text-primary-600" />}
-                        {isDisabled && <CheckIcon className="w-4 h-4 text-secondary-400" />}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── StockOutFormClient ───────────────────────────────────────────────────────
 
 export function StockOutFormClient({ inventoryItems }: { inventoryItems: InventoryItem[] }) {
@@ -184,6 +51,23 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
   const [isSaving, setIsSaving] = useState(false);
 
   const addedInventoryIds = lineItems.map((l) => l.inventoryItemId).filter(Boolean);
+
+  // Build Select options for a given line item — disables items already picked in other rows
+  function buildProductOptions(currentSelectedId: string): SelectOption[] {
+    const otherAddedIds = addedInventoryIds.filter((id) => id !== currentSelectedId);
+    return inventoryItems.map((item) => ({
+      value: item.id,
+      label: `${item.productName} — ${item.variantName}`,
+      description: item.sku,
+      badge:
+        item.quantityAvailable === 0
+          ? { text: `Khả dụng: ${item.quantityAvailable}`, variant: "error" as const }
+          : item.quantityAvailable <= item.lowStockThreshold
+          ? { text: `Khả dụng: ${item.quantityAvailable}`, variant: "warning" as const }
+          : { text: `Khả dụng: ${item.quantityAvailable}`, variant: "success" as const },
+      disabled: otherAddedIds.includes(item.id),
+    }));
+  }
 
   function addLine() {
     setLineItems((prev) => [
@@ -268,21 +152,21 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
     <div className="space-y-6">
       {/* ── Header details ── */}
       <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-5">
-        <h2 className="text-sm font-semibold text-secondary-900">Stock-Out Details</h2>
+        <h2 className="text-sm font-semibold text-secondary-900">Chi tiết phiếu xuất kho</h2>
 
         {/* Row 1: Reason (2 cols) + Scheduled Date (1 col) */}
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="sm:col-span-2">
             <Select
-              label="Reason"
+              label="Lý do"
               options={REASON_OPTIONS}
               value={reason}
               onChange={(v) => setReason(v as StockOutReason)}
-              placeholder="Select a reason…"
+              placeholder="Chọn lý do…"
             />
           </div>
           <DateInput
-            label="Scheduled Date (optional)"
+            label="Dự kiến ngày xuất kho"
             value={scheduledDate}
             onChange={(val) => setScheduledDate(val)}
             placeholder="DD/MM/YYYY"
@@ -291,15 +175,15 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
 
         {/* Row 2: Note — full width */}
         <Textarea
-          label="Note (optional)"
+          label="Ghi chú (tùy chọn)"
           value={note}
           onChange={(e) => setNote(e.target.value)}
-          placeholder="Internal notes for this stock-out request…"
+          placeholder="Ghi chú nội bộ cho yêu cầu xuất kho này…"
           size="sm"
           autoResize
-          maxCharCount={300}
+          maxCharCount={600}
           showCharCount
-          rows={2}
+          rows={4}
         />
       </div>
 
@@ -314,20 +198,21 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
               </span>
             )}
           </h2>
-          <button
-            type="button"
+          <Button
+            variant="primary"
             onClick={addLine}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors"
+            className="rounded-lg"
+            size="xs"
+            leftIcon={<PlusIcon className="w-3 h-3" />}
           >
-            <PlusIcon className="w-4 h-4" />
             Add Item
-          </button>
+          </Button>
         </div>
 
         {lineItems.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-secondary-400">No items yet.</p>
-            <p className="mt-1 text-xs text-secondary-300">Click "Add Item" to begin building your stock-out request.</p>
+            <p className="text-sm text-secondary-400">Chưa có mặt hàng nào.</p>
+            <p className="mt-1 text-xs text-secondary-300">Chọn "Add Item" để bắt đầu xây dựng yêu cầu xuất kho của bạn.</p>
           </div>
         ) : (
           <div className="divide-y divide-secondary-100">
@@ -336,17 +221,23 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
               return (
                 <div key={li.draftId} className="p-4">
                   <div className="rounded-xl border border-secondary-100 bg-secondary-50 p-4 space-y-3">
-                    {/* Row 1: index + combobox + remove */}
+                    {/* Row 1: index + product select + remove */}
                     <div className="flex items-center gap-3">
                       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary-200 text-xs font-bold text-secondary-600">
                         {idx + 1}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <ProductCombobox
-                          inventoryItems={inventoryItems}
-                          selectedId={li.inventoryItemId}
-                          disabledIds={addedInventoryIds.filter((id) => id !== li.inventoryItemId)}
-                          onSelect={(item) => selectProduct(li.draftId, item)}
+                        <Select
+                          options={buildProductOptions(li.inventoryItemId)}
+                          value={li.inventoryItemId || undefined}
+                          onChange={(v) => {
+                            const item = inventoryItems.find((i) => i.id === (v as string));
+                            if (item) selectProduct(li.draftId, item);
+                          }}
+                          searchable
+                          boldLabel
+                          placeholder="Chọn sản phẩm…"
+                          className="rounded-lg"
                         />
                       </div>
                       <button
@@ -364,12 +255,10 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
                       <div className="grid grid-cols-3 gap-3">
                         {/* Quantity */}
                         <div>
-                          <label className="mb-1 block text-xs font-medium text-secondary-600">
-                            Quantity
-                          </label>
-                          <input
+                          <Input
                             type="number"
                             min={1}
+                            label="Số lượng"
                             value={li.quantity}
                             onChange={(e) =>
                               updateLine(li.draftId, "quantity", Math.max(1, parseInt(e.target.value, 10) || 1))
@@ -382,17 +271,19 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
                             ].join(" ")}
                           />
                           <p className={["mt-1 text-xs", isOverStock ? "text-warning-600 font-medium" : "text-secondary-400"].join(" ")}>
-                            Available: {li.quantityAvailable}
+                            Tồn kho: {li.quantityAvailable}
                             {isOverStock && " — exceeds available stock"}
                           </p>
                         </div>
 
-                        {/* Note — spans 2 cols */}
-                        <div className="col-span-2">
-                          <label className="mb-1 block text-xs font-medium text-secondary-600">
-                            Note
-                          </label>
-                          <Input
+                        {/* Note — spans full width */}
+                        <div className="col-span-3">
+                          <Textarea
+                            autoResize
+                            label="Ghi chú"
+                            maxCharCount={300}
+                            showCharCount
+                            rows={3}
                             value={li.note ?? ""}
                             onChange={(e) => updateLine(li.draftId, "note", e.target.value)}
                             placeholder="e.g. Screen cracked, Found missing during audit…"
@@ -426,18 +317,19 @@ export function StockOutFormClient({ inventoryItems }: { inventoryItems: Invento
 
       {/* ── Actions ── */}
       <div className="flex justify-end gap-3">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => router.push("/inventory/stock-out")}
-          className="rounded-xl border border-secondary-200 px-5 py-2.5 text-sm font-medium text-secondary-700 hover:bg-secondary-50 transition-colors"
+          className="rounded-xl"
         >
           Cancel
-        </button>
+        </Button>
         <Button
           variant="primary"
           onClick={handleSubmit}
           disabled={!isValid || isSaving}
           isLoading={isSaving}
+          className="rounded-xl"
         >
           Create Stock-Out
         </Button>

@@ -45,7 +45,7 @@ export function RedemptionCatalogTable({
   const columns: ColumnDef<Row>[] = [
     {
       key: "name",
-      header: "Name",
+      header: "Tên",
       width: "w-[18%]",
       render: (v) => (
         <Tooltip content={v as string} anchorToContent>
@@ -57,7 +57,7 @@ export function RedemptionCatalogTable({
     },
     {
       key: "pointsRequired",
-      header: "Points Required",
+      header: "Điểm cần",
       width: "w-[10%]",
       align: "right",
       render: (v) => (
@@ -69,7 +69,7 @@ export function RedemptionCatalogTable({
     },
     {
       key: "promotionCode",
-      header: "Coupon",
+      header: "Mã giảm giá",
       width: "w-[18%]",
       render: (v, row) => (
         <div className="space-y-0.5">
@@ -89,7 +89,7 @@ export function RedemptionCatalogTable({
     },
     {
       key: "discountDisplay",
-      header: "Discount",
+      header: "Giảm giá",
       width: "w-[10%]",
       render: (v) => (
         <span className="text-sm text-secondary-700">{(v as string) ?? "—"}</span>
@@ -97,7 +97,7 @@ export function RedemptionCatalogTable({
     },
     {
       key: "isActive",
-      header: "Active",
+      header: "Kích hoạt",
       width: "w-[8%]",
       align: "center",
       render: (v, row) => (
@@ -110,7 +110,7 @@ export function RedemptionCatalogTable({
     },
     {
       key: "redeemedCount",
-      header: "Stock",
+      header: "Tồn kho",
       width: "w-[10%]",
       align: "center",
       render: (v, row) => (
@@ -124,12 +124,12 @@ export function RedemptionCatalogTable({
     },
     {
       key: "validFrom",
-      header: "Valid Period",
+      header: "Thời hạn",
       width: "w-[14%]",
       render: (v, row) => {
         const from = formatDate(v as string | undefined);
         const until = formatDate(row.validUntil as string | undefined);
-        if (!from && !until) return <span className="text-sm text-secondary-400">Always</span>;
+        if (!from && !until) return <span className="text-sm text-secondary-400">Luôn áp dụng</span>;
         return (
           <span className="text-xs text-secondary-600">
             {from || "—"} – {until || "—"}
@@ -139,14 +139,14 @@ export function RedemptionCatalogTable({
     },
     {
       key: "id",
-      header: "Actions",
+      header: "Thao tác",
       width: "w-[8%]",
       align: "center",
       render: (_, row) => (
         <div className="flex items-center justify-center gap-1.5">
           <button
             type="button"
-            title="Edit"
+            title="Chỉnh sửa"
             className="rounded p-1 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700 transition-colors"
             onClick={() => onEdit(row as LoyaltyRedemptionCatalog)}
           >
@@ -154,10 +154,10 @@ export function RedemptionCatalogTable({
           </button>
           <button
             type="button"
-            title="Delete"
+            title="Xoá"
             className="rounded p-1 text-secondary-400 hover:bg-error-50 hover:text-error-600 transition-colors"
             onClick={() => {
-              if (window.confirm(`Delete "${row.name as string}"? This cannot be undone.`)) {
+              if (window.confirm(`Xoá "${row.name as string}"? Không thể hoàn tác.`)) {
                 onDelete(row.id as string);
               }
             }}
@@ -182,7 +182,7 @@ export function RedemptionCatalogTable({
       onPageChange={setPage}
       onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
       tableLayout="fixed"
-      emptyMessage="No redemption catalog items yet."
+      emptyMessage="Chưa có mục đổi điểm nào."
     />
   );
 }

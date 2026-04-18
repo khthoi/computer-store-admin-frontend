@@ -194,7 +194,7 @@ export default async function CustomerDetailPage({
               },
               {
                 value: "loyalty",
-                label: "Loyalty & Points",
+                label: "Điểm thưởng",
                 icon: <SparklesIcon className="h-4 w-4" />,
               },
               {

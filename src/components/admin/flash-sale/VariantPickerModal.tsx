@@ -74,7 +74,7 @@ export function VariantPickerModal({
       isOpen={open}
       onClose={onClose}
       title="Chọn phiên bản sản phẩm"
-      size="lg"
+      size="4xl"
     >
       {/* Search input */}
       <div className="relative mb-4">
@@ -143,7 +143,12 @@ export function VariantPickerModal({
 
             {/* Price + stock */}
             <div className="shrink-0 text-right">
-              <p className="text-sm font-semibold text-secondary-900">
+              {variant.giaGoc && (
+                <p className="text-xs text-secondary-400 line-through leading-none">
+                  {formatVND(variant.giaGoc)}
+                </p>
+              )}
+              <p className="text-sm font-bold text-primary-700 mt-0.5">
                 {formatVND(variant.giaBan)}
               </p>
               <p className="text-xs text-secondary-400 mt-0.5">

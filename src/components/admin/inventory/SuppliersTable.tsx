@@ -15,6 +15,7 @@ import { createSupplier, updateSupplier } from "@/src/services/inventory.service
 import { useToast } from "@/src/components/ui/Toast";
 import type { Supplier } from "@/src/types/inventory.types";
 import { Tooltip } from "@/src/components/ui/Tooltip";
+import { Button } from "@/src/components/ui/Button";
 
 type Row = Supplier & Record<string, unknown>;
 
@@ -32,7 +33,7 @@ const STATUS_OPTIONS = [
 const COLUMNS: ColumnDef<Row>[] = [
   {
     key: "name",
-    header: "Supplier",
+    header: "Nhà cung cấp",
     sortable: true,
     render: (_, row) => (
       <div>
@@ -45,7 +46,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "email",
-    header: "Contact",
+    header: "Liên hệ",
     render: (_, row) => (
       <div>
         <p className="text-sm text-secondary-700">{row.email as string}</p>
@@ -55,14 +56,14 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "status",
-    header: "Status",
+    header: "trạng thái",
     sortable: true,
     align: "center",
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "productCount",
-    header: "Products",
+    header: "Sản phẩm",
     sortable: true,
     align: "center",
     render: (_, row) => (
@@ -71,7 +72,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "totalOrders",
-    header: "Orders",
+    header: "Đơn hàng",
     sortable: true,
     align: "center",
     render: (_, row) => (
@@ -80,8 +81,9 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "createdAt",
-    header: "Added",
+    header: "Đã thêm lúc",
     sortable: true,
+    align: "center",
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-500">
         {formatDate(row.createdAt as string)}
@@ -195,14 +197,14 @@ export function SuppliersTable({ initialSuppliers }: { initialSuppliers: Supplie
       <span className="text-sm text-secondary-400 whitespace-nowrap">
         {totalRows} supplier{totalRows !== 1 ? "s" : ""}
       </span>
-      <button
-        type="button"
+      <Button
+        variant="primary"
         onClick={() => { setEditingSupplier(undefined); setModalOpen(true); }}
-        className="inline-flex items-center gap-1.5 rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-700 transition-colors"
+        className="rounded-lg"
       >
         <PlusIcon className="w-4 h-4" />
-        Add Supplier
-      </button>
+        Thêm
+      </Button>
     </>
   );
 

@@ -50,7 +50,7 @@ const TYPE_OPTIONS = [
 const COLUMNS: ColumnDef<Row>[] = [
   {
     key: "performedAt",
-    header: "Date / Time",
+    header: "thời gian",
     sortable: true,
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-600">
@@ -60,7 +60,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "type",
-    header: "Type",
+    header: "loại",
     sortable: true,
     render: (_, row) => (
       <span
@@ -106,7 +106,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "quantityChange",
-    header: "quantity",
+    header: "số lượng",
     align: "center",
     sortable: true,
     render: (_, row) => {
@@ -125,7 +125,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "quantityBefore",
-    header: "Before",
+    header: "Trước",
     align: "center",
     render: (_, row) => (
       <span className="text-sm tabular-nums text-secondary-500">{row.quantityBefore as number}</span>
@@ -133,7 +133,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "quantityAfter",
-    header: "After",
+    header: "Sau",
     align: "center",
     render: (_, row) => (
       <span className="text-sm tabular-nums font-semibold text-secondary-900">{row.quantityAfter as number}</span>
@@ -141,14 +141,14 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "performedBy",
-    header: "By",
+    header: "người thực hiện",
     render: (_, row) => (
       <span className="text-sm text-secondary-600">{row.performedBy as string}</span>
     ),
   },
   {
     key: "note",
-    header: "Note",
+    header: "Ghi chú",
     render: (_, row) => {
       const note = (row.note as string | undefined) ?? "";
       return note ? (
@@ -222,7 +222,7 @@ export function MovementsTable({ initialMovements }: { initialMovements: StockMo
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
       searchQuery={q}
       onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder="Search by product or SKU…"
+      searchPlaceholder="Tìm kiếm theo sản phẩm hoặc SKU..."
       toolbarActions={toolbarActions}
       page={page}
       pageSize={pageSize}

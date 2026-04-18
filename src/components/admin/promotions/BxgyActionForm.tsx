@@ -43,11 +43,11 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
     <div className="space-y-5">
       {/* BUY side */}
       <div className="rounded-xl border border-blue-200 bg-blue-50 p-4 space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-blue-700">BUY</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-blue-700">MUA</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Select
-              label="Buy Product"
+              label="Sản phẩm mua"
               options={PRODUCT_OPTIONS}
               value={value.buyProductId ?? ""}
               onChange={(v) => {
@@ -58,13 +58,13 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               searchable
               clearable
               boldLabel
-              placeholder="Any product in scope"
-              helperText="Leave blank to match any product in the defined scope"
+              placeholder="Bất kỳ sản phẩm trong phạm vi"
+              helperText="Để trống để khớp với bất kỳ sản phẩm nào trong phạm vi"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-              Quantity Required
+              Số lượng cần mua
             </label>
             <input
               type="number"
@@ -74,18 +74,18 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               onChange={(e) => patch({ buyQuantity: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
-            <p className="mt-1 text-[11px] text-secondary-400">Minimum units the customer must purchase to trigger the deal</p>
+            <p className="mt-1 text-[11px] text-secondary-400">Số đơn vị tối thiểu khách hàng phải mua để kích hoạt ưu đãi</p>
           </div>
         </div>
       </div>
 
       {/* GET side */}
       <div className="rounded-xl border border-success-200 bg-success-50 p-4 space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wide text-success-700">GET (FREE / DISCOUNTED)</p>
+        <p className="text-xs font-bold uppercase tracking-wide text-success-700">TẶNG (MIỄN PHÍ / GIẢM GIÁ)</p>
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Select
-              label="Get Product"
+              label="Sản phẩm tặng"
               options={PRODUCT_OPTIONS}
               value={value.getProductId ?? ""}
               onChange={(v) => {
@@ -96,13 +96,13 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               searchable
               clearable
               boldLabel
-              placeholder="Same as buy product"
-              helperText="Leave blank to apply the discount to the same buy-side product"
+              placeholder="Giống sản phẩm mua"
+              helperText="Để trống để áp dụng giảm giá cho cùng sản phẩm mua"
             />
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-              Free Quantity
+              Số lượng tặng
             </label>
             <input
               type="number"
@@ -112,11 +112,11 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               onChange={(e) => patch({ getQuantity: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
-            <p className="mt-1 text-[11px] text-secondary-400">Number of units the customer receives at the discounted price</p>
+            <p className="mt-1 text-[11px] text-secondary-400">Số đơn vị khách hàng nhận được với giá đã giảm</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-              Discount on "Get" Item
+              Giảm giá cho sản phẩm tặng
             </label>
             <div className="flex items-center gap-2">
               <input
@@ -128,16 +128,16 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
                 onChange={(e) => patch({ getDiscountPercent: Math.min(100, Math.max(0, parseFloat(e.target.value) || 0)) })}
                 className="w-24 rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
               />
-              <span className="text-sm text-secondary-500">% off</span>
+              <span className="text-sm text-secondary-500">% giảm</span>
               <span className="text-xs text-secondary-400">
-                {value.getDiscountPercent === 100 ? "(fully free)" : value.getDiscountPercent === 0 ? "(no discount)" : ""}
+                {value.getDiscountPercent === 100 ? "(miễn phí hoàn toàn)" : value.getDiscountPercent === 0 ? "(không giảm)" : ""}
               </span>
             </div>
-            <p className="mt-1 text-[11px] text-secondary-400">100% = completely free; 50% = half price; 0% = no discount</p>
+            <p className="mt-1 text-[11px] text-secondary-400">100% = miễn phí hoàn toàn; 50% = nửa giá; 0% = không giảm</p>
           </div>
           <div>
             <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
-              Max Applications Per Order
+              Số lần áp dụng tối đa mỗi đơn
             </label>
             <input
               type="number"
@@ -147,7 +147,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
               onChange={(e) => patch({ maxApplicationsPerOrder: Math.max(1, parseInt(e.target.value, 10) || 1) })}
               className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-800 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             />
-            <p className="mt-1 text-[11px] text-secondary-400">e.g. 1 = get at most 1 free item per order, regardless of how many qualifying sets are in the cart</p>
+            <p className="mt-1 text-[11px] text-secondary-400">VD: 1 = nhận tối đa 1 sản phẩm miễn phí mỗi đơn, bất kể có bao nhiêu bộ đủ điều kiện trong giỏ</p>
           </div>
         </div>
       </div>
@@ -155,7 +155,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
       {/* Delivery mode (only for different products) */}
       {!isSameProduct && value.getProductId && (
         <div>
-          <p className="text-xs font-semibold text-secondary-600 mb-2">Free Item Delivery Mode</p>
+          <p className="text-xs font-semibold text-secondary-600 mb-2">Cách giao sản phẩm tặng</p>
           <div className="flex gap-4">
             {(["auto_add", "customer_selects"] as DeliveryMode[]).map((mode) => (
               <label key={mode} className="flex items-center gap-2 cursor-pointer">
@@ -169,12 +169,12 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
                 />
                 <div>
                   <span className="text-sm text-secondary-700">
-                    {mode === "auto_add" ? "Auto-add to cart" : "Customer selects from options"}
+                    {mode === "auto_add" ? "Tự động thêm vào giỏ" : "Khách hàng chọn từ danh sách"}
                   </span>
                   <p className="text-[11px] text-secondary-400">
                     {mode === "auto_add"
-                      ? "Free item is added to the cart automatically when conditions are met"
-                      : "Customer can choose their free item from a list of eligible products"}
+                      ? "Sản phẩm tặng được thêm vào giỏ tự động khi đủ điều kiện"
+                      : "Khách hàng có thể chọn sản phẩm tặng từ danh sách"}
                   </p>
                 </div>
               </label>
@@ -183,7 +183,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
           {value.deliveryMode === "customer_selects" && (
             <div className="mt-3">
               <Select
-                label="Eligible Free Products"
+                label="Sản phẩm tặng được phép chọn"
                 options={PRODUCT_OPTIONS}
                 value={value.eligibleFreeProductIds ?? []}
                 onChange={(v) => patch({ eligibleFreeProductIds: v as string[] })}
@@ -191,8 +191,8 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
                 searchable
                 clearable
                 boldLabel
-                placeholder="Select eligible free products…"
-                helperText="Products the customer can choose as their free gift"
+                placeholder="Chọn sản phẩm tặng…"
+                helperText="Sản phẩm khách hàng có thể chọn làm quà tặng"
               />
             </div>
           )}
@@ -201,11 +201,11 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
 
       {/* Summary preview */}
       <div className="rounded-xl bg-secondary-50 border border-secondary-200 px-4 py-3 text-sm text-secondary-600">
-        <span className="font-medium text-secondary-800">Preview: </span>
-        Buy {value.buyQuantity}× {value.buyProductLabel ?? "any qualifying product"} →
-        Get {value.getQuantity}× {value.getProductLabel ?? "same product"} at{" "}
-        {value.getDiscountPercent === 100 ? "FREE" : `${value.getDiscountPercent}% off`}
-        {" "}(max {value.maxApplicationsPerOrder} time{value.maxApplicationsPerOrder !== 1 ? "s" : ""} per order)
+        <span className="font-medium text-secondary-800">Xem trước: </span>
+        Mua {value.buyQuantity}× {value.buyProductLabel ?? "bất kỳ sản phẩm đủ điều kiện"} →
+        Tặng {value.getQuantity}× {value.getProductLabel ?? "cùng sản phẩm"}{" "}
+        {value.getDiscountPercent === 100 ? "MIỄN PHÍ" : `giảm ${value.getDiscountPercent}%`}
+        {" "}(tối đa {value.maxApplicationsPerOrder} lần mỗi đơn)
       </div>
     </div>
   );

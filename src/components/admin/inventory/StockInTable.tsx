@@ -46,7 +46,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "receiptCode",
-    header: "Receipt Code",
+    header: "Mã phiếu",
     sortable: true,
     width: "w-[11%]",
     render: (_, row) => (
@@ -57,7 +57,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "supplierName",
-    header: "Supplier",
+    header: "Nhà cung cấp",
     sortable: true,
     width: "w-[17%]",
     render: (_, row) => (
@@ -68,14 +68,14 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "status",
-    header: "Status",
+    header: "Trạng thái",
     sortable: true,
     align: "center",
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "itemCount",
-    header: "Items",
+    header: "Số lượng",
     sortable: true,
     align: "center",
     render: (_, row) => (
@@ -84,7 +84,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "totalCost",
-    header: "Total Cost",
+    header: "Tổng chi phí",
     sortable: true,
     render: (_, row) => (
       <span className="text-sm font-semibold text-secondary-900">
@@ -94,7 +94,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "expectedDate",
-    header: "Expected",
+    header: "Dự kiến nhận",
     sortable: true,
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-600">
@@ -104,7 +104,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "createdBy",
-    header: "Created By",
+    header: "Người tạo",
     render: (_, row) => (
       <span className="text-sm text-secondary-500">{row.createdBy as string}</span>
     ),
@@ -177,7 +177,7 @@ export function StockInTable({ initialRecords }: { initialRecords: StockInSummar
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
       searchQuery={q}
       onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder="Search by ID or supplier…"
+      searchPlaceholder="Tìm kiếm theo mã phiếu, ID hoặc nhà cung cấp..."
       toolbarActions={toolbarActions}
       page={page}
       pageSize={pageSize}

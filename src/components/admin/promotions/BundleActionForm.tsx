@@ -89,11 +89,11 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
   return (
     <div className="space-y-3">
       <p className="text-xs text-secondary-500">
-        Define the required products/categories. ALL must be present in the cart for the bundle discount to apply.
+        Xác định các sản phẩm/danh mục cần thiết. TẤT CẢ phải có trong giỏ hàng để áp dụng giảm giá combo.
       </p>
 
       {components.length === 0 && (
-        <p className="text-sm text-secondary-400 italic">No bundle components defined yet.</p>
+        <p className="text-sm text-secondary-400 italic">Chưa có thành phần combo nào.</p>
       )}
 
       {components.map((comp, idx) => {
@@ -108,9 +108,9 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
             <div className="w-36 flex-shrink-0">
               <Select
                 options={[
-                  { value: "category", label: "Category" },
-                  { value: "product",  label: "Product" },
-                  { value: "variant",  label: "Variant" },
+                  { value: "category", label: "Danh mục" },
+                  { value: "product",  label: "Sản phẩm" },
+                  { value: "variant",  label: "Phiên bản" },
                 ]}
                 value={comp.scope}
                 onChange={(v) =>
@@ -140,7 +140,7 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
 
             {/* Min qty */}
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs text-secondary-500 whitespace-nowrap">Min qty:</span>
+              <span className="text-xs text-secondary-500 whitespace-nowrap">SL tối thiểu:</span>
               <input
                 type="number"
                 min={1}
@@ -171,12 +171,12 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
         className="inline-flex items-center gap-2 rounded-lg border border-dashed border-secondary-300 px-4 py-2 text-sm font-medium text-secondary-500 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
       >
         <PlusIcon className="w-4 h-4" />
-        Add Bundle Component
+        Thêm thành phần combo
       </button>
 
       {components.length > 0 && (
         <p className="text-xs text-secondary-400 bg-info-50 border border-info-200 rounded-lg px-3 py-2">
-          Bundle requires: {components.map((c) => (c.refLabel ?? c.refId) || `${c.scope}?`).join(" + ")}
+          Combo yêu cầu: {components.map((c) => (c.refLabel ?? c.refId) || `${c.scope}?`).join(" + ")}
         </p>
       )}
     </div>

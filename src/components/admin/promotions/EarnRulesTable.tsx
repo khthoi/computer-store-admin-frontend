@@ -31,9 +31,9 @@ function formatDate(iso?: string): string {
 }
 
 const BONUS_LABELS: Record<string, string> = {
-  first_order: "First Order",
-  birthday:    "Birthday",
-  manual:      "Manual",
+  first_order: "Đơn đầu tiên",
+  birthday:    "Sinh nhật",
+  manual:      "Thủ công",
 };
 
 const BONUS_STYLES: Record<string, string> = {

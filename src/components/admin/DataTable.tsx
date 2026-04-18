@@ -154,6 +154,23 @@ export interface DataTableProps<T extends Record<string, unknown>> {
   hidePagination?: boolean;
 
   /**
+   * When `true`, the search/toolbar row is hidden entirely.
+   * Useful when the parent component provides its own header or the table
+   * is embedded in a detail page where search is not needed.
+   */
+  hideToolbar?: boolean;
+
+  /**
+   * When `true`, the outer wrapper `<div>` (border, rounded corners, bg) is
+   * omitted and the component renders its inner sections (toolbar, table,
+   * pagination) directly into a `<>Fragment</>`.
+   *
+   * Use this when the parent supplies the container so DataTable doesn't
+   * double-wrap with conflicting border/radius styles.
+   */
+  bare?: boolean;
+
+  /**
    * CSS table-layout algorithm.
    * - `"auto"` (default): column widths are determined by content — each tab
    *   or data state may render with different column widths.
@@ -278,6 +295,8 @@ export function DataTable<T extends Record<string, unknown>>({
   expandedByDefault = false,
   rowClassName,
   hidePagination = false,
+  hideToolbar = false,
+  bare = false,
   tableLayout = "auto",
   className = "",
 }: DataTableProps<T>) {
@@ -411,17 +430,10 @@ export function DataTable<T extends Record<string, unknown>>({
 
   // ── Render ────────────────────────────────────────────────────────────────
 
-  return (
-    <div
-      className={[
-        "flex flex-col rounded-xl border border-secondary-200 bg-white overflow-hidden",
-        className,
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
+  const inner = (
+    <>
       {/* ── Toolbar ── */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary-200 px-4 py-3">
+      {!hideToolbar && <div className="flex flex-wrap items-center justify-between gap-3 border-b border-secondary-200 px-4 py-3">
         {/* Search */}
         <div className="relative w-full sm:w-120">
           <label htmlFor={searchId} className="sr-only">
@@ -457,7 +469,7 @@ export function DataTable<T extends Record<string, unknown>>({
             {toolbarActions}
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ── Bulk action bar ── */}
       {selectable && selectedKeys.length > 0 && (
@@ -840,6 +852,21 @@ export function DataTable<T extends Record<string, unknown>>({
           </nav>
         </div>
       </div>}
+    </>
+  );
+
+  if (bare) return inner;
+
+  return (
+    <div
+      className={[
+        "flex flex-col rounded-xl border border-secondary-200 bg-white overflow-hidden",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
+      {inner}
     </div>
   );
 }

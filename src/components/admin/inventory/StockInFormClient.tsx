@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon, TrashIcon, LockClosedIcon, CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
-import { Select } from "@/src/components/ui/Select";
+import { Select, type SelectOption } from "@/src/components/ui/Select";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { useToast } from "@/src/components/ui/Toast";
@@ -34,150 +34,6 @@ interface StockInFormClientProps {
   warehouses: Warehouse[];
   inventoryItems: InventoryItem[];
   receiptCode: string;
-}
-
-// ─── ProductCombobox ──────────────────────────────────────────────────────────
-
-interface ProductComboboxProps {
-  inventoryItems: InventoryItem[];
-  selectedId: string;
-  disabledIds: string[];
-  onSelect: (item: InventoryItem) => void;
-}
-
-function ProductCombobox({ inventoryItems, selectedId, disabledIds, onSelect }: ProductComboboxProps) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const containerRef = useRef<HTMLDivElement>(null);
-
-  const selected = inventoryItems.find((i) => i.id === selectedId);
-
-  const filtered = inventoryItems.filter((item) => {
-    if (!search.trim()) return true;
-    const q = search.toLowerCase();
-    return (
-      item.productName.toLowerCase().includes(q) ||
-      item.variantName.toLowerCase().includes(q) ||
-      item.sku.toLowerCase().includes(q)
-    );
-  });
-
-  // Close on outside click
-  useEffect(() => {
-    if (!open) return;
-    function handleMouseDown(e: MouseEvent) {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setSearch("");
-      }
-    }
-    document.addEventListener("mousedown", handleMouseDown);
-    return () => document.removeEventListener("mousedown", handleMouseDown);
-  }, [open]);
-
-  return (
-    <div ref={containerRef} className="relative">
-      {/* Trigger button */}
-      <button
-        type="button"
-        onClick={() => { setOpen((v) => !v); setSearch(""); }}
-        className={[
-          "flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-          open
-            ? "border-primary-500 ring-2 ring-primary-500/20"
-            : "border-secondary-300 hover:border-secondary-400",
-          selected ? "text-secondary-900" : "text-secondary-400",
-        ].join(" ")}
-      >
-        <span className="truncate">
-          {selected
-            ? `${selected.productName} — ${selected.variantName}`
-            : "Select product…"}
-        </span>
-        <ChevronDownIcon
-          className={["w-4 h-4 shrink-0 text-secondary-400 transition-transform", open ? "rotate-180" : ""].join(" ")}
-        />
-      </button>
-
-      {/* Dropdown */}
-      {open && (
-        <div className="absolute left-0 top-full z-30 mt-1 w-full min-w-[320px] rounded-xl border border-secondary-200 bg-white shadow-xl">
-          {/* Search */}
-          <div className="border-b border-secondary-100 p-2">
-            <input
-              autoFocus
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, variant or SKU…"
-              className="w-full rounded-lg border border-secondary-200 px-3 py-1.5 text-sm text-secondary-900 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            />
-          </div>
-
-          {/* Options */}
-          <ul className="max-h-56 overflow-y-auto py-1">
-            {filtered.length === 0 ? (
-              <li className="px-4 py-3 text-sm text-secondary-400">No products found.</li>
-            ) : (
-              filtered.map((item) => {
-                const isSelected = item.id === selectedId;
-                const isDisabled = disabledIds.includes(item.id) && !isSelected;
-                return (
-                  <li key={item.id}>
-                    <button
-                      type="button"
-                      disabled={isDisabled}
-                      onClick={() => {
-                        if (isDisabled) return;
-                        onSelect(item);
-                        setOpen(false);
-                        setSearch("");
-                      }}
-                      className={[
-                        "flex w-full items-start gap-3 px-3 py-2.5 text-left transition-colors",
-                        isDisabled
-                          ? "cursor-not-allowed opacity-40"
-                          : "hover:bg-primary-50",
-                        isSelected ? "bg-primary-50" : "",
-                      ].join(" ")}
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-sm font-semibold text-secondary-900">
-                          {item.productName}
-                        </p>
-                        <p className="text-xs text-secondary-500">{item.variantName}</p>
-                        <p className="font-mono text-xs text-secondary-400">{item.sku}</p>
-                      </div>
-                      <div className="flex shrink-0 flex-col items-end gap-1">
-                        <span
-                          className={[
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                            item.quantityOnHand === 0
-                              ? "bg-error-50 text-error-700"
-                              : item.quantityOnHand <= item.lowStockThreshold
-                              ? "bg-warning-50 text-warning-700"
-                              : "bg-success-50 text-success-700",
-                          ].join(" ")}
-                        >
-                          Stock: {item.quantityOnHand}
-                        </span>
-                        {isSelected && (
-                          <CheckIcon className="w-4 h-4 text-primary-600" />
-                        )}
-                        {isDisabled && (
-                          <CheckIcon className="w-4 h-4 text-secondary-400" />
-                        )}
-                      </div>
-                    </button>
-                  </li>
-                );
-              })
-            )}
-          </ul>
-        </div>
-      )}
-    </div>
-  );
 }
 
 // ─── StockInFormClient ────────────────────────────────────────────────────────
@@ -215,6 +71,23 @@ export function StockInFormClient({
   // IDs already added (for duplicate prevention)
   const addedInventoryIds = lineItems.map((l) => l.inventoryItemId).filter(Boolean);
 
+  // Build Select options for a given line item — disables items already picked in other rows
+  function buildProductOptions(currentSelectedId: string): SelectOption[] {
+    const otherAddedIds = addedInventoryIds.filter((id) => id !== currentSelectedId);
+    return inventoryItems.map((item) => ({
+      value: item.id,
+      label: `${item.productName} — ${item.variantName}`,
+      description: item.sku,
+      badge:
+        item.quantityOnHand === 0
+          ? { text: `Kho: ${item.quantityOnHand}`, variant: "error" as const }
+          : item.quantityOnHand <= item.lowStockThreshold
+          ? { text: `Kho: ${item.quantityOnHand}`, variant: "warning" as const }
+          : { text: `Kho: ${item.quantityOnHand}`, variant: "success" as const },
+      disabled: otherAddedIds.includes(item.id),
+    }));
+  }
+
   function addLine() {
     setLineItems((prev) => [
       ...prev,
@@ -242,16 +115,16 @@ export function StockInFormClient({
       prev.map((l) =>
         l.draftId === draftId
           ? {
-              ...l,
-              inventoryItemId: item.id,
-              productId: item.productId,
-              variantId: item.variantId,
-              productName: item.productName,
-              variantName: item.variantName,
-              sku: item.sku,
-              quantityOnHand: item.quantityOnHand,
-              costPrice: item.costPrice,
-            }
+            ...l,
+            inventoryItemId: item.id,
+            productId: item.productId,
+            variantId: item.variantId,
+            productName: item.productName,
+            variantName: item.variantName,
+            sku: item.sku,
+            quantityOnHand: item.quantityOnHand,
+            costPrice: item.costPrice,
+          }
           : l
       )
     );
@@ -310,14 +183,14 @@ export function StockInFormClient({
     <div className="space-y-6">
       {/* ── Header details ── */}
       <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-5">
-        <h2 className="text-sm font-semibold text-secondary-900">Stock-In Details</h2>
+        <h2 className="text-sm font-semibold text-secondary-900">Chi tiết phiếu nhập</h2>
 
         {/* Row 1: Receipt code | Supplier | Warehouse */}
         <div className="grid gap-4 sm:grid-cols-3">
           {/* Receipt Code — read-only */}
           <div>
             <label className="mb-1 block text-sm font-medium text-secondary-700">
-              Receipt Code
+              Mã phiếu nhập
             </label>
             <div className="flex items-center gap-2 rounded-lg border border-secondary-200 bg-secondary-50 px-3 py-2">
               <LockClosedIcon className="w-3.5 h-3.5 shrink-0 text-secondary-400" aria-hidden="true" />
@@ -325,12 +198,12 @@ export function StockInFormClient({
                 {receiptCode}
               </span>
             </div>
-            <p className="mt-1 text-xs text-secondary-400">Auto-generated · read-only</p>
+            <p className="mt-1 text-xs text-secondary-400">Tự động tạo · read-only</p>
           </div>
 
           {/* Supplier */}
           <Select
-            label="Supplier"
+            label="Nhà cung cấp"
             options={supplierOptions}
             value={supplierId}
             onChange={(v) => setSupplierId(v as string)}
@@ -339,34 +212,36 @@ export function StockInFormClient({
 
           {/* Warehouse */}
           <Select
-            label="Warehouse"
+            label="Kho hàng"
             options={warehouseOptions}
             value={warehouseId}
             onChange={(v) => setWarehouseId(v as string)}
           />
         </div>
 
-        {/* Row 2: Expected Date (col 1) | Note (cols 2–3) */}
+        {/* Row 2: Expected Date */}
         <div className="grid gap-4 sm:grid-cols-3">
           <DateInput
-            label="Expected Date"
+            label="Ngày dự kiến"
             value={expectedDate}
             onChange={(val) => setExpectedDate(val)}
             placeholder="DD/MM/YYYY"
           />
-          <div className="sm:col-span-2">
-            <Textarea
-              label="Note (optional)"
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-              placeholder="Internal notes…"
-              size="sm"
-              maxCharCount={300}
-              showCharCount
-              autoResize
-              rows={2}
-            />
-          </div>
+        </div>
+
+        {/* Row 3: Note full width */}
+        <div>
+          <Textarea
+            label="Ghi chú (tùy chọn)"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="Internal notes…"
+            size="sm"
+            maxCharCount={600}
+            showCharCount
+            autoResize
+            rows={6}
+          />
         </div>
       </div>
 
@@ -382,14 +257,15 @@ export function StockInFormClient({
               </span>
             )}
           </h2>
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="xs"
             onClick={addLine}
-            className="inline-flex items-center gap-1.5 rounded-xl bg-primary-50 px-3 py-1.5 text-sm font-medium text-primary-700 hover:bg-primary-100 transition-colors"
+            className="rounded-lg"
           >
             <PlusIcon className="w-4 h-4" />
             Add Item
-          </button>
+          </Button>
         </div>
 
         {/* Item cards */}
@@ -403,27 +279,35 @@ export function StockInFormClient({
             {lineItems.map((li, idx) => (
               <div key={li.draftId} className="p-4">
                 <div className="rounded-xl border border-secondary-100 bg-secondary-50 p-4 space-y-3">
-                  {/* Row 1: index + combobox + remove */}
+                  {/* Row 1: index + product select + remove */}
                   <div className="flex items-center gap-3">
                     <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary-200 text-xs font-bold text-secondary-600">
                       {idx + 1}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <ProductCombobox
-                        inventoryItems={inventoryItems}
-                        selectedId={li.inventoryItemId}
-                        disabledIds={addedInventoryIds.filter((id) => id !== li.inventoryItemId)}
-                        onSelect={(item) => selectProduct(li.draftId, item)}
+                      <Select
+                        options={buildProductOptions(li.inventoryItemId)}
+                        value={li.inventoryItemId || undefined}
+                        onChange={(v) => {
+                          const item = inventoryItems.find((i) => i.id === (v as string));
+                          if (item) selectProduct(li.draftId, item);
+                        }}
+                        searchable
+                        boldLabel
+                        placeholder="Chọn sản phẩm…"
+                        className="rounded-lg"
                       />
                     </div>
-                    <button
-                      type="button"
+                    <Button
+                      variant="outline"
+                      color="danger"
+                      size="xs"
                       onClick={() => removeLine(li.draftId)}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-error-500 hover:bg-error-50 transition-colors"
-                      aria-label="Remove item"
+                      leftIcon={<TrashIcon className="w-4 h-4" />}
+                      className="rounded rounded-lg border-error-200 text-error-500 hover:bg-error-100"
                     >
-                      <TrashIcon className="w-4 h-4" />
-                    </button>
+                      Remove
+                    </Button>
                   </div>
 
                   {/* Row 2: Qty | Cost | Note — only shown once a product is selected */}
@@ -468,14 +352,18 @@ export function StockInFormClient({
                       </div>
 
                       {/* Note */}
-                      <div>
+                      <div className="col-span-3">
                         <label className="mb-1 block text-xs font-medium text-secondary-600">
                           Note
                         </label>
-                        <Input
+                        <Textarea
                           value={li.note ?? ""}
                           onChange={(e) => updateLine(li.draftId, "note", e.target.value)}
-                          placeholder="Note…"
+                          placeholder="Nhập ghi chú..."
+                          rows={3}
+                          maxCharCount={300}
+                          showCharCount
+                          className="rounded-lg"
                         />
                       </div>
                     </div>
@@ -502,18 +390,19 @@ export function StockInFormClient({
 
       {/* ── Actions ── */}
       <div className="flex justify-end gap-3">
-        <button
-          type="button"
+        <Button
+          variant="secondary"
           onClick={() => router.push("/inventory/stock-in")}
-          className="rounded-xl border border-secondary-200 px-5 py-2.5 text-sm font-medium text-secondary-700 hover:bg-secondary-50 transition-colors"
+          className="rounded-xl"
         >
           Cancel
-        </button>
+        </Button>
         <Button
           variant="primary"
           onClick={handleSubmit}
           disabled={!isValid || isSaving}
           isLoading={isSaving}
+          className="rounded-xl"
         >
           Create Stock-In
         </Button>

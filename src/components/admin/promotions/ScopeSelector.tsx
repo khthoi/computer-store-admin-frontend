@@ -77,10 +77,10 @@ function getRefOptions(scopeType: ScopeType) {
 
 const REF_PLACEHOLDER: Record<ScopeType, string> = {
   global:   "",
-  category: "Search category…",
-  product:  "Search product…",
-  brand:    "Search brand…",
-  variant:  "Search variant / SKU…",
+  category: "Tìm danh mục…",
+  product:  "Tìm sản phẩm…",
+  brand:    "Tìm thương hiệu…",
+  variant:  "Tìm phiên bản / SKU…",
 };
 
 // ─── Draft scope ───────────────────────────────────────────────────────────────
@@ -100,11 +100,11 @@ interface ScopeSelectorProps {
 }
 
 const SCOPE_TYPE_OPTIONS: { value: ScopeType; label: string }[] = [
-  { value: "global",   label: "Global (all products)" },
-  { value: "category", label: "Category" },
-  { value: "product",  label: "Product" },
-  { value: "variant",  label: "Variant / SKU" },
-  { value: "brand",    label: "Brand" },
+  { value: "global",   label: "Toàn bộ (tất cả sản phẩm)" },
+  { value: "category", label: "Danh mục" },
+  { value: "product",  label: "Sản phẩm" },
+  { value: "variant",  label: "Phiên bản / SKU" },
+  { value: "brand",    label: "Thương hiệu" },
 ];
 
 export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
@@ -140,7 +140,7 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
     <div className="space-y-3">
       {scopes.length === 0 && (
         <p className="text-sm text-secondary-400 italic">
-          No scope set — promotion will not match any cart items.
+          Chưa có phạm vi — khuyến mãi không khớp bất kỳ sản phẩm nào.
         </p>
       )}
 
@@ -180,7 +180,7 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
 
           {scope.scopeType === "global" && (
             <span className="flex-1 text-sm text-secondary-500">
-              Applies to all products in the cart
+              Áp dụng cho tất cả sản phẩm trong giỏ
             </span>
           )}
 
@@ -189,7 +189,7 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
             type="button"
             onClick={() => removeScope(scope.draftId)}
             className="flex items-center justify-center w-8 h-8 rounded-lg text-error-500 hover:bg-error-50 transition-colors flex-shrink-0"
-            title="Remove scope"
+            title="Xoá phạm vi"
           >
             <TrashIcon className="w-4 h-4" />
           </button>
@@ -203,13 +203,13 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
           className="inline-flex items-center gap-2 rounded-lg border border-dashed border-secondary-300 px-4 py-2 text-sm font-medium text-secondary-500 hover:border-primary-400 hover:text-primary-600 hover:bg-primary-50 transition-colors"
         >
           <PlusIcon className="w-4 h-4" />
-          Add Scope Entry
+          Thêm phạm vi
         </button>
       )}
 
       {hasGlobal && (
         <p className="text-xs text-secondary-400">
-          Global scope covers all products. Remove it to add specific targets.
+          Phạm vi toàn bộ bao gồm tất cả sản phẩm. Xoá để thêm đối tượng cụ thể.
         </p>
       )}
     </div>

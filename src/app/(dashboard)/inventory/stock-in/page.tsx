@@ -11,9 +11,9 @@ export default async function StockInPage() {
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-secondary-900">Stock In</h1>
+          <h1 className="text-2xl font-bold text-secondary-900">Nhập hàng</h1>
           <p className="mt-1 text-sm text-secondary-500">
-            Manage incoming stock from suppliers.
+            Quản lý các phiếu nhập hàng và lịch sử nhập hàng
           </p>
         </div>
         <Link
@@ -21,7 +21,7 @@ export default async function StockInPage() {
           className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
         >
           <PlusIcon className="w-4 h-4" />
-          New Stock-In
+          Nhập hàng
         </Link>
       </div>
       <StockInTable initialRecords={records} />

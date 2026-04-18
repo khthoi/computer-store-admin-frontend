@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import { XMarkIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
+import { Modal } from "@/src/components/ui/Modal";
 import type { Supplier } from "@/src/types/inventory.types";
+import { Textarea } from "@/src/components/ui/Textarea";
 
 interface SupplierFormModalProps {
   isOpen: boolean;
@@ -17,8 +18,8 @@ interface SupplierFormModalProps {
 }
 
 const STATUS_OPTIONS = [
-  { value: "active",   label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "active",   label: "Hoạt động" },
+  { value: "inactive", label: "Không hoạt động" },
 ];
 
 export function SupplierFormModal({
@@ -63,111 +64,112 @@ export function SupplierFormModal({
     });
   }
 
-  if (!isOpen || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={initialData ? "Edit Supplier" : "Add Supplier"}
-        className="relative z-10 w-full max-w-lg rounded-2xl bg-white shadow-2xl"
-      >
-        <div className="flex items-center justify-between border-b border-secondary-100 px-6 py-4">
-          <h2 className="text-base font-semibold text-secondary-900">
-            {initialData ? "Edit Supplier" : "Add Supplier"}
-          </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="flex h-8 w-8 items-center justify-center rounded-lg text-secondary-400 hover:bg-secondary-100 transition-colors"
-          >
-            <XMarkIcon className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <Input
-                label="Company Name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. Intel Vietnam Distribution"
-              />
-            </div>
-            <Input
-              label="Contact Name"
-              value={contactName}
-              onChange={(e) => setContactName(e.target.value)}
-              placeholder="e.g. Nguyen Van A"
-            />
-            <Input
-              label="Phone"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="e.g. 028 3456 7890"
-            />
-            <div className="sm:col-span-2">
-              <Input
-                label="Email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="e.g. supply@supplier.com"
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Input
-                label="Address"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                placeholder="Street, District, City"
-              />
-            </div>
-            <Select
-              label="Status"
-              options={STATUS_OPTIONS}
-              value={status}
-              onChange={(v) => setStatus(v as "active" | "inactive")}
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium text-secondary-700">Notes (optional)</label>
-            <textarea
-              rows={2}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Payment terms, delivery notes…"
-              className="w-full resize-none rounded-lg border border-secondary-300 px-3 py-2 text-sm text-secondary-900 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            />
-          </div>
-        </div>
-        <div className="flex justify-end gap-2 border-t border-secondary-100 px-6 py-4">
-          <button
-            type="button"
+  return (
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      size="xl"
+      hideCloseButton
+      animated
+      footer={
+        <>
+          <Button
+            variant="secondary"
             onClick={onClose}
             disabled={isConfirming}
-            className="rounded-xl border border-secondary-200 px-5 py-2.5 text-sm font-medium text-secondary-700 hover:bg-secondary-50 transition-colors disabled:opacity-50"
+            className="rounded-lg"
           >
-            Cancel
-          </button>
+            Huỷ
+          </Button>
           <Button
             variant="primary"
+            className="rounded-lg"
             onClick={handleSubmit}
             disabled={!isValid || isConfirming}
             isLoading={isConfirming}
           >
-            {initialData ? "Save Changes" : "Add Supplier"}
+            {initialData ? "Lưu thay đổi" : "Thêm nhà cung cấp"}
           </Button>
+        </>
+      }
+    >
+      {/* Custom header — break out of Modal body padding to sit flush at top */}
+      <div className="-mx-6 -mt-5 mb-5 flex items-center justify-between border-b border-secondary-100 px-6 py-4">
+        <h2 className="text-base font-semibold text-secondary-900">
+          {initialData ? "Chỉnh sửa nhà cung cấp" : "Thêm nhà cung cấp"}
+        </h2>
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Đóng"
+          className="flex h-8 w-8 items-center justify-center rounded-lg text-secondary-400 hover:bg-secondary-100 transition-colors"
+        >
+          <XMarkIcon className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Body */}
+      <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="sm:col-span-2">
+            <Input
+              label="Tên công ty"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="VD: Intel Vietnam Distribution"
+            />
+          </div>
+          <Input
+            label="Người liên hệ"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            placeholder="VD: Nguyễn Văn A"
+          />
+          <Input
+            label="Số điện thoại"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="VD: 028 3456 7890"
+          />
+          <div className="sm:col-span-2">
+            <Input
+              label="Email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="VD: supply@supplier.com"
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <Textarea
+              label="Địa chỉ"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Số nhà, quận/huyện, thành phố"
+              rows={2}
+              showCharCount
+              maxCharCount={200}
+            />
+          </div>
+          <Select
+            label="Trạng thái"
+            options={STATUS_OPTIONS}
+            value={status}
+            onChange={(v) => setStatus(v as "active" | "inactive")}
+          />
+        </div>
+        <div>
+          <Textarea
+            label="Ghi chú (tuỳ chọn)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Điều khoản thanh toán, ghi chú giao hàng…"
+            rows={2}
+            showCharCount
+            maxCharCount={200}
+          />
         </div>
       </div>
-    </div>,
-    document.body
+    </Modal>
   );
 }

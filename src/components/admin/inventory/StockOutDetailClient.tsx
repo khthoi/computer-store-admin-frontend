@@ -1,22 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
-import { updateStockOutStatus } from "@/src/services/inventory.service";
+import { DataTable, type ColumnDef } from "@/src/components/admin/DataTable";
 import { Tooltip } from "@/src/components/ui/Tooltip";
-import type { StockOutRecord, StockOutStatus, StockOutReason } from "@/src/types/inventory.types";
+import { updateStockOutStatus } from "@/src/services/inventory.service";
+import type { StockOutLineItem, StockOutRecord, StockOutStatus, StockOutReason } from "@/src/types/inventory.types";
+
+type LineItemRow = StockOutLineItem & Record<string, unknown>;
 
 const REASON_LABELS: Record<StockOutReason, string> = {
   internal_use: "Internal Use",
-  damage:       "Damage / Write-off",
-  loss:         "Loss",
-  transfer:     "Transfer",
-  promotional:  "Promotional / Sample",
-  other:        "Other",
+  damage: "Damage / Write-off",
+  loss: "Loss",
+  transfer: "Transfer",
+  promotional: "Promotional / Sample",
+  other: "Other",
 };
 
 function formatDate(s?: string) {
@@ -27,18 +30,67 @@ function formatDate(s?: string) {
 }
 
 const STATUS_FLOW: Record<StockOutStatus, StockOutStatus | null> = {
-  pending:   "packing",
-  packing:   "packed",
-  packed:    null,
+  pending: "packing",
+  packing: "packed",
+  packed: null,
   cancelled: null,
 };
 
 const STATUS_LABELS: Record<StockOutStatus, string> = {
-  pending:   "Start Packing",
-  packing:   "Mark Packed",
-  packed:    "",
+  pending: "Start Packing",
+  packing: "Mark Packed",
+  packed: "",
   cancelled: "",
 };
+
+const LINE_ITEM_COLUMNS: ColumnDef<LineItemRow>[] = [
+  {
+    key: "productName",
+    header: "Sản phẩm / SKU",
+    render: (_, row) => (
+      <div>
+        <div>
+          <Tooltip content={row.productName as string} placement="top">
+            <Link
+              href={`/products/${row.productId as string}`}
+              className="inline-block max-w-[200px] truncate font-medium text-primary-600 hover:underline"
+            >
+              {row.productName as string}
+            </Link>
+          </Tooltip>
+        </div>
+        <div>
+          <Tooltip content={row.variantName as string} placement="top">
+            <span className="inline-block max-w-[200px] truncate">
+              <Link
+                href={`/products/${row.productId as string}/variants/${row.variantId as string}`}
+                className="text-xs text-secondary-500 hover:text-primary-500 hover:underline"
+              >
+                {row.variantName as string}
+              </Link>
+            </span>
+          </Tooltip>
+        </div>
+        <p className="font-mono text-xs text-secondary-400">{row.sku as string}</p>
+      </div>
+    ),
+  },
+  {
+    key: "quantity",
+    header: "Số lượng",
+    align: "center",
+    render: (v) => (
+      <span className="font-semibold text-secondary-900">{v as number}</span>
+    ),
+  },
+  {
+    key: "note",
+    header: "Ghi chú",
+    render: (v) => (
+      <span className="text-xs text-secondary-500">{(v as string | undefined) ?? "—"}</span>
+    ),
+  },
+];
 
 export function StockOutDetailClient({ initialRecord }: { initialRecord: StockOutRecord }) {
   const { showToast } = useToast();
@@ -47,6 +99,11 @@ export function StockOutDetailClient({ initialRecord }: { initialRecord: StockOu
 
   const nextStatus = STATUS_FLOW[record.status];
   const canCancel = record.status === "pending";
+
+  const lineItems = useMemo(
+    () => record.lineItems as LineItemRow[],
+    [record.lineItems]
+  );
 
   async function handleAdvance() {
     if (!nextStatus) return;
@@ -80,33 +137,27 @@ export function StockOutDetailClient({ initialRecord }: { initialRecord: StockOu
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
-            <Link href="/inventory/stock-out" className="hover:text-secondary-700 transition-colors">
-              Stock Out
-            </Link>
-            <span aria-hidden="true">›</span>
-            <span className="font-mono text-secondary-600">{record.id}</span>
-          </nav>
           <div className="mt-1 flex items-center gap-3">
             <h1 className="text-2xl font-bold text-secondary-900">{record.id}</h1>
             <StatusBadge status={record.status} />
           </div>
         </div>
         <div className="flex gap-2">
-          <Link
+          <Button
+            variant="secondary"
             href="/inventory/stock-out"
-            className="inline-flex items-center gap-2 rounded-lg border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 hover:bg-secondary-50 transition-colors"
+            className="rounded-lg"
+            leftIcon={<ArrowLeftIcon className="w-4 h-4" />}
           >
-            <ArrowLeftIcon className="w-4 h-4" />
-            Back
-          </Link>
+            Quay lại
+          </Button>
           {canCancel && (
-            <Button variant="danger" onClick={handleCancel} disabled={isSaving} isLoading={isSaving}>
-              Cancel
+            <Button variant="danger" className="rounded-lg" onClick={handleCancel} disabled={isSaving} isLoading={isSaving}>
+              Huỷ phiếu
             </Button>
           )}
           {nextStatus && (
-            <Button variant="primary" onClick={handleAdvance} disabled={isSaving} isLoading={isSaving}>
+            <Button variant="primary" className="rounded-lg" onClick={handleAdvance} disabled={isSaving} isLoading={isSaving}>
               {STATUS_LABELS[record.status]}
             </Button>
           )}
@@ -117,28 +168,28 @@ export function StockOutDetailClient({ initialRecord }: { initialRecord: StockOu
       <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm">
         <div className="grid gap-4 sm:grid-cols-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Reason</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Lý do xuất kho</p>
             <p className="mt-1 text-sm font-medium text-secondary-800">
               {REASON_LABELS[record.reason] ?? record.reason}
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Scheduled</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Dự kiến</p>
             <p className="mt-1 text-sm text-secondary-800">{formatDate(record.scheduledDate)}</p>
           </div>
           {record.completedDate && (
             <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Completed</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Hoàn thành lúc</p>
               <p className="mt-1 text-sm text-secondary-800">{formatDate(record.completedDate)}</p>
             </div>
           )}
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Created By</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Tạo bởi</p>
             <p className="mt-1 text-sm text-secondary-800">{record.createdBy}</p>
           </div>
           {record.note && (
             <div className="sm:col-span-3">
-              <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Note</p>
+              <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Ghi chú</p>
               <p className="mt-1 text-sm text-secondary-700">{record.note}</p>
             </div>
           )}
@@ -146,56 +197,24 @@ export function StockOutDetailClient({ initialRecord }: { initialRecord: StockOu
       </div>
 
       {/* Line items */}
-      <div className="rounded-2xl border border-secondary-100 bg-white shadow-sm">
+      <div className="rounded-2xl border border-secondary-100 bg-white shadow-sm overflow-hidden">
         <div className="border-b border-secondary-100 px-6 py-4">
-          <h2 className="text-sm font-semibold text-secondary-900">Line Items</h2>
+          <h2 className="text-sm font-semibold text-secondary-900">Chi tiết các mặt hàng</h2>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-secondary-50 text-left text-xs font-semibold uppercase tracking-wide text-secondary-500">
-              <tr>
-                <th className="px-4 py-3">Product / SKU</th>
-                <th className="px-4 py-3 text-center">Quantity</th>
-                <th className="px-4 py-3">Note</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-secondary-100">
-              {record.lineItems.map((item) => (
-                <tr key={item.id} className="text-secondary-700">
-                  <td className="px-4 py-3">
-                    <div>
-                      <Tooltip content={item.productName} placement="top">
-                        <Link
-                          href={`/products/${item.productId}`}
-                          className="inline-block max-w-[200px] truncate font-medium text-primary-600 hover:underline"
-                        >
-                          {item.productName}
-                        </Link>
-                      </Tooltip>
-                    </div>
-                    <div>
-                      <Tooltip content={item.variantName} placement="top">
-                        <span className="inline-block max-w-[200px] truncate">
-                          <Link
-                            href={`/products/${item.productId}/variants/${item.variantId}`}
-                            className="text-xs text-secondary-500 hover:text-primary-500 hover:underline"
-                          >
-                            {item.variantName}
-                          </Link>
-                        </span>
-                      </Tooltip>
-                    </div>
-                    <p className="font-mono text-xs text-secondary-400">{item.sku}</p>
-                  </td>
-                  <td className="px-4 py-3 text-center font-semibold text-secondary-900">
-                    {item.quantity}
-                  </td>
-                  <td className="px-4 py-3 text-xs text-secondary-500">{item.note ?? "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <DataTable
+          data={lineItems}
+          columns={LINE_ITEM_COLUMNS}
+          keyField="id"
+          className="!rounded-none !border-0 !shadow-none"
+          page={1}
+          pageSize={lineItems.length || 10}
+          totalRows={lineItems.length}
+          onPageChange={() => {}}
+          onPageSizeChange={() => {}}
+          hidePagination
+          emptyMessage="Không có mặt hàng nào."
+          searchPlaceholder="Tìm sản phẩm…"
+        />
       </div>
     </div>
   );

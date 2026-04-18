@@ -100,7 +100,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
   const txnColumns: ColumnDef<LoyaltyPointTransaction & Record<string, unknown>>[] = [
     {
       key: "createdAt",
-      header: "Date",
+      header: "thời gian",
       width: "w-[12%]",
       render: (v) => (
         <span className="text-xs text-secondary-600">{formatDateTime(v as string)}</span>
@@ -108,13 +108,13 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
     },
     {
       key: "type",
-      header: "Type",
+      header: "Loại",
       width: "w-[10%]",
       render: (v) => <StatusBadge status={v as string} size="sm" />,
     },
     {
       key: "description",
-      header: "Description",
+      header: "Mô tả",
       width: "w-[40%]",
       render: (v) => (
         <Tooltip content={v as string} anchorToContent>
@@ -124,7 +124,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
     },
     {
       key: "points",
-      header: "Points",
+      header: "Điểm",
       width: "w-[10%]",
       align: "right",
       render: (v) => {
@@ -145,8 +145,8 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
     },
     {
       key: "balanceAfter",
-      header: "Balance After",
-      width: "w-[10%]",
+      header: "Số dư sau giao dịch",
+      width: "w-[20%]",
       align: "right",
       render: (v) => (
         <span className="text-sm text-secondary-600">
@@ -161,7 +161,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
   const redColumns: ColumnDef<LoyaltyRedemption & Record<string, unknown>>[] = [
     {
       key: "redeemedAt",
-      header: "Date",
+      header: "thời gian",
       width: "w-[12%]",
       render: (v) => (
         <span className="text-xs text-secondary-600">{formatDateTime(v as string)}</span>
@@ -169,7 +169,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
     },
     {
       key: "catalogItemName",
-      header: "Catalog Item",
+      header: "Mặt hàng",
       width: "w-[20%]",
       render: (v) => (
         <Tooltip content={v as string} anchorToContent>
@@ -179,8 +179,8 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
     },
     {
       key: "pointsSpent",
-      header: "Points Spent",
-      width: "w-[10%]",
+      header: "Điểm đã dùng",
+      width: "w-[15%]",
       align: "right",
       render: (v) => (
         <span className="text-sm font-semibold text-error-600">
@@ -214,14 +214,15 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
     },
     {
       key: "status",
-      header: "Status",
+      header: "trạng thái",
       width: "w-[10%]",
       render: (v) => <StatusBadge status={v as string} size="sm" />,
     },
     {
       key: "orderId",
-      header: "Used In Order",
-      width: "w-[15%]",
+      header: "sử dụng cho",
+      width: "w-[12%]",
+      align: "right",
       render: (v) =>
         v ? (
           <Link
@@ -241,7 +242,7 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
       {/* ── Balance Card ── */}
       <div className="rounded-2xl border border-primary-200 bg-primary-50 p-6">
         <p className="text-xs font-semibold uppercase tracking-wide text-primary-500 mb-1">
-          Current Balance
+          Số điểm hiện tại
         </p>
         <p className="text-3xl font-bold text-primary-700 mb-4">
           {summary.currentBalance.toLocaleString("vi-VN")} pts
@@ -251,26 +252,26 @@ export function CustomerLoyaltyTab({ customerId }: Props) {
           <div className="mb-4">
             <span className="inline-flex items-center gap-1.5 rounded-full bg-warning-100 border border-warning-200 px-3 py-1 text-xs font-semibold text-warning-700">
               <SparklesIcon className="w-3.5 h-3.5" />
-              {summary.pendingPoints.toLocaleString("vi-VN")} pts pending confirmation
+              {summary.pendingPoints.toLocaleString("vi-VN")} pts đang chờ duyệt
             </span>
           </div>
         ) : null}
 
         <div className="grid grid-cols-3 gap-4 border-t border-primary-200 pt-4">
           <div className="text-center">
-            <p className="text-xs text-primary-500 mb-1">Lifetime Earned</p>
+            <p className="text-xs text-primary-500 mb-1">Tổng điểm kiếm được</p>
             <p className="font-semibold text-primary-800">
               {summary.lifetimeEarned.toLocaleString("vi-VN")} pts
             </p>
           </div>
           <div className="text-center border-x border-primary-200">
-            <p className="text-xs text-primary-500 mb-1">Lifetime Spent</p>
+            <p className="text-xs text-primary-500 mb-1">Tổng điểm đã dùng</p>
             <p className="font-semibold text-primary-800">
               {summary.lifetimeSpent.toLocaleString("vi-VN")} pts
             </p>
           </div>
           <div className="text-center">
-            <p className="text-xs text-primary-500 mb-1">Total Redemptions</p>
+            <p className="text-xs text-primary-500 mb-1">Tổng số lần đổi điểm</p>
             <p className="font-semibold text-primary-800">{summary.totalRedemptions}</p>
           </div>
         </div>

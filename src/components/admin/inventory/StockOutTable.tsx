@@ -56,7 +56,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "reason",
-    header: "Reason",
+    header: "lý do",
     render: (_, row) => {
       const label = REASON_LABELS[row.reason as StockOutReason] ?? (row.reason as string);
       return (
@@ -70,14 +70,14 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "status",
-    header: "Status",
+    header: "trạng thái",
     sortable: true,
     align: "center",
     render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
   },
   {
     key: "itemCount",
-    header: "Items",
+    header: "Số lượng",
     sortable: true,
     align: "center",
     render: (_, row) => (
@@ -86,7 +86,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "scheduledDate",
-    header: "Scheduled",
+    header: "dự kiến",
     sortable: true,
     render: (_, row) => (
       <span className="whitespace-nowrap text-sm text-secondary-600">
@@ -96,7 +96,7 @@ const COLUMNS: ColumnDef<Row>[] = [
   },
   {
     key: "createdBy",
-    header: "Created By",
+    header: "tao bởi",
     render: (_, row) => (
       <span className="text-sm text-secondary-500">{row.createdBy as string}</span>
     ),
@@ -169,7 +169,7 @@ export function StockOutTable({ initialRecords }: { initialRecords: StockOutSumm
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
       searchQuery={q}
       onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder="Search by ID or reason…"
+      searchPlaceholder="Tìm kiếm theo ID hoặc lý do…"
       toolbarActions={toolbarActions}
       page={page}
       pageSize={pageSize}

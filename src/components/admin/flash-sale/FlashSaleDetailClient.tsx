@@ -10,15 +10,17 @@ import {
   ChartBarIcon,
   CubeIcon,
   InformationCircleIcon,
-  StopIcon,
   NoSymbolIcon,
+  StopCircleIcon
 } from "@heroicons/react/24/outline";
 import { Button }   from "@/src/components/ui/Button";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
 import { useToast } from "@/src/components/ui/Toast";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { FlashSaleStatusBadge }     from "./FlashSaleStatusBadge";
 import { FlashSaleCountdownTimer }  from "./FlashSaleCountdownTimer";
 import { ConfirmDialog }            from "@/src/components/admin/ConfirmDialog";
+import { DataTable, type ColumnDef } from "@/src/components/admin/DataTable";
 import {
   getFlashSaleById,
   cancelFlashSale,
@@ -26,6 +28,9 @@ import {
 } from "@/src/services/flash-sale.service";
 import { formatVND, formatDateTime } from "@/src/lib/format";
 import type { FlashSale, FlashSaleItem } from "@/src/types/flash-sale.types";
+
+// DataTable requires T extends Record<string, unknown>
+type FlashSaleItemRow = FlashSaleItem & Record<string, unknown>;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -65,6 +70,169 @@ function ItemProgressBar({ sold, limit }: { sold: number; limit: number }) {
     </div>
   );
 }
+
+/** Variant name cell: thumbnail + product name + clickable variant link + SKU */
+function VariantNameCell({ item }: { item: FlashSaleItem }) {
+  const variantHref = item.sanPhamId
+    ? `/products/${item.sanPhamId}/variants/${item.phienBanId}`
+    : null;
+
+  return (
+    <div className="flex items-center gap-2">
+      <div className="shrink-0 h-10 w-10 rounded-lg border border-secondary-100 bg-secondary-50 flex items-center justify-center overflow-hidden">
+        {item.hinhAnh ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={item.hinhAnh} alt="" className="h-full w-full object-cover rounded-lg" />
+        ) : (
+          <PhotoIcon className="h-5 w-5 text-secondary-300" aria-hidden="true" />
+        )}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xs text-secondary-500 truncate max-w-[280px]">{item.sanPhamTen}</p>
+        {variantHref ? (
+          <Tooltip
+            content={`${item.tenPhienBan} — ${item.skuSnapshot}`}
+            placement="top"
+          >
+            <Link
+              href={variantHref}
+              className="block truncate max-w-[280px] font-medium text-primary-600 hover:text-primary-700 hover:underline underline-offset-2 text-sm"
+            >
+              {item.tenPhienBan}
+            </Link>
+          </Tooltip>
+        ) : (
+          <p className="truncate max-w-[280px] font-medium text-secondary-900 text-sm">
+            {item.tenPhienBan}
+          </p>
+        )}
+        <p className="font-mono text-xs text-secondary-400 mt-0.5">{item.skuSnapshot}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Stats tab variant name cell: link + SKU */
+function StatsVariantCell({ item }: { item: FlashSaleItem }) {
+  const variantHref = item.sanPhamId
+    ? `/products/${item.sanPhamId}/variants/${item.phienBanId}`
+    : null;
+
+  return (
+    <div className="min-w-0">
+      {variantHref ? (
+        <Tooltip
+          content={`${item.tenPhienBan} — ${item.skuSnapshot}`}
+          placement="top"
+        >
+          <Link
+            href={variantHref}
+            className="block truncate max-w-[280px] font-medium text-primary-600 hover:text-primary-700 hover:underline underline-offset-2"
+          >
+            {item.tenPhienBan}
+          </Link>
+        </Tooltip>
+      ) : (
+        <p className="truncate max-w-[280px] font-medium text-secondary-900">
+          {item.tenPhienBan}
+        </p>
+      )}
+      <p className="font-mono text-xs text-secondary-400 mt-0.5">{item.skuSnapshot}</p>
+    </div>
+  );
+}
+
+// ─── Column definitions ────────────────────────────────────────────────────────
+
+const PRODUCT_COLUMNS: ColumnDef<FlashSaleItemRow>[] = [
+  {
+    key: "tenPhienBan",
+    header: "Phiên bản sản phẩm",
+    render: (_, row) => <VariantNameCell item={row as unknown as FlashSaleItem} />,
+  },
+  {
+    key: "giaGocSnapshot",
+    header: "Giá gốc",
+    align: "right",
+    render: (v) => (
+      <span className="text-xs text-secondary-500 whitespace-nowrap">
+        {formatVND(v as number)}
+      </span>
+    ),
+  },
+  {
+    key: "giaFlash",
+    header: "Giá flash",
+    align: "right",
+    render: (v) => (
+      <span className="font-semibold text-primary-700 whitespace-nowrap">
+        {formatVND(v as number)}
+      </span>
+    ),
+  },
+  {
+    key: "discountPct",
+    header: "% Giảm",
+    align: "center",
+    render: (_, row) => {
+      const item = row as unknown as FlashSaleItem;
+      const pct = discountPct(item.giaFlash, item.giaGocSnapshot);
+      return pct > 0 ? (
+        <span className="rounded-md bg-success-50 border border-success-200 px-1.5 py-0.5 text-xs font-bold text-success-700">
+          -{pct}%
+        </span>
+      ) : null;
+    },
+  },
+  {
+    key: "soLuongDaBan",
+    header: "Đã bán / Giới hạn",
+    width: "min-w-[140px]",
+    render: (_, row) => {
+      const item = row as unknown as FlashSaleItem;
+      return <ItemProgressBar sold={item.soLuongDaBan} limit={item.soLuongGioiHan} />;
+    },
+  },
+  {
+    key: "thuTuHienThi",
+    header: "Thứ tự",
+    align: "center",
+  },
+];
+
+// Stats tab columns — sorted by revenue, computed outside to avoid re-creation
+function buildStatsColumns(): ColumnDef<FlashSaleItemRow>[] {
+  return [
+    {
+      key: "tenPhienBan",
+      header: "Phiên bản",
+      render: (_, row) => <StatsVariantCell item={row as unknown as FlashSaleItem} />,
+    },
+    {
+      key: "soLuongDaBan",
+      header: "Đã bán",
+      align: "right",
+      render: (v) => (
+        <span className="text-secondary-700">{v as number}</span>
+      ),
+    },
+    {
+      key: "doanhThuFlash",
+      header: "Doanh thu flash",
+      align: "right",
+      render: (_, row) => {
+        const item = row as unknown as FlashSaleItem;
+        return (
+          <span className="font-semibold text-primary-700">
+            {formatVND(item.giaFlash * item.soLuongDaBan)}
+          </span>
+        );
+      },
+    },
+  ];
+}
+
+const STATS_COLUMNS = buildStatsColumns();
 
 // ─── Tabs config ───────────────────────────────────────────────────────────────
 
@@ -144,6 +312,10 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
     (s, i) => s + i.giaFlash * i.soLuongDaBan, 0
   );
 
+  const productRows = flashSale.items as FlashSaleItemRow[];
+  const statsRows = [...flashSale.items]
+    .sort((a, b) => b.giaFlash * b.soLuongDaBan - a.giaFlash * a.soLuongDaBan) as FlashSaleItemRow[];
+
   return (
     <div className="p-6 space-y-6">
 
@@ -189,6 +361,7 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
               variant="secondary"
               onClick={() => router.push(`/promotions/flash-sales/${flashSale.flashSaleId}/edit`)}
               disabled={isBusy}
+              className="rounded-lg"
             >
               <PencilSquareIcon className="w-4 h-4 mr-1.5" />
               Chỉnh sửa
@@ -197,11 +370,12 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
 
           {canEnd && (
             <Button
-              variant="warning"
+              variant="danger"
               onClick={() => setShowEndDialog(true)}
               disabled={isBusy}
+              className="rounded-lg"
             >
-              <StopIcon className="w-4 h-4 mr-1.5" />
+              <StopCircleIcon className="w-4 h-4 mr-1.5" />
               Kết thúc sớm
             </Button>
           )}
@@ -280,77 +454,20 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
         {/* ── Tab 2: Products ──────────────────────────────────────────────── */}
         <TabPanel value="products">
           <div className="rounded-2xl border border-secondary-100 bg-white shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-secondary-50 border-b border-secondary-100">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-secondary-500 uppercase tracking-wide">
-                      Sản phẩm / SKU
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-secondary-500 uppercase tracking-wide whitespace-nowrap">
-                      Giá gốc
-                    </th>
-                    <th className="px-4 py-3 text-right text-xs font-semibold text-secondary-500 uppercase tracking-wide whitespace-nowrap">
-                      Giá flash
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-secondary-500 uppercase tracking-wide whitespace-nowrap">
-                      % Giảm
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-semibold text-secondary-500 uppercase tracking-wide min-w-[140px]">
-                      Đã bán / Giới hạn
-                    </th>
-                    <th className="px-4 py-3 text-center text-xs font-semibold text-secondary-500 uppercase tracking-wide">
-                      Thứ tự
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-secondary-50">
-                  {flashSale.items.map((item: FlashSaleItem) => {
-                    const pct = discountPct(item.giaFlash, item.giaGocSnapshot);
-                    return (
-                      <tr key={item.flashSaleItemId} className="hover:bg-secondary-50/60 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="shrink-0 h-10 w-10 rounded-lg border border-secondary-100 bg-secondary-50 flex items-center justify-center">
-                              {item.hinhAnh ? (
-                                // eslint-disable-next-line @next/next/no-img-element
-                                <img src={item.hinhAnh} alt="" className="h-full w-full object-cover rounded-lg" />
-                              ) : (
-                                <PhotoIcon className="h-5 w-5 text-secondary-300" aria-hidden="true" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs text-secondary-500">{item.sanPhamTen}</p>
-                              <p className="font-medium text-secondary-900">{item.tenPhienBan}</p>
-                              <p className="font-mono text-xs text-secondary-400">{item.skuSnapshot}</p>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 text-right text-secondary-500 whitespace-nowrap text-xs">
-                          {formatVND(item.giaGocSnapshot)}
-                        </td>
-                        <td className="px-4 py-3 text-right font-semibold text-primary-700 whitespace-nowrap">
-                          {formatVND(item.giaFlash)}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          {pct > 0 && (
-                            <span className="rounded-md bg-success-50 border border-success-200 px-1.5 py-0.5 text-xs font-bold text-success-700">
-                              -{pct}%
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <ItemProgressBar sold={item.soLuongDaBan} limit={item.soLuongGioiHan} />
-                        </td>
-                        <td className="px-4 py-3 text-center text-secondary-700">
-                          {item.thuTuHienThi}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+            <DataTable
+              bare
+              hideToolbar
+              hidePagination
+              data={productRows}
+              keyField="flashSaleItemId"
+              columns={PRODUCT_COLUMNS}
+              page={1}
+              pageSize={productRows.length || 1}
+              totalRows={productRows.length}
+              onPageChange={() => {}}
+              onPageSizeChange={() => {}}
+              emptyMessage="Chưa có phiên bản nào trong flash sale này."
+            />
           </div>
         </TabPanel>
 
@@ -383,33 +500,20 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
                     Phiên bản theo doanh thu flash
                   </h3>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm">
-                    <thead className="bg-secondary-50">
-                      <tr>
-                        <th className="px-4 py-2.5 text-left text-xs font-semibold text-secondary-500 uppercase tracking-wide">Phiên bản</th>
-                        <th className="px-4 py-2.5 text-right text-xs font-semibold text-secondary-500 uppercase tracking-wide">Đã bán</th>
-                        <th className="px-4 py-2.5 text-right text-xs font-semibold text-secondary-500 uppercase tracking-wide">Doanh thu flash</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-secondary-50">
-                      {[...flashSale.items]
-                        .sort((a, b) => b.giaFlash * b.soLuongDaBan - a.giaFlash * a.soLuongDaBan)
-                        .map((item) => (
-                          <tr key={item.flashSaleItemId} className="hover:bg-secondary-50/60">
-                            <td className="px-4 py-2.5">
-                              <p className="font-medium text-secondary-900">{item.tenPhienBan}</p>
-                              <p className="font-mono text-xs text-secondary-400">{item.skuSnapshot}</p>
-                            </td>
-                            <td className="px-4 py-2.5 text-right text-secondary-700">{item.soLuongDaBan}</td>
-                            <td className="px-4 py-2.5 text-right font-semibold text-primary-700">
-                              {formatVND(item.giaFlash * item.soLuongDaBan)}
-                            </td>
-                          </tr>
-                        ))}
-                    </tbody>
-                  </table>
-                </div>
+                <DataTable
+                  bare
+                  hideToolbar
+                  hidePagination
+                  data={statsRows}
+                  keyField="flashSaleItemId"
+                  columns={STATS_COLUMNS}
+                  page={1}
+                  pageSize={statsRows.length || 1}
+                  totalRows={statsRows.length}
+                  onPageChange={() => {}}
+                  onPageSizeChange={() => {}}
+                  emptyMessage="Chưa có dữ liệu thống kê."
+                />
               </div>
             </div>
           )}

@@ -113,7 +113,7 @@ export function PromotionsTable({
     },
     {
       key: "name",
-      header: "Name",
+      header: "Tên khuyến mãi",
       width: "w-[14%]",
       sortable: true,
       render: (_, row) => (
@@ -133,7 +133,7 @@ export function PromotionsTable({
     },
     {
       key: "type",
-      header: "Type",
+      header: "Loại",
       width: "w-[9%]",
       sortable: true,
       render: (_, row) => (
@@ -144,7 +144,7 @@ export function PromotionsTable({
     },
     {
       key: "scopeDisplay",
-      header: "Scope",
+      header: "Phạm vi",
       width: "w-[10%]",
       render: (_, row) => (
         <Tooltip content={row.scopeDisplay as string} placement="top" anchorToContent>
@@ -165,15 +165,15 @@ export function PromotionsTable({
     },
     {
       key: "status",
-      header: "Status",
-      width: "w-[7%]",
+      header: "trạng thái",
+      width: "w-[8%]",
       align: "center",
       sortable: true,
       render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
     },
     {
       key: "stackingPolicy",
-      header: "Stacking",
+      header: "cộng dồn",
       width: "w-[8%]",
       align: "center",
       render: (_, row) => {
@@ -187,7 +187,7 @@ export function PromotionsTable({
     },
     {
       key: "startDate",
-      header: "Period",
+      header: "Thời gian",
       width: "w-[12%]",
       sortable: true,
       render: (_, row) => (
@@ -198,7 +198,7 @@ export function PromotionsTable({
     },
     {
       key: "usageCount",
-      header: "Usage",
+      header: "lượt dùng",
       width: "w-[8%]",
       sortable: true,
       render: (_, row) => {
@@ -224,7 +224,7 @@ export function PromotionsTable({
     },
     {
       key: "priority",
-      header: "Priority",
+      header: "Ưu tiên",
       width: "w-[7%]",
       align: "center",
       sortable: true,

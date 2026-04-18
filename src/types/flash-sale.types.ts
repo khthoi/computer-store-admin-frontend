@@ -20,6 +20,8 @@ export interface FlashSaleItem {
   flashSaleItemId: number;
   flashSaleId: number;
   phienBanId: number;
+  /** ID sản phẩm cha (dùng để build link /products/[id]/variants/[variantId]) */
+  sanPhamId?: number;
   /** Tên phiên bản (snapshot tại thời điểm thêm vào) */
   tenPhienBan: string;
   /** SKU (snapshot) */
@@ -30,8 +32,10 @@ export interface FlashSaleItem {
   hinhAnh?: string;
   /** Giá flash sale */
   giaFlash: number;
-  /** Snapshot của gia_ban lúc thêm vào (để tính % giảm) */
+  /** Snapshot giá bán thường (gia_ban) tại thời điểm thêm vào — dùng để tính % giảm */
   giaGocSnapshot: number;
+  /** Snapshot giá niêm yết gốc (gia_goc) — giá cao nhất trước khi áp dụng chiết khấu */
+  giaGoc?: number;
   /** Số lượng tối đa bán được trong sự kiện */
   soLuongGioiHan: number;
   /** Số lượng đã bán trong sự kiện */
@@ -81,11 +85,14 @@ export interface FlashSaleSummary {
 export interface FlashSaleItemPayload {
   phienBanId: number;
   giaFlash: number;
-  /** Snapshot giá gốc (gia_ban tại thời điểm thêm) */
+  /** Snapshot giá bán thường (gia_ban) tại thời điểm thêm — dùng để tính % giảm */
   giaGocSnapshot: number;
+  /** Snapshot giá niêm yết gốc (gia_goc) — hiển thị để so sánh */
+  giaGoc?: number;
   soLuongGioiHan: number;
   thuTuHienThi: number;
   // Display-only fields kept for UI rendering, stripped before API call
+  sanPhamId?: number;
   tenPhienBan?: string;
   skuSnapshot?: string;
   sanPhamTen?: string;
@@ -117,11 +124,15 @@ export interface FlashSaleStats {
 
 export interface VariantSearchResult {
   phienBanId: number;
+  sanPhamId?: number;
   tenPhienBan: string;
   sku: string;
   sanPhamTen: string;
   hinhAnh?: string;
+  /** Giá bán thường (dùng làm giaGocSnapshot để tính % giảm flash) */
   giaBan: number;
+  /** Giá niêm yết gốc — cao hơn giaBan (trước chiết khấu thường) */
+  giaGoc?: number;
   trangThai: string;
   tonKho: number;
 }

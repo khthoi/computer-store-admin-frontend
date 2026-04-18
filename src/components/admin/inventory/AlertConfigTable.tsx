@@ -70,14 +70,14 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
       },
       {
         key: "alertLevel",
-        header: "Alert Status",
+        header: "trạng thái",
         sortable: true,
         align: "center",
         render: (_, row) => <StatusBadge status={row.alertLevel as string} size="sm" />,
       },
       {
         key: "quantityOnHand",
-        header: "On Hand",
+        header: "Tồn kho",
         sortable: true,
         align: "center",
         render: (_, row) => (
@@ -88,7 +88,7 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
       },
       {
         key: "lowStockThreshold",
-        header: "Alert Threshold",
+        header: "Ngưỡng cảnh báo",
         sortable: true,
         align: "center",
         render: (_, row) => {
@@ -114,7 +114,7 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
       },
       {
         key: "quantityAvailable",
-        header: "Available",
+        header: "Có sẵn",
         align: "center",
         render: (_, row) => (
           <span className="text-sm text-secondary-600">{row.quantityAvailable as number}</span>
@@ -130,7 +130,7 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
             onClick={() => onEdit(row as unknown as InventoryItem)}
             className="rounded-lg border border-secondary-200 px-3 py-1.5 text-xs font-medium text-secondary-700 hover:bg-secondary-50 transition-colors whitespace-nowrap"
           >
-            Edit Threshold
+            Cấu hình
           </button>
         ),
       },
@@ -188,7 +188,7 @@ export function AlertConfigTable({ items, onEdit }: AlertConfigTableProps) {
       onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
       searchQuery={q}
       onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder="Search by product, variant or SKU…"
+      searchPlaceholder="Tìm kiếm theo tên sản phẩm, biến thể hoặc SKU..."
       toolbarActions={toolbarActions}
       page={page}
       pageSize={pageSize}

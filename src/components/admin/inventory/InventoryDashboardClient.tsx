@@ -61,16 +61,16 @@ export function InventoryDashboardClient({ stats }: { stats: InventoryStats }) {
     <div className="space-y-6 p-6">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Inventory Overview</h1>
+        <h1 className="text-2xl font-bold text-secondary-900">Tổng quan tồn kho</h1>
         <p className="mt-1 text-sm text-secondary-500">
-          Real-time stock health across all SKUs.
+          Tình trạng tồn kho thời gian thực và các số liệu cơ bản của kho.
         </p>
       </div>
 
       {/* Stats grid */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         <StatCard
-          label="Total SKUs"
+          label="Tổng số SKU"
           value={stats.totalSkus}
           icon={<ArchiveBoxIcon className="w-6 h-6" />}
           iconBg="bg-primary-50"
@@ -78,21 +78,21 @@ export function InventoryDashboardClient({ stats }: { stats: InventoryStats }) {
           href="/inventory/items"
         />
         <StatCard
-          label="Total Units on Hand"
+          label="Tổng số lượng tồn kho"
           value={stats.totalUnits.toLocaleString("vi-VN")}
           icon={<ArchiveBoxIcon className="w-6 h-6" />}
           iconBg="bg-info-50"
           iconColor="text-info-600"
         />
         <StatCard
-          label="Inventory Value"
+          label="Giá trị tồn kho"
           value={formatVND(stats.totalInventoryValue)}
           icon={<CurrencyDollarIcon className="w-6 h-6" />}
           iconBg="bg-success-50"
           iconColor="text-success-600"
         />
         <StatCard
-          label="Low Stock SKUs"
+          label="Tồn kho thấp (SKUs)"
           value={stats.lowStockCount}
           icon={<ExclamationTriangleIcon className="w-6 h-6" />}
           iconBg="bg-warning-50"
@@ -101,7 +101,7 @@ export function InventoryDashboardClient({ stats }: { stats: InventoryStats }) {
           alert={stats.lowStockCount > 0}
         />
         <StatCard
-          label="Out of Stock SKUs"
+          label="Hết hàng (SKUs)"
           value={stats.outOfStockCount}
           icon={<NoSymbolIcon className="w-6 h-6" />}
           iconBg="bg-error-50"
@@ -110,7 +110,7 @@ export function InventoryDashboardClient({ stats }: { stats: InventoryStats }) {
           alert={stats.outOfStockCount > 0}
         />
         <StatCard
-          label="Pending Stock-In"
+          label="Đang chờ nhập kho"
           value={stats.pendingStockIn}
           icon={<ArrowDownTrayIcon className="w-6 h-6" />}
           iconBg="bg-info-50"
@@ -118,7 +118,7 @@ export function InventoryDashboardClient({ stats }: { stats: InventoryStats }) {
           href="/inventory/stock-in"
         />
         <StatCard
-          label="Pending Returns"
+          label="Đang chờ hoàn trả"
           value={stats.pendingReturns}
           icon={<ArrowPathIcon className="w-6 h-6" />}
           iconBg="bg-secondary-100"
@@ -129,42 +129,42 @@ export function InventoryDashboardClient({ stats }: { stats: InventoryStats }) {
 
       {/* Quick links */}
       <div className="rounded-2xl border border-secondary-100 bg-white p-5 shadow-sm">
-        <h2 className="mb-4 text-sm font-semibold text-secondary-900">Quick Actions</h2>
+        <h2 className="mb-4 text-sm font-semibold text-secondary-900">Hành động nhanh</h2>
         <div className="flex flex-wrap gap-3">
           <Link
             href="/inventory/stock-in/new"
             className="inline-flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
           >
             <ArrowDownTrayIcon className="w-4 h-4" />
-            New Stock-In
+            Nhập hàng mới
           </Link>
           <Link
             href="/inventory/stock-out"
             className="inline-flex items-center gap-2 rounded-xl border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
           >
             <ArrowPathIcon className="w-4 h-4" />
-            View Stock-Out
+            Xem đơn xuất kho
           </Link>
           <Link
             href="/orders/returns"
             className="inline-flex items-center gap-2 rounded-xl border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
           >
             <ArrowPathIcon className="w-4 h-4" />
-            View Returns
+            Xem hàng hoàn trả
           </Link>
           <Link
             href="/inventory/movements"
             className="inline-flex items-center gap-2 rounded-xl border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
           >
             <ArchiveBoxIcon className="w-4 h-4" />
-            Movements Log
+            Xem lịch sử kho
           </Link>
           <Link
             href="/inventory/suppliers"
             className="inline-flex items-center gap-2 rounded-xl border border-secondary-200 bg-white px-4 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50"
           >
             <ArchiveBoxIcon className="w-4 h-4" />
-            Suppliers
+            Nhà cung cấp
           </Link>
         </div>
       </div>
