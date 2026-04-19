@@ -1,8 +1,6 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
-import { PlusIcon } from "@heroicons/react/24/outline";
-import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
 import {
   CategoryTreeView,
@@ -43,6 +41,9 @@ import {
   assignSpecGroup,
   removeSpecGroupAssignment,
   reorderSpecGroupsForCategory,
+  toggleSpecGroupFilter,
+  createOverrideRecord,
+  cancelOverrideRecord,
 } from "@/src/services/category_spec.service";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -318,6 +319,38 @@ export function CategoriesPageClient({
     await reorderSpecGroupsForCategory(selectedCategoryId, orderedIds);
   }
 
+  async function handleToggleFilter(specGroupId: string, hienThiBoLoc: boolean) {
+    if (!selectedCategoryId) return;
+    try {
+      await toggleSpecGroupFilter(selectedCategoryId, specGroupId, hienThiBoLoc);
+      showToast(
+        hienThiBoLoc ? "Đã bật hiển thị trong bộ lọc." : "Đã tắt hiển thị trong bộ lọc.",
+        "success"
+      );
+      await reloadSpecView();
+    } catch {
+      showToast("Không thể cập nhật bộ lọc. Vui lòng thử lại.", "error");
+    }
+  }
+
+  async function handleOverrideOrder(specGroupId: string) {
+    if (!selectedCategoryId) return;
+    await createOverrideRecord(selectedCategoryId, specGroupId);
+    showToast("Đã tạo ghi đè thứ tự. Bạn có thể cấu hình bộ lọc riêng cho danh mục này.", "success");
+    await reloadSpecView();
+  }
+
+  async function handleCancelOverride(specGroupId: string) {
+    if (!selectedCategoryId) return;
+    await cancelOverrideRecord(selectedCategoryId, specGroupId);
+    showToast("Đã hoàn tác — nhóm trở về thứ tự mặc định từ danh mục cha.", "success");
+    await reloadSpecView();
+  }
+
+  async function handleRenameGroup(specGroupId: string, name: string) {
+    await handleUpdateGroupMeta(specGroupId, { name });
+  }
+
   // ── Spec group form (create / edit) ───────────────────────────────────────
 
   function handleOpenCreateSpecGroup() {
@@ -393,10 +426,6 @@ export function CategoriesPageClient({
             Quản lý cây danh mục và thuộc tính kỹ thuật của sản phẩm.
           </p>
         </div>
-        <Button variant="primary" onClick={handleOpenCreate}>
-          <PlusIcon className="h-4 w-4 mr-1" aria-hidden="true" />
-          Thêm danh mục
-        </Button>
       </div>
 
       {/* Three-panel body */}
@@ -410,6 +439,7 @@ export function CategoriesPageClient({
             onReorder={handleReorderCategories}
             selectedId={selectedCategoryId ?? undefined}
             onSelect={(id) => setSelectedCategoryId(id)}
+            onAdd={handleOpenCreate}
           />
         </div>
 
@@ -426,6 +456,11 @@ export function CategoriesPageClient({
               onSuppressInherited={handleSuppressInherited}
               onRestoreExcluded={handleRestoreExcluded}
               onReorderDirect={handleReorderDirectGroups}
+              onToggleFilter={handleToggleFilter}
+              onUpdateThuTuBoLoc={async () => {}}
+              onOverrideOrder={handleOverrideOrder}
+              onCancelOverride={handleCancelOverride}
+              onRenameGroup={handleRenameGroup}
               loading={specViewLoading}
             />
           ) : (
@@ -469,6 +504,7 @@ export function CategoriesPageClient({
         initialData={editingCat ? toFormData(editingCat) : undefined}
         parentOptions={parentOptions()}
         isSaving={isSavingCategory}
+        editingCategoryName={editingCat?.name}
       />
 
       {/* Spec group picker modal */}

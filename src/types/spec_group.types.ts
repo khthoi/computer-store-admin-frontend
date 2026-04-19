@@ -1,6 +1,6 @@
 // ─── Specification Group domain types ─────────────────────────────────────────
 
-export type SpecAssignmentType = "include" | "exclude";
+export type SpecAssignmentType = "include" | "exclude" | "ghi_de_thu_tu";
 
 // ─── Spec Group ────────────────────────────────────────────────────────────────
 
@@ -21,6 +21,18 @@ export interface SpecGroupFormData {
 
 // ─── Spec Type ────────────────────────────────────────────────────────────────
 
+/**
+ * Kiểu dữ liệu của thông số — ảnh hưởng đến cách nhập liệu ở trang sản phẩm
+ * và cách render widget bộ lọc ở trang danh mục phía cửa hàng.
+ */
+export type SpecDataType = "text" | "number" | "boolean" | "enum";
+
+/**
+ * Dạng widget bộ lọc hiển thị ở trang danh sách sản phẩm phía cửa hàng.
+ * Chỉ có ý nghĩa khi coTheLoc = true.
+ */
+export type FilterWidget = "checkbox" | "range" | "toggle" | "select" | "combo-select";
+
 export interface SpecType {
   id: string;
   groupId: string;
@@ -36,6 +48,19 @@ export interface SpecType {
   maKyThuat?: string;
   displayOrder: number;
   required: boolean;
+
+  // ── Filter / facet fields (ERD: loai_thong_so) ────────────────────────────
+  /** Kiểu dữ liệu của giá trị — quyết định widget nhập liệu và bộ lọc */
+  kieuDuLieu: SpecDataType;
+  /** Đơn vị hiển thị kèm giá trị (chỉ dùng khi kieuDuLieu = 'number'). VD: 'GHz', 'W', 'GB' */
+  donVi?: string;
+  /** Thông số này có được dùng làm facet filter ở trang sản phẩm không */
+  coTheLoc: boolean;
+  /** Dạng widget bộ lọc (chỉ có ý nghĩa khi coTheLoc = true) */
+  widgetLoc?: FilterWidget;
+  /** Thứ tự hiển thị trong sidebar bộ lọc (chỉ có ý nghĩa khi coTheLoc = true) */
+  thuTuLoc: number;
+
   createdAt: string;
   updatedAt: string;
 }
@@ -47,6 +72,11 @@ export interface SpecTypeFormData {
   maKyThuat: string;
   displayOrder: number;
   required: boolean;
+  kieuDuLieu: SpecDataType;
+  donVi: string;
+  coTheLoc: boolean;
+  widgetLoc: FilterWidget | "";
+  thuTuLoc: number;
 }
 
 // ─── Category ↔ SpecGroup assignment ──────────────────────────────────────────
@@ -55,8 +85,23 @@ export interface CategorySpecGroupAssignment {
   id: string;
   categoryId: string;
   specGroupId: string;
+  /**
+   * - include      : gán trực tiếp nhóm này cho danh mục
+   * - exclude      : ẩn nhóm kế thừa từ cha (suppress)
+   * - ghi_de_thu_tu: kế thừa từ cha nhưng override displayOrder trong danh mục này
+   */
   assignmentType: SpecAssignmentType;
   displayOrder: number;
+  /**
+   * Nhóm thông số này có hiện ra trong sidebar bộ lọc của trang sản phẩm không.
+   * Chỉ có ý nghĩa với assignmentType = 'include' hoặc 'ghi_de_thu_tu'.
+   */
+  hienThiBoLoc: boolean;
+  /**
+   * Thứ tự hiển thị của nhóm trong sidebar bộ lọc.
+   * Chỉ có ý nghĩa khi hienThiBoLoc = true.
+   */
+  thuTuBoLoc: number;
   createdAt: string;
 }
 
@@ -71,6 +116,8 @@ export interface EffectiveSpecGroup extends SpecGroup {
   sourceCategoryName: string;
   /** Spec types belonging to this group, sorted by displayOrder */
   specTypes: SpecType[];
+  /** Assignment metadata for this specific category (undefined if purely inherited with no override) */
+  assignment?: Pick<CategorySpecGroupAssignment, "assignmentType" | "displayOrder" | "hienThiBoLoc" | "thuTuBoLoc">;
 }
 
 /** A spec group that this category explicitly suppresses via an exclude record */

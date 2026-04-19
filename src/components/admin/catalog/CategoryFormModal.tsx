@@ -12,6 +12,7 @@ import { Badge } from "@/src/components/ui/Badge";
 import { ColorSelect } from "@/src/components/ui/ColorSelect";
 import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
 import type { ImageFieldValue } from "@/src/components/ui/ImageField";
+import { CategoryParentPicker } from "@/src/components/admin/catalog/CategoryParentPicker";
 import type { CategoryFormData } from "@/src/services/category.service";
 import type { DanhMucNodeType, FilterParams } from "@/src/types/category.types";
 
@@ -24,6 +25,8 @@ interface CategoryFormModalProps {
   initialData?: Partial<CategoryFormData>;
   parentOptions?: { value: string; label: string }[];
   isSaving?: boolean;
+  /** Name of the category being edited — passed to CategoryParentPicker for display */
+  editingCategoryName?: string;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -48,17 +51,17 @@ const NODE_TYPE_OPTIONS = [
 
 /** Predefined filter keys with labels and input type */
 const FILTER_KEYS = [
-  { value: "brand",     label: "brand",     hint: "Slug thương hiệu, VD: asus",           inputType: "text"   },
-  { value: "price_min", label: "price_min", hint: "Giá tối thiểu (VND), VD: 10000000",    inputType: "number" },
-  { value: "price_max", label: "price_max", hint: "Giá tối đa (VND), VD: 20000000",       inputType: "number" },
+  { value: "brand", label: "brand", hint: "Slug thương hiệu, VD: asus", inputType: "text" },
+  { value: "price_min", label: "price_min", hint: "Giá tối thiểu (VND), VD: 10000000", inputType: "number" },
+  { value: "price_max", label: "price_max", hint: "Giá tối đa (VND), VD: 20000000", inputType: "number" },
 ];
 
 /** Options for the key picker Select */
 const FILTER_KEY_OPTIONS = [
-  { value: "brand",     label: "brand",     description: "Slug thương hiệu" },
+  { value: "brand", label: "brand", description: "Slug thương hiệu" },
   { value: "price_min", label: "price_min", description: "Giá tối thiểu (VND)" },
   { value: "price_max", label: "price_max", description: "Giá tối đa (VND)" },
-  { value: "__custom",  label: "Tùy chỉnh…", description: "Nhập tên tham số tùy ý" },
+  { value: "__custom", label: "Tùy chỉnh…", description: "Nhập tên tham số tùy ý" },
 ];
 
 /** Helper – generate a colored letter-avatar SVG data URI for brand logos */
@@ -69,28 +72,28 @@ function mkBrandImg(letter: string, bg: string): string {
 
 /** Mock brand list — replace with GET /admin/brands in production */
 const MOCK_BRANDS = [
-  { value: "asus",            label: "ASUS",             imageUrl: mkBrandImg("A", "#004082") },
-  { value: "msi",             label: "MSI",              imageUrl: mkBrandImg("M", "#bd1220") },
-  { value: "gigabyte",        label: "Gigabyte",         imageUrl: mkBrandImg("G", "#e67e22") },
-  { value: "nvidia",          label: "NVIDIA",           imageUrl: mkBrandImg("N", "#76b900") },
-  { value: "amd",             label: "AMD",              imageUrl: mkBrandImg("A", "#ed1c24") },
-  { value: "intel",           label: "Intel",            imageUrl: mkBrandImg("I", "#0071c5") },
-  { value: "corsair",         label: "Corsair",          imageUrl: mkBrandImg("C", "#1a1a1a") },
-  { value: "kingston",        label: "Kingston",         imageUrl: mkBrandImg("K", "#c8102e") },
-  { value: "samsung",         label: "Samsung",          imageUrl: mkBrandImg("S", "#1428a0") },
-  { value: "western-digital", label: "Western Digital",  imageUrl: mkBrandImg("W", "#02a08d") },
-  { value: "seagate",         label: "Seagate",          imageUrl: mkBrandImg("S", "#00ae42") },
-  { value: "lg",              label: "LG",               imageUrl: mkBrandImg("L", "#a50034") },
-  { value: "logitech",        label: "Logitech",         imageUrl: mkBrandImg("L", "#00b2ff") },
-  { value: "razer",           label: "Razer",            imageUrl: mkBrandImg("R", "#00d000") },
+  { value: "asus", label: "ASUS", imageUrl: mkBrandImg("A", "#004082") },
+  { value: "msi", label: "MSI", imageUrl: mkBrandImg("M", "#bd1220") },
+  { value: "gigabyte", label: "Gigabyte", imageUrl: mkBrandImg("G", "#e67e22") },
+  { value: "nvidia", label: "NVIDIA", imageUrl: mkBrandImg("N", "#76b900") },
+  { value: "amd", label: "AMD", imageUrl: mkBrandImg("A", "#ed1c24") },
+  { value: "intel", label: "Intel", imageUrl: mkBrandImg("I", "#0071c5") },
+  { value: "corsair", label: "Corsair", imageUrl: mkBrandImg("C", "#1a1a1a") },
+  { value: "kingston", label: "Kingston", imageUrl: mkBrandImg("K", "#c8102e") },
+  { value: "samsung", label: "Samsung", imageUrl: mkBrandImg("S", "#1428a0") },
+  { value: "western-digital", label: "Western Digital", imageUrl: mkBrandImg("W", "#02a08d") },
+  { value: "seagate", label: "Seagate", imageUrl: mkBrandImg("S", "#00ae42") },
+  { value: "lg", label: "LG", imageUrl: mkBrandImg("L", "#a50034") },
+  { value: "logitech", label: "Logitech", imageUrl: mkBrandImg("L", "#00b2ff") },
+  { value: "razer", label: "Razer", imageUrl: mkBrandImg("R", "#00d000") },
 ];
 
 const BADGE_PRESETS = [
-  { label: "HOT",      bg: "#ef4444", fg: "#ffffff" },
-  { label: "SALE",     bg: "#f97316", fg: "#ffffff" },
-  { label: "MỚI",      bg: "#22c55e", fg: "#ffffff" },
+  { label: "HOT", bg: "#ef4444", fg: "#ffffff" },
+  { label: "SALE", bg: "#f97316", fg: "#ffffff" },
+  { label: "MỚI", bg: "#22c55e", fg: "#ffffff" },
   { label: "HOT DEAL", bg: "#7c3aed", fg: "#ffffff" },
-  { label: "DEAL",     bg: "#0ea5e9", fg: "#ffffff" },
+  { label: "DEAL", bg: "#0ea5e9", fg: "#ffffff" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -348,27 +351,28 @@ export function CategoryFormModal({
   initialData,
   parentOptions = [],
   isSaving = false,
+  editingCategoryName,
 }: CategoryFormModalProps) {
   const isEdit = Boolean(initialData && Object.keys(initialData).length > 0);
 
   // ── Basic info ──────────────────────────────────────────────────────────────
-  const [name, setName]               = useState(initialData?.name ?? "");
-  const [slug, setSlug]               = useState(initialData?.slug ?? "");
-  const [parentId, setParentId]       = useState(initialData?.parentId ?? "");
+  const [name, setName] = useState(initialData?.name ?? "");
+  const [slug, setSlug] = useState(initialData?.slug ?? "");
+  const [parentId, setParentId] = useState(initialData?.parentId ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [displayOrder, setDisplayOrder] = useState<number>(initialData?.displayOrder ?? 0);
-  const [active, setActive]           = useState(initialData?.active ?? true);
+  const [active, setActive] = useState(initialData?.active ?? true);
 
   // ── Node type + filter params ───────────────────────────────────────────────
-  const [nodeType, setNodeType]       = useState<DanhMucNodeType>(initialData?.nodeType ?? "category");
-  const [filterRows, setFilterRows]   = useState<{ key: string; value: string }[]>(
+  const [nodeType, setNodeType] = useState<DanhMucNodeType>(initialData?.nodeType ?? "category");
+  const [filterRows, setFilterRows] = useState<{ key: string; value: string }[]>(
     paramsToRows(initialData?.filterParams ?? null)
   );
 
   // ── Badge ───────────────────────────────────────────────────────────────────
-  const [badgeText, setBadgeText]     = useState(initialData?.badgeText ?? "");
-  const [badgeBg, setBadgeBg]         = useState(initialData?.badgeBg ?? "#ef4444");
-  const [badgeFg, setBadgeFg]         = useState(initialData?.badgeFg ?? "#ffffff");
+  const [badgeText, setBadgeText] = useState(initialData?.badgeText ?? "");
+  const [badgeBg, setBadgeBg] = useState(initialData?.badgeBg ?? "#ef4444");
+  const [badgeFg, setBadgeFg] = useState(initialData?.badgeFg ?? "#ffffff");
   const hasBadge = badgeText.trim().length > 0;
 
   // ── Image ────────────────────────────────────────────────────────────────────
@@ -432,7 +436,7 @@ export function CategoryFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? "Sửa danh mục" : "Thêm danh mục"}
-      size="2xl"
+      size="3xl"
       footer={footer}
       animated
     >
@@ -471,13 +475,11 @@ export function CategoryFormModal({
               </button>
             </div>
 
-            <Select
-              label="Danh mục cha"
+            <CategoryParentPicker
               options={parentOptions}
               value={parentId}
-              onChange={(v) => setParentId(v as string)}
-              placeholder="(Không có — danh mục gốc)"
-              clearable
+              onChange={setParentId}
+              editingCategoryName={isEdit ? editingCategoryName : undefined}
             />
 
             <Textarea
@@ -506,14 +508,12 @@ export function CategoryFormModal({
                 onChange={(e) => setDisplayOrder(Number(e.target.value))}
                 min={0}
               />
-              <div className="flex flex-col justify-end pb-1">
-                <Toggle
-                  label="Kích hoạt"
-                  checked={active}
-                  onChange={(e) => setActive(e.target.checked)}
-                />
-              </div>
             </div>
+            <Toggle
+              label="Kích hoạt"
+              checked={active}
+              onChange={(e) => setActive(e.target.checked)}
+            />
           </div>
 
           <Divider />
@@ -565,7 +565,7 @@ export function CategoryFormModal({
                 <button
                   type="button"
                   onClick={() => setBadgeText("")}
-                  className="text-xs text-secondary-400 hover:text-error-500 transition-colors"
+                  className="text-xs text-secondary-400 hover:text-error-500 transition-colors bg-secondary-100 hover:bg-error-50 px-2 py-1 rounded-lg"
                 >
                   Xóa badge
                 </button>

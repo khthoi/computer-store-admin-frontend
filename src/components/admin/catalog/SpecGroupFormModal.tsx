@@ -71,7 +71,7 @@ export function SpecGroupFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? `Sửa nhóm thuộc tính` : "Thêm nhóm thuộc tính"}
-      size="md"
+      size="xl"
       animated
       footer={
         <>
@@ -108,6 +108,8 @@ export function SpecGroupFormModal({
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Mô tả ngắn về nhóm thuộc tính này..."
           rows={3}
+          showCharCount
+          maxCharCount={250}
         />
 
         <Input

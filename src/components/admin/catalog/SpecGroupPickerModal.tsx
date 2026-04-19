@@ -69,7 +69,7 @@ export function SpecGroupPickerModal({
       isOpen={isOpen}
       onClose={handleClose}
       title="Thêm nhóm thuộc tính"
-      size="md"
+      size="xl"
       animated
       footer={
         <>

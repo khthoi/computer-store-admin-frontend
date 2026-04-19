@@ -85,8 +85,30 @@ export interface SpecificationItem {
    * Format: lowercase letters, digits, underscores only (e.g. "cpu_socket").
    */
   maKyThuat?: string;
+
+  // ── Metadata từ loai_thong_so ─────────────────────────────────────────────
+  /** Kiểu dữ liệu — ERD: loai_thong_so.kieu_du_lieu */
+  kieuDuLieu?: "text" | "number" | "boolean" | "enum";
+  /** Đơn vị (chỉ khi kieuDuLieu='number') — ERD: loai_thong_so.don_vi */
+  donVi?: string;
+  /** Trường này có bắt buộc nhập không — ERD: loai_thong_so.batBuoc */
+  batBuoc?: boolean;
+  /** Dùng làm facet filter — ERD: loai_thong_so.co_the_loc */
+  coTheLoc?: boolean;
+  /** Dạng widget bộ lọc — ERD: loai_thong_so.widget_loc */
+  widgetLoc?: "checkbox" | "range" | "toggle" | "select" | "combo-select";
+  /** Thứ tự trong sidebar bộ lọc — ERD: loai_thong_so.thu_tu_loc */
+  thuTuLoc?: number;
+  /** Thứ tự hiển thị trong nhóm — ERD: loai_thong_so.thu_tu_hien_thi */
+  thuTuHienThi?: number;
+
+  // ── Giá trị thực tế từ gia_tri_thong_so ──────────────────────────────────
   /** Lightweight HTML — plain text, ul/li, bold/italic only */
   value: string;
+  /** Text chuẩn hóa dùng cho enum filter — ERD: gia_tri_thong_so.gia_tri_chuan */
+  giaTriChuan?: string;
+  /** Giá trị số dùng cho range filter — ERD: gia_tri_thong_so.gia_tri_so */
+  giaTriSo?: number | null;
 }
 
 export interface SpecificationGroup {
@@ -94,6 +116,12 @@ export interface SpecificationGroup {
   label: string;
   /** true = inherited from parent category; false = directly assigned */
   inherited: boolean;
+  /** Thứ tự hiển thị nhóm trong danh mục — ERD: danh_muc_nhom_thong_so.thuTuHienThi */
+  displayOrder?: number;
+  /** Hiển thị nhóm trong sidebar bộ lọc — ERD: danh_muc_nhom_thong_so.hien_thi_bo_loc */
+  hienThiBoLoc?: boolean;
+  /** Thứ tự nhóm trong sidebar bộ lọc — ERD: danh_muc_nhom_thong_so.thu_tu_bo_loc */
+  thuTuBoLoc?: number;
   items: SpecificationItem[];
 }
 

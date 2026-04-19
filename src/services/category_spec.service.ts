@@ -66,7 +66,7 @@ export async function getCategorySpecGroupsView(
   // Map: specGroupId → last-seen assignment (root → leaf resolution)
   const resolved = new Map<
     string,
-    { assignmentType: "include" | "exclude"; sourceCategoryId: string; displayOrder: number }
+    { assignmentType: "include" | "exclude" | "ghi_de_thu_tu"; sourceCategoryId: string; displayOrder: number }
   >();
 
   for (const catId of path) {
@@ -88,12 +88,23 @@ export async function getCategorySpecGroupsView(
     const specTypes = MOCK_SPEC_TYPES.filter((t) => t.groupId === specGroupId).sort(
       (a, b) => a.displayOrder - b.displayOrder
     );
+    const directAssignment = MOCK_CATEGORY_SPEC_ASSIGNMENTS.find(
+      (a) => a.categoryId === categoryId && a.specGroupId === specGroupId
+    );
     return {
       ...group,
       isInherited,
       sourceCategoryId: entry.sourceCategoryId,
       sourceCategoryName: sourceCat?.name ?? "—",
       specTypes,
+      assignment: directAssignment
+        ? {
+            assignmentType: directAssignment.assignmentType,
+            displayOrder: directAssignment.displayOrder,
+            hienThiBoLoc: directAssignment.hienThiBoLoc,
+            thuTuBoLoc: directAssignment.thuTuBoLoc,
+          }
+        : undefined,
     };
   }
 
@@ -110,6 +121,10 @@ export async function getCategorySpecGroupsView(
       } else {
         directIncludes.push(effective);
       }
+    } else if (entry.assignmentType === "ghi_de_thu_tu" && entry.sourceCategoryId === categoryId) {
+      // Inherited group where this category has created a local override record.
+      // Treated as directInclude with isInherited=true so Panel 2 renders it as GhiDeThuTuRow.
+      directIncludes.push(buildEffective(specGroupId, true));
     } else if (
       entry.assignmentType === "exclude" &&
       entry.sourceCategoryId === categoryId
@@ -190,4 +205,40 @@ export async function reorderSpecGroupsForCategory(
   _orderedSpecGroupIds: string[]
 ): Promise<void> {
   await new Promise<void>((r) => setTimeout(r, 300));
+}
+
+/**
+ * Toggle whether a spec group shows in the product filter sidebar for this category.
+ * Requires an existing include or ghi_de_thu_tu assignment on this category.
+ * Mock implementation — replace with UPDATE category_spec_groups SET hien_thi_bo_loc = ?
+ */
+export async function toggleSpecGroupFilter(
+  _categoryId: string,
+  _specGroupId: string,
+  _hienThiBoLoc: boolean
+): Promise<void> {
+  await new Promise<void>((r) => setTimeout(r, 300));
+}
+
+/**
+ * Create a ghi_de_thu_tu override record for an inherited spec group.
+ * Allows this category to configure custom filter settings without removing the inheritance.
+ * Mock implementation — replace with INSERT INTO category_spec_groups (assignment_type = 'ghi_de_thu_tu')
+ */
+export async function createOverrideRecord(
+  _categoryId: string,
+  _specGroupId: string
+): Promise<void> {
+  await new Promise<void>((r) => setTimeout(r, 400));
+}
+
+/**
+ * Remove the ghi_de_thu_tu override record, reverting the group to pure inheritance behavior.
+ * Mock implementation — replace with DELETE FROM category_spec_groups WHERE type = 'ghi_de_thu_tu'
+ */
+export async function cancelOverrideRecord(
+  _categoryId: string,
+  _specGroupId: string
+): Promise<void> {
+  await new Promise<void>((r) => setTimeout(r, 400));
 }

@@ -10,8 +10,10 @@ import {
   TrashIcon,
   ArrowUpIcon,
   ArrowDownIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
+import { Button } from "@/src/components/ui/Button";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 
@@ -32,6 +34,7 @@ interface CategoryTreeViewProps {
   onReorder?: (parentId: string | null, newOrder: CategoryNode[]) => void;
   selectedId?: string;
   onSelect?: (id: string) => void;
+  onAdd?: () => void;
 }
 
 // ─── Node component ───────────────────────────────────────────────────────────
@@ -305,6 +308,7 @@ export function CategoryTreeView({
   onReorder,
   selectedId,
   onSelect,
+  onAdd,
 }: CategoryTreeViewProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 
@@ -319,8 +323,14 @@ export function CategoryTreeView({
 
   return (
     <div className="bg-white rounded-2xl border border-secondary-100 shadow-sm">
-      <div className="px-4 py-3 border-b border-secondary-100">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-secondary-100">
         <h2 className="text-sm font-semibold text-secondary-900">Danh mục sản phẩm</h2>
+        {onAdd && (
+          <Button variant="primary" size="sm" onClick={onAdd}>
+            <PlusIcon className="w-3 h-3 mr-1" aria-hidden="true" />
+            Thêm
+          </Button>
+        )}
       </div>
 
       <div className="p-3">

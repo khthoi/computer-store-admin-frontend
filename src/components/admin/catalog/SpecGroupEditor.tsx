@@ -1,10 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { PlusIcon, LockClosedIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
+import { useState, useEffect } from "react";
+import { Reorder } from "framer-motion";
+import {
+  PlusIcon,
+  LockClosedIcon,
+  ArrowTopRightOnSquareIcon,
+  FunnelIcon,
+} from "@heroicons/react/24/outline";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Checkbox } from "@/src/components/ui/Checkbox";
+import { Toggle } from "@/src/components/ui/Toggle";
+import { Select, type SelectOption } from "@/src/components/ui/Select";
 import { Button } from "@/src/components/ui/Button";
 import { Badge } from "@/src/components/ui/Badge";
 import { Alert } from "@/src/components/ui/Alert";
@@ -13,9 +21,26 @@ import type {
   EffectiveSpecGroup,
   SpecType,
   SpecTypeFormData,
+  SpecDataType,
+  FilterWidget,
 } from "@/src/types/spec_group.types";
 
 const MAX_DESCRIPTION_WORDS = 120;
+
+const DATA_TYPE_OPTIONS: SelectOption[] = [
+  { value: "text", label: "Văn bản" },
+  { value: "number", label: "Số" },
+  { value: "enum", label: "Danh sách chọn" },
+  { value: "boolean", label: "Có / Không" },
+];
+
+const WIDGET_OPTIONS: SelectOption[] = [
+  { value: "checkbox", label: "Checkbox (chọn nhiều)" },
+  { value: "range", label: "Range slider (khoảng số)" },
+  { value: "toggle", label: "Toggle (bật/tắt)" },
+  { value: "select", label: "Select (chọn một)" },
+  { value: "combo-select", label: "Combo-select (kết hợp)" },
+];
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -45,6 +70,10 @@ function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFor
   const [description, setDescription] = useState("");
   const [maKyThuat, setMaKyThuat] = useState("");
   const [required, setRequired] = useState(false);
+  const [kieuDuLieu, setKieuDuLieu] = useState<SpecDataType>("text");
+  const [donVi, setDonVi] = useState("");
+  const [coTheLoc, setCoTheLoc] = useState(false);
+  const [widgetLoc, setWidgetLoc] = useState<FilterWidget | "">("");
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState("");
 
@@ -61,11 +90,20 @@ function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFor
         maKyThuat: maKyThuat.trim(),
         required,
         displayOrder: nextOrder,
+        kieuDuLieu,
+        donVi: donVi.trim(),
+        coTheLoc,
+        widgetLoc: coTheLoc ? (widgetLoc as FilterWidget) || "checkbox" : "",
+        thuTuLoc: coTheLoc ? nextOrder : 0,
       });
       setName("");
       setDescription("");
       setMaKyThuat("");
       setRequired(false);
+      setKieuDuLieu("text");
+      setDonVi("");
+      setCoTheLoc(false);
+      setWidgetLoc("");
       setNameError("");
     } finally {
       setSaving(false);
@@ -91,10 +129,40 @@ function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFor
           errorMessage={nameError || undefined}
         />
 
+        <div className="flex gap-2">
+          <div className="flex-1">
+            <Select
+              label="Kiểu dữ liệu"
+              options={DATA_TYPE_OPTIONS}
+              value={kieuDuLieu}
+              onChange={(val) => {
+                const v = val as SpecDataType;
+                setKieuDuLieu(v);
+                if (v !== "number") setDonVi("");
+                if (v === "boolean") setWidgetLoc("toggle");
+              }}
+              size="sm"
+            />
+          </div>
+          {kieuDuLieu === "number" && (
+            <div className="w-28">
+              <Input
+                label="Đơn vị"
+                value={donVi}
+                onChange={(e) => setDonVi(e.target.value)}
+                placeholder="GHz, W, GB…"
+                size="sm"
+              />
+            </div>
+          )}
+        </div>
+
         <Input
           label="Mã kỹ thuật"
           value={maKyThuat}
-          onChange={(e) => setMaKyThuat(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+          onChange={(e) =>
+            setMaKyThuat(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+          }
           placeholder="VD: cpu_socket, tdp_watt, ram_type…"
           size="sm"
           helperText="Dùng cho engine kiểm tra tương thích Build PC — để trống nếu không cần"
@@ -111,6 +179,45 @@ function AddSpecTypeForm({ groupId: _groupId, nextOrder, onAdd }: AddSpecTypeFor
           showCharCount
           maxCharCount={MAX_DESCRIPTION_WORDS}
         />
+
+        {/* Cấu hình bộ lọc */}
+        <div className="rounded-md border border-secondary-200 bg-white px-3 py-2.5 flex flex-col gap-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-secondary-700 flex items-center gap-1.5">
+              <FunnelIcon className="w-3.5 h-3.5" />
+              Bộ lọc sản phẩm
+            </span>
+            <Toggle
+              checked={coTheLoc}
+              onChange={(e) => {
+                setCoTheLoc(e.target.checked);
+                if (!e.target.checked) {
+                  setWidgetLoc("");
+                } else if (!widgetLoc) {
+                  setWidgetLoc(
+                    kieuDuLieu === "number"
+                      ? "range"
+                      : kieuDuLieu === "boolean"
+                      ? "toggle"
+                      : "checkbox"
+                  );
+                }
+              }}
+              label="Dùng làm facet filter"
+              size="sm"
+            />
+          </div>
+          {coTheLoc && (
+            <Select
+              label="Dạng widget"
+              options={WIDGET_OPTIONS}
+              value={widgetLoc}
+              onChange={(val) => setWidgetLoc(val as FilterWidget)}
+              placeholder="— Chọn widget —"
+              size="sm"
+            />
+          )}
+        </div>
 
         <div className="flex items-center justify-between pt-0.5">
           <Checkbox
@@ -147,24 +254,32 @@ export function SpecGroupEditor({
   onNavigateToCategory,
 }: SpecGroupEditorProps) {
   const isInherited = group.isInherited;
-  const specTypes = localSpecTypes ?? group.specTypes;
+  const sourceSpecTypes = localSpecTypes ?? group.specTypes;
 
-  function handleMoveUp(id: string) {
-    const idx = specTypes.findIndex((t) => t.id === id);
-    if (idx <= 0) return;
-    const newOrder = [...specTypes];
-    [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+  const [dragOrder, setDragOrder] = useState<SpecType[]>(sourceSpecTypes);
+  const [isDirty, setIsDirty] = useState(false);
+  const [savingOrder, setSavingOrder] = useState(false);
+
+  useEffect(() => {
+    if (!isDirty) {
+      setDragOrder(sourceSpecTypes);
+    }
+  }, [sourceSpecTypes, isDirty]);
+
+  function handleDragReorder(newOrder: SpecType[]) {
+    setDragOrder(newOrder);
+    setIsDirty(true);
     onSpecTypesChange?.(newOrder);
-    onReorderSpecTypes(group.id, newOrder.map((t) => t.id));
   }
 
-  function handleMoveDown(id: string) {
-    const idx = specTypes.findIndex((t) => t.id === id);
-    if (idx < 0 || idx >= specTypes.length - 1) return;
-    const newOrder = [...specTypes];
-    [newOrder[idx], newOrder[idx + 1]] = [newOrder[idx + 1], newOrder[idx]];
-    onSpecTypesChange?.(newOrder);
-    onReorderSpecTypes(group.id, newOrder.map((t) => t.id));
+  async function handleSaveOrder() {
+    setSavingOrder(true);
+    try {
+      await onReorderSpecTypes(group.id, dragOrder.map((t) => t.id));
+      setIsDirty(false);
+    } finally {
+      setSavingOrder(false);
+    }
   }
 
   async function handleUpdateSpecType(id: string, data: Partial<SpecTypeFormData>) {
@@ -173,12 +288,16 @@ export function SpecGroupEditor({
 
   async function handleDeleteSpecType(id: string) {
     await onDeleteSpecType(id);
-    onSpecTypesChange?.(specTypes.filter((t) => t.id !== id));
+    const next = dragOrder.filter((t) => t.id !== id);
+    setDragOrder(next);
+    onSpecTypesChange?.(next);
   }
 
   async function handleAddSpecType(data: SpecTypeFormData) {
     const newType = await onAddSpecType(group.id, data);
-    onSpecTypesChange?.([...specTypes, newType]);
+    const next = [...dragOrder, newType];
+    setDragOrder(next);
+    onSpecTypesChange?.(next);
   }
 
   return (
@@ -196,12 +315,21 @@ export function SpecGroupEditor({
             {group.name}
           </h2>
           <Badge variant="default" size="sm" className="shrink-0">
-            {specTypes.length} trường
+            {dragOrder.length} trường
           </Badge>
         </div>
         {group.description && (
           <p className="text-xs text-secondary-400 mt-1 line-clamp-2">{group.description}</p>
         )}
+        {isInherited && (() => {
+          const filterableCount = dragOrder.filter((t) => t.coTheLoc).length;
+          return filterableCount > 0 ? (
+            <p className="text-xs text-secondary-400 mt-1 flex items-center gap-1">
+              <FunnelIcon className="w-3 h-3 text-success-500 shrink-0" aria-hidden="true" />
+              {filterableCount}/{dragOrder.length} thuộc tính dùng làm bộ lọc
+            </p>
+          ) : null;
+        })()}
         {isInherited && (
           <p className="text-xs text-secondary-400 mt-1">
             Kế thừa từ:{" "}
@@ -230,32 +358,48 @@ export function SpecGroupEditor({
           </Alert>
         )}
 
-        {specTypes.length === 0 ? (
+        {dragOrder.length === 0 ? (
           <div className="py-6 flex flex-col items-center gap-2 text-secondary-400 text-sm">
             <p>Chưa có thuộc tính nào trong nhóm này.</p>
           </div>
         ) : (
-          <ul className="space-y-0.5">
-            {specTypes.map((st, idx) => (
-              <SpecTypeRow
-                key={st.id}
-                specType={st}
-                index={idx}
-                total={specTypes.length}
-                readOnly={isInherited}
-                onUpdate={handleUpdateSpecType}
-                onDelete={handleDeleteSpecType}
-                onMoveUp={handleMoveUp}
-                onMoveDown={handleMoveDown}
-              />
-            ))}
-          </ul>
+          <>
+            <Reorder.Group
+              as="ul"
+              axis="y"
+              values={dragOrder}
+              onReorder={handleDragReorder}
+              className="space-y-0.5"
+            >
+              {dragOrder.map((st) => (
+                <SpecTypeRow
+                  key={st.id}
+                  specType={st}
+                  readOnly={isInherited}
+                  onUpdate={handleUpdateSpecType}
+                  onDelete={handleDeleteSpecType}
+                />
+              ))}
+            </Reorder.Group>
+
+            {!isInherited && isDirty && (
+              <div className="mt-3 flex justify-end">
+                <Button
+                  size="sm"
+                  onClick={handleSaveOrder}
+                  disabled={savingOrder}
+                >
+                  {savingOrder ? "Đang lưu..." : "Lưu thứ tự"}
+                </Button>
+              </div>
+            )}
+          </>
         )}
 
         {!isInherited && (
           <AddSpecTypeForm
             groupId={group.id}
-            nextOrder={specTypes.length}
+            nextOrder={dragOrder.length}
             onAdd={handleAddSpecType}
           />
         )}
