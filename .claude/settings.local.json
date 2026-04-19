@@ -32,7 +32,12 @@
       "Bash(rm -f .graphify_detect.json .graphify_extract.json .graphify_ast.json .graphify_semantic.json .graphify_analysis.json .graphify_labels.json .graphify_labels_raw.json .graphify_cached.json .graphify_uncached.txt .graphify_semantic_new.json .graphify_python)",
       "Bash(python -c ' *)",
       "Bash(echo \"exit: $?\")",
-      "Bash(python *)"
+      "Bash(python *)",
+      "Bash(pandoc \"D:/Online PC Store System/Docs/Tài liệu đặc tả ERD - Hệ thống bán lẻ máy tính & linh kiện trực tuyến.docx\" -t markdown --wrap=none)",
+      "Bash(ls \"D:\\\\\\\\Online PC Store System\\\\\\\\Docs\\\\\\\\\")",
+      "Bash(find /d -name \"*.docx\")",
+      "Bash(pandoc \"D:/Online PC Store System/Documentation/System Design/Docs/Tài liệu đặc tả ERD - Hệ thống bán lẻ máy tính & linh kiện trực tuyến.docx\" -t markdown --wrap=none)",
+      "Bash(PYTHONUTF8=1 python generate_backend_doc.py)"
     ]
   }
 }
