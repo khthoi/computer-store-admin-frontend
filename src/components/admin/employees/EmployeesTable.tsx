@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   PlusIcon,
   UserGroupIcon,
@@ -9,12 +10,12 @@ import {
 import {
   DataTable,
   RowActions,
-  RowActionView,
   RowActionEdit,
   RowActionDelete,
   type ColumnDef,
   type SortDir,
 } from "@/src/components/admin/DataTable";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
@@ -160,7 +161,14 @@ export function EmployeesTable({ initialEmployees }: EmployeesTableProps) {
           <div className="flex items-center gap-3">
             <Avatar src={row.avatarUrl as string | undefined} name={row.fullName} size="sm" />
             <div className="min-w-0">
-              <p className="font-medium text-secondary-900 truncate">{row.fullName}</p>
+              <Tooltip content={row.fullName} placement="top" anchorToContent>
+                <Link
+                  href={`/employees/${row.id as string}`}
+                  className="font-medium text-secondary-900 hover:text-primary-600 transition-colors truncate block"
+                >
+                  {row.fullName}
+                </Link>
+              </Tooltip>
               <p className="text-xs text-secondary-400">{row.code}</p>
             </div>
           </div>
@@ -215,13 +223,26 @@ export function EmployeesTable({ initialEmployees }: EmployeesTableProps) {
       {
         key: "_actions",
         header: "",
-        width: "w-24",
+        width: "w-20",
         align: "right",
         render: (_, row): ReactNode => (
           <RowActions>
-            <RowActionView href={`/employees/${row.id}`} />
-            <RowActionEdit onClick={() => { setEditEmployee(row as NhanVien); setModalOpen(true); }} />
-            <RowActionDelete ariaLabel="Xóa nhân viên" onClick={() => handleDeleteClick(row as NhanVien)} />
+            <Tooltip content="Sửa" placement="top">
+              <span className="inline-flex">
+                <RowActionEdit
+                  ariaLabel={`Chỉnh sửa ${row.fullName as string}`}
+                  onClick={() => { setEditEmployee(row as NhanVien); setModalOpen(true); }}
+                />
+              </span>
+            </Tooltip>
+            <Tooltip content="Xoá" placement="top">
+              <span className="inline-flex">
+                <RowActionDelete
+                  ariaLabel={`Xoá ${row.fullName as string}`}
+                  onClick={() => handleDeleteClick(row as NhanVien)}
+                />
+              </span>
+            </Tooltip>
           </RowActions>
         ),
       },

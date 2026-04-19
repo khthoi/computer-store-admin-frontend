@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   PlusIcon,
   UserGroupIcon,
@@ -11,7 +12,6 @@ import {
 import {
   DataTable,
   RowActions,
-  RowActionView,
   RowActionEdit,
   RowActionDelete,
   type ColumnDef,
@@ -135,7 +135,14 @@ export function CustomersTable({ initialCustomers }: CustomersTableProps) {
           <div className="flex items-center gap-3">
             <Avatar src={row.avatarUrl as string | undefined} name={row.fullName} size="sm" />
             <div className="min-w-0">
-              <p className="font-medium text-secondary-900 truncate">{row.fullName}</p>
+              <Tooltip content={row.fullName} placement="top" anchorToContent>
+                <Link
+                  href={`/customers/${row.id as string}`}
+                  className="font-medium text-secondary-900 hover:text-primary-600 transition-colors truncate block"
+                >
+                  {row.fullName}
+                </Link>
+              </Tooltip>
               <p className="text-xs text-secondary-400">{row.code}</p>
             </div>
           </div>
@@ -203,13 +210,26 @@ export function CustomersTable({ initialCustomers }: CustomersTableProps) {
       {
         key: "_actions",
         header: "",
-        width: "w-24",
+        width: "w-20",
         align: "right",
         render: (_, row): ReactNode => (
           <RowActions>
-            <RowActionView href={`/customers/${row.id}`} />
-            <RowActionEdit onClick={() => { setEditCustomer(row as unknown as KhachHang); setModalOpen(true); }} />
-            <RowActionDelete ariaLabel="Xóa khách hàng" onClick={() => setDeleteTarget(row as unknown as KhachHang)} />
+            <Tooltip content="Sửa" placement="top">
+              <span className="inline-flex">
+                <RowActionEdit
+                  ariaLabel={`Chỉnh sửa ${row.fullName as string}`}
+                  onClick={() => { setEditCustomer(row as unknown as KhachHang); setModalOpen(true); }}
+                />
+              </span>
+            </Tooltip>
+            <Tooltip content="Xoá" placement="top">
+              <span className="inline-flex">
+                <RowActionDelete
+                  ariaLabel={`Xoá ${row.fullName as string}`}
+                  onClick={() => setDeleteTarget(row as unknown as KhachHang)}
+                />
+              </span>
+            </Tooltip>
           </RowActions>
         ),
       },
