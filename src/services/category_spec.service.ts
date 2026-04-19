@@ -93,6 +93,11 @@ export async function getCategorySpecGroupsView(
     );
     return {
       ...group,
+      // Override the group's global displayOrder with the resolved assignment order
+      // (i.e. the position this group holds within the source category's assignment list).
+      // Without this, pure-inherited groups fall back to their global sg-NNN sequence
+      // number (e.g. sg-008 → 8, sg-011 → 11), causing visible jumps like "1, 2, 8".
+      displayOrder: entry.displayOrder,
       isInherited,
       sourceCategoryId: entry.sourceCategoryId,
       sourceCategoryName: sourceCat?.name ?? "—",

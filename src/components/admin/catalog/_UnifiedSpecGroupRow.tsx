@@ -115,7 +115,6 @@ export function UnifiedSpecGroupRow({
   const isInheritedVariant = isPureInherited || isOverride;
   const hienThiBoLoc = group.assignment?.hienThiBoLoc ?? false;
   const thuTuBoLoc = group.assignment?.thuTuBoLoc ?? 0;
-  const displayOrder = group.assignment?.displayOrder ?? group.displayOrder;
 
   function handleStartRename(e: React.MouseEvent) {
     e.stopPropagation();
@@ -193,12 +192,10 @@ export function UnifiedSpecGroupRow({
           <Bars3Icon className="w-3.5 h-3.5" aria-hidden="true" />
         </span>
 
-        {/* Order badge — shows stored displayOrder, tooltip shows positional rank */}
-        <Tooltip content={`Vị trí #${index + 1} · Thứ tự hiển thị: ${displayOrder}`} placement="top">
-          <span className="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-secondary-100 text-secondary-500 text-[10px] font-semibold leading-none cursor-default select-none">
-            {displayOrder}
-          </span>
-        </Tooltip>
+        {/* Position badge */}
+        <span className="shrink-0 inline-flex items-center justify-center w-4 h-4 rounded-full bg-secondary-100 text-secondary-500 text-[10px] font-semibold leading-none cursor-default select-none">
+          {index + 1}
+        </span>
 
         {/* Type icon */}
         {isInheritedVariant
