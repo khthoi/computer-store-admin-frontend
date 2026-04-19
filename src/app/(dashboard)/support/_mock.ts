@@ -71,7 +71,6 @@ export const MOCK_TICKETS: Ticket[] = [
     ngayTao: iso(3),
     ngayCapNhat: iso(3),
     slaDeadline: iso(2, 22),  // đã quá hạn
-    isSlaBreached: true,
     soLanMoLai: 0,
     messages: [
       {

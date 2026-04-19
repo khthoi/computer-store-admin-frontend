@@ -20,6 +20,7 @@ export interface CreateEmployeePayload {
   avatarUrl?: string;
   gender?: GenderType | null;
   dateOfBirth?: string | null;
+  avatarAssetId?: string;
 }
 
 export interface UpdateEmployeePayload {

@@ -5,6 +5,7 @@ import {
   RowActions,
   RowActionEdit,
   RowActionDelete,
+  RowActionClone,
   type ColumnDef,
 } from "@/src/components/admin/DataTable";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
@@ -16,7 +17,9 @@ import type { Product, ProductVariant } from "@/src/types/product.types";
 export type ProductRow = Product & Record<string, unknown>;
 
 export function buildColumns(
-  onDelete: (product: Product) => void
+  onDelete: (product: Product) => void,
+  onClone: (product: Product) => void,
+  cloningProductId: string | null,
 ): ColumnDef<ProductRow>[] {
   return [
     // col 2 — Image slot: empty spacer for product rows (variants show thumbnail)
@@ -127,6 +130,15 @@ export function buildColumns(
         const name = row.name as string;
         return (
           <RowActions>
+            <Tooltip content="Nhân bản" placement="top">
+              <span className="inline-flex">
+                <RowActionClone
+                  ariaLabel={`Nhân bản ${name}`}
+                  isLoading={cloningProductId === id}
+                  onClick={() => onClone(product)}
+                />
+              </span>
+            </Tooltip>
             <Tooltip content="Sửa" placement="top">
               <span className="inline-flex">
                 <RowActionEdit

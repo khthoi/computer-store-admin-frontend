@@ -147,9 +147,7 @@ export function SectionPreviewPane({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type, maxProducts, key]);
 
-  const cardWidth = layout === "carousel"
-    ? (layout === "grid_6" ? 100 : 160)
-    : undefined;
+  const cardWidth = layout === "carousel" ? 160 : undefined;
 
   return (
     <div className="flex flex-col gap-4">

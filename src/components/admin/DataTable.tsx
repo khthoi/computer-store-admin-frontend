@@ -26,6 +26,7 @@ import {
   EyeIcon,
   PencilSquareIcon,
   TrashIcon,
+  DocumentDuplicateIcon,
 } from "@heroicons/react/24/outline";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -941,6 +942,33 @@ export function RowActionDelete({
   return (
     <button type="button" aria-label={ariaLabel} onClick={onClick} className={ROW_ACTION_DANGER}>
       <TrashIcon className="h-4 w-4" aria-hidden="true" />
+    </button>
+  );
+}
+
+/** Clone action button — shows a spinner while loading. */
+export function RowActionClone({
+  onClick,
+  isLoading = false,
+  ariaLabel = "Nhân bản",
+}: {
+  onClick: () => void;
+  isLoading?: boolean;
+  ariaLabel?: string;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={ariaLabel}
+      onClick={onClick}
+      disabled={isLoading}
+      className={ROW_ACTION_BASE + " disabled:cursor-not-allowed disabled:opacity-50"}
+    >
+      {isLoading ? (
+        <ArrowPathIcon className="h-4 w-4 animate-spin" aria-hidden="true" />
+      ) : (
+        <DocumentDuplicateIcon className="h-4 w-4" aria-hidden="true" />
+      )}
     </button>
   );
 }

@@ -95,10 +95,15 @@ export async function addSpecType(groupId: string, data: SpecTypeFormData): Prom
     id: `st-${Date.now()}`,
     groupId,
     name: data.name,
-    unit: data.unit,
-    dataType: data.dataType,
+    description: data.description,
+    maKyThuat: data.maKyThuat,
     displayOrder: data.displayOrder,
     required: data.required,
+    kieuDuLieu: data.kieuDuLieu,
+    donVi: data.donVi || undefined,
+    coTheLoc: data.coTheLoc,
+    widgetLoc: data.widgetLoc || undefined,
+    thuTuLoc: data.thuTuLoc,
     createdAt: now,
     updatedAt: now,
   };
@@ -115,7 +120,8 @@ export async function updateSpecType(
   await new Promise<void>((r) => setTimeout(r, 400));
   const existing = MOCK_SPEC_TYPES.find((t) => t.id === id);
   if (!existing) throw new Error(`SpecType ${id} not found`);
-  return { ...existing, ...data, updatedAt: new Date().toISOString() };
+  const normalized = { ...data, widgetLoc: data.widgetLoc || undefined };
+  return { ...existing, ...normalized, updatedAt: new Date().toISOString() };
 }
 
 /**

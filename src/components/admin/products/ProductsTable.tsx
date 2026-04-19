@@ -17,7 +17,10 @@ import {
   deleteVariant,
   bulkUpdateStatus,
   bulkUpdateVariantStatus,
+  cloneProduct,
+  cloneVariant,
 } from "@/src/services/product.service";
+import { useToast } from "@/src/components/ui/Toast";
 import type { Product, ProductVariant } from "@/src/types/product.types";
 import { buildColumns, type ProductRow } from "./_columns";
 import { VariantSubRow } from "./_VariantSubRow";
@@ -44,6 +47,8 @@ type SelectionMode = "none" | "products" | "variants";
  *   show the correct actions for whichever entity type is currently selected.
  */
 export function ProductsTable({ initialProducts }: ProductsTableProps) {
+  const { showToast } = useToast();
+
   // ── Local product list (updated optimistically on delete) ──────────────────
   const [products, setProducts] = useState<Product[]>(initialProducts);
 
@@ -83,6 +88,10 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   // ── Variant bulk delete state ──────────────────────────────────────────────
   const [showBulkVariantDeleteConfirm, setShowBulkVariantDeleteConfirm] = useState(false);
   const [isBulkVariantDeleting, setIsBulkVariantDeleting] = useState(false);
+
+  // ── Clone state ────────────────────────────────────────────────────────────
+  const [cloningProductId, setCloningProductId] = useState<string | null>(null);
+  const [cloningVariantId, setCloningVariantId] = useState<string | null>(null);
 
   // ── Reset page when any filter changes ────────────────────────────────────
   useEffect(() => {
@@ -315,6 +324,40 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
     }
   }, [selectedVariantIds]);
 
+  // ── Clone handlers ─────────────────────────────────────────────────────────
+
+  const handleCloneProduct = useCallback(async (product: Product) => {
+    setCloningProductId(product.id);
+    try {
+      const clone = await cloneProduct(product.id);
+      setProducts((prev) => [clone, ...prev]);
+      showToast(`Đã nhân bản "${product.name}" thành công`, "success");
+    } catch {
+      showToast("Nhân bản sản phẩm thất bại", "error");
+    } finally {
+      setCloningProductId(null);
+    }
+  }, [showToast]);
+
+  const handleCloneVariant = useCallback(async (variant: ProductVariant, productId: string) => {
+    setCloningVariantId(variant.id);
+    try {
+      const clone = await cloneVariant(productId, variant.id);
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === productId
+            ? { ...p, variants: [...p.variants, clone], totalStock: p.totalStock + clone.stock }
+            : p
+        )
+      );
+      showToast(`Đã nhân bản "${variant.name}" thành công`, "success");
+    } catch {
+      showToast("Nhân bản phiên bản thất bại", "error");
+    } finally {
+      setCloningVariantId(null);
+    }
+  }, [showToast]);
+
   // ── CSV export ─────────────────────────────────────────────────────────────
 
   const handleExport = useCallback(() => {
@@ -336,8 +379,8 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   // ── Column definitions (built from sub-module) ─────────────────────────────
 
   const columns = useMemo(
-    () => buildColumns(handleDeleteClick),
-    [handleDeleteClick]
+    () => buildColumns(handleDeleteClick, handleCloneProduct, cloningProductId),
+    [handleDeleteClick, handleCloneProduct, cloningProductId]
   );
 
   // ── Sub-row renderer (delegates to VariantSubRow component) ───────────────
@@ -355,6 +398,8 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
           isSelected={isSelected}
           onCheck={handleVariantCheck}
           onDeleteClick={setDeleteVariantTarget}
+          onCloneClick={(variant) => void handleCloneVariant(variant, productId)}
+          isCloning={cloningVariantId === v.id}
         />
       );
     },

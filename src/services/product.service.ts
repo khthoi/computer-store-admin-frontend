@@ -308,6 +308,60 @@ export async function createVariantDetail(
 }
 
 /**
+ * Clone a product by ID — creates a draft copy with all variants set to inactive.
+ * Mock implementation — replace with real POST /admin/products/:id/clone
+ */
+export async function cloneProduct(id: string): Promise<Product> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 600));
+  const source = MOCK_PRODUCTS.find((p) => p.id === id);
+  if (!source) throw new Error(`Product ${id} not found`);
+  const now = new Date().toISOString();
+  const cloneId = `prod-clone-${Date.now()}`;
+  const variants: ProductVariant[] = source.variants.map((v, i) => ({
+    ...v,
+    id: `var-clone-${Date.now()}-${i}`,
+    sku: `${v.sku}-copy`,
+    status: "inactive" as const,
+    updatedAt: now,
+  }));
+  return {
+    ...source,
+    id: cloneId,
+    name: `Copy of ${source.name}`,
+    slug: `${source.slug}-copy`,
+    status: "draft" as const,
+    hasActiveOrders: false,
+    variants,
+    totalStock: variants.reduce((s, v) => s + v.stock, 0),
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+/**
+ * Clone a single variant — creates an inactive copy with "-copy" SKU suffix.
+ * Mock implementation — replace with real POST /admin/products/:productId/variants/:variantId/clone
+ */
+export async function cloneVariant(
+  productId: string,
+  variantId: string
+): Promise<ProductVariant> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 400));
+  const product = MOCK_PRODUCTS.find((p) => p.id === productId);
+  const variant = product?.variants.find((v) => v.id === variantId);
+  if (!variant) throw new Error(`Variant ${variantId} not found`);
+  const now = new Date().toISOString();
+  return {
+    ...variant,
+    id: `var-clone-${Date.now()}`,
+    name: `Copy of ${variant.name}`,
+    sku: `${variant.sku}-copy`,
+    status: "inactive" as const,
+    updatedAt: now,
+  };
+}
+
+/**
  * Returns the distinct product categories from the current dataset.
  * Replace with GET /admin/products/categories when backend is ready.
  */

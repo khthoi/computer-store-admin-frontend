@@ -4,14 +4,9 @@
  */
 
 import type { GalleryMedia } from "./ProductImageGallery";
-import type { StockStatus } from "./StockBadge";
-import type { SpecRow } from "./SpecTable";
-import type { Review } from "./ReviewCard";
-import type { RatingDistribution } from "./ReviewSection";
-import type { ProductCardProps } from "./ProductCard";
 
 // Re-export for convenience
-export type { GalleryMedia, StockStatus, SpecRow, Review, RatingDistribution };
+export type { GalleryMedia };
 
 // ─── Variant types ────────────────────────────────────────────────────────────
 
@@ -31,12 +26,6 @@ export interface VariantGroup {
   type: "button" | "color";
 }
 
-// ─── Spec types ───────────────────────────────────────────────────────────────
-
-export interface SpecGroup {
-  heading: string;
-  rows: SpecRow[];
-}
 
 // ─── Product Detail (page-level data shape) ───────────────────────────────────
 
@@ -51,14 +40,8 @@ export interface ProductDetail {
   discountPct: number;
   rating: number;
   reviewCount: number;
-  stockStatus: StockStatus;
   stockQuantity: number;
   images: GalleryMedia[];
   variantGroups: VariantGroup[];
-  specGroups: SpecGroup[];
   descriptionHtml: string;
-  reviews: Review[];
-  ratingDistribution: RatingDistribution;
-  /** Related products shown in carousel */
-  relatedProducts: ProductCardProps[];
 }

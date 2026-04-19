@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
@@ -11,8 +11,10 @@ import {
   RowActionView,
   RowActionEdit,
   RowActionDelete,
+  RowActionClone,
 } from "@/src/components/admin/DataTable";
-import { deleteVariant } from "@/src/services/product.service";
+import { deleteVariant, cloneVariant } from "@/src/services/product.service";
+import { useToast } from "@/src/components/ui/Toast";
 import { formatVND } from "@/src/lib/format";
 import type { ProductVariant } from "@/src/types/product.types";
 
@@ -43,9 +45,24 @@ interface VariantsPanelProps {
  * without a full page reload.
  */
 export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps) {
+  const { showToast } = useToast();
   const [variants, setVariants] = useState<ProductVariant[]>(initialVariants);
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [cloningVariantId, setCloningVariantId] = useState<string | null>(null);
+
+  const handleCloneVariant = useCallback(async (variant: ProductVariant) => {
+    setCloningVariantId(variant.id);
+    try {
+      const clone = await cloneVariant(productId, variant.id);
+      setVariants((prev) => [...prev, clone]);
+      showToast(`Đã nhân bản "${variant.name}" thành công`, "success");
+    } catch {
+      showToast("Nhân bản phiên bản thất bại", "error");
+    } finally {
+      setCloningVariantId(null);
+    }
+  }, [productId, showToast]);
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -146,14 +163,19 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
                   <RowActions>
                     <RowActionView
                       href={`/products/${productId}/variants/${v.id}`}
-                      ariaLabel={`View variant ${v.name}`}
+                      ariaLabel={`Xem phiên bản ${v.name}`}
+                    />
+                    <RowActionClone
+                      ariaLabel={`Nhân bản phiên bản ${v.name}`}
+                      isLoading={cloningVariantId === v.id}
+                      onClick={() => void handleCloneVariant(v)}
                     />
                     <RowActionEdit
                       href={`/products/${productId}/variants/${v.id}/edit`}
-                      ariaLabel={`Edit variant ${v.name}`}
+                      ariaLabel={`Chỉnh sửa phiên bản ${v.name}`}
                     />
                     <RowActionDelete
-                      ariaLabel={`Delete variant ${v.name}`}
+                      ariaLabel={`Xoá phiên bản ${v.name}`}
                       onClick={() => setDeleteTarget(v)}
                     />
                   </RowActions>

@@ -7,6 +7,7 @@ import {
   RowActions,
   RowActionEdit,
   RowActionDelete,
+  RowActionClone,
 } from "@/src/components/admin/DataTable";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { Checkbox } from "@/src/components/ui/Checkbox";
@@ -23,6 +24,8 @@ interface VariantSubRowProps {
   isSelected: boolean;
   onCheck: (id: string, checked: boolean) => void;
   onDeleteClick: (target: { id: string; name: string; sku: string }) => void;
+  onCloneClick: (variant: ProductVariant) => void;
+  isCloning: boolean;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -49,6 +52,8 @@ export function VariantSubRow({
   isSelected,
   onCheck,
   onDeleteClick,
+  onCloneClick,
+  isCloning,
 }: VariantSubRowProps) {
   return (
     <tr
@@ -129,9 +134,18 @@ export function VariantSubRow({
         </span>
       </td>
 
-      {/* col 9 — variant actions: Edit + Delete with tooltips (View removed) */}
+      {/* col 9 — variant actions: Clone + Edit + Delete with tooltips */}
       <td className="w-20 px-4 py-2">
         <RowActions>
+          <Tooltip content="Nhân bản" placement="top">
+            <span className="inline-flex">
+              <RowActionClone
+                ariaLabel={`Nhân bản biến thể ${v.sku}`}
+                isLoading={isCloning}
+                onClick={() => onCloneClick(v)}
+              />
+            </span>
+          </Tooltip>
           <Tooltip content="Sửa" placement="top">
             <span className="inline-flex">
               <RowActionEdit

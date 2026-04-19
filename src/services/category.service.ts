@@ -76,7 +76,8 @@ export async function getCategoryTree(): Promise<DanhMucNode[]> {
  */
 export async function getCategoryById(id: string): Promise<DanhMuc | null> {
   await new Promise<void>((r) => setTimeout(r, 50));
-  return MOCK_CATEGORIES.find((c) => c.id === id) ?? null;
+  const found = MOCK_CATEGORIES.find((c) => c.id === id);
+  return found ? withDefaults(found) : null;
 }
 
 /**
@@ -116,12 +117,12 @@ export async function updateCategory(
   await new Promise<void>((r) => setTimeout(r, 600));
   const existing = MOCK_CATEGORIES.find((c) => c.id === id);
   if (!existing) throw new Error(`Category ${id} not found`);
-  return {
+  return withDefaults({
     ...existing,
     ...data,
     parentId: data.parentId !== undefined ? (data.parentId || null) : existing.parentId,
     updatedAt: new Date().toISOString(),
-  };
+  });
 }
 
 /**
