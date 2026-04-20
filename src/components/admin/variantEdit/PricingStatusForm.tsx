@@ -2,6 +2,7 @@
 
 import { Badge } from "@/src/components/ui/Badge";
 import { Input } from "@/src/components/ui/Input";
+import { Toggle } from "@/src/components/ui/Toggle";
 import { discountPercent } from "@/src/lib/format";
 import type { DetailVariantStatus } from "@/src/types/product.types";
 
@@ -11,6 +12,7 @@ export interface PricingStatusFormValue {
   originalPrice: string;
   salePrice: string;
   status: DetailVariantStatus;
+  isDefault: boolean;
 }
 
 interface PricingStatusFormProps {
@@ -37,6 +39,10 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
 
   function setStatus(status: DetailVariantStatus) {
     onChange({ ...value, status });
+  }
+
+  function toggleDefault(checked: boolean) {
+    onChange({ ...value, isDefault: checked });
   }
 
   return (
@@ -80,6 +86,18 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
             </div>
           )}
         </div>
+      </div>
+
+      <hr className="border-secondary-100" />
+
+      {/* Default variant toggle */}
+      <div className="mb-5">
+        <Toggle
+          label="Phiên bản mặc định"
+          description="Phiên bản này sẽ là phiên bản chính."
+          checked={value.isDefault}
+          onChange={(e) => toggleDefault(e.target.checked)}
+        />
       </div>
 
       <hr className="my-5 border-secondary-100" />

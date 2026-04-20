@@ -49,6 +49,7 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
     originalPrice: String(variant.originalPrice),
     salePrice:     String(variant.salePrice),
     status:        variant.status,
+    isDefault:     variant.isDefault ?? false,
   });
 
   const [description, setDescription] = useState(variant.description);

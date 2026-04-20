@@ -10,6 +10,7 @@ export const MOCK_VARIANT: ProductVariantDetail = {
   productId: "prod-001",
   name: "24GB GDDR6X — Standard Edition",
   sku: "ROG-RTX4090-OC-24G",
+  isDefault: true,
   originalPrice: 49_900_000,
   salePrice: 46_900_000,
   weight: 1.85,

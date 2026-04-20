@@ -4,52 +4,58 @@ import { useState, useCallback } from "react";
 import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
+import { Toggle } from "@/src/components/ui/Toggle";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import {
+  DataTable,
   RowActions,
   RowActionView,
   RowActionEdit,
   RowActionDelete,
   RowActionClone,
+  type ColumnDef,
 } from "@/src/components/admin/DataTable";
-import { deleteVariant, cloneVariant } from "@/src/services/product.service";
+import {
+  deleteVariant,
+  cloneVariant,
+  setDefaultVariant,
+} from "@/src/services/product.service";
 import { useToast } from "@/src/components/ui/Toast";
 import { formatVND } from "@/src/lib/format";
 import type { ProductVariant } from "@/src/types/product.types";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Types ────────────────────────────────────────────────────────────────────
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString("en-GB", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-// ─── Component ────────────────────────────────────────────────────────────────
+type VariantRow = ProductVariant & Record<string, unknown>;
 
 interface VariantsPanelProps {
   productId: string;
   initialVariants: ProductVariant[];
 }
 
-/**
- * VariantsPanel — client component that renders the variants table for both
- * the product detail page and the product edit page.
- *
- * Owns its own variant list state so deletions are reflected immediately
- * without a full page reload.
- */
+// ─── Component ────────────────────────────────────────────────────────────────
+
 export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps) {
   const { showToast } = useToast();
   const [variants, setVariants] = useState<ProductVariant[]>(initialVariants);
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [cloningVariantId, setCloningVariantId] = useState<string | null>(null);
+
+  // ── Set default ───────────────────────────────────────────────────────────
+
+  const handleSetDefault = useCallback((variantId: string) => {
+    void setDefaultVariant(productId, variantId).then(() => {
+      setVariants((prev) =>
+        prev.map((v) => ({ ...v, isDefault: v.id === variantId }))
+      );
+      showToast("Đã đặt phiên bản mặc định.", "success");
+    });
+  }, [productId, showToast]);
+
+  // ── Clone ─────────────────────────────────────────────────────────────────
 
   const handleCloneVariant = useCallback(async (variant: ProductVariant) => {
     setCloningVariantId(variant.id);
@@ -64,127 +70,157 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
     }
   }, [productId, showToast]);
 
-  const handleDeleteConfirm = async () => {
+  // ── Delete ────────────────────────────────────────────────────────────────
+
+  const handleDeleteConfirm = useCallback(async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
       await deleteVariant(deleteTarget.id);
       setVariants((prev) => prev.filter((v) => v.id !== deleteTarget.id));
       setDeleteTarget(null);
+      showToast("Đã xoá phiên bản.", "success");
     } finally {
       setIsDeleting(false);
     }
-  };
+  }, [deleteTarget, showToast]);
 
-  if (variants.length === 0) {
-    return (
-      <div className="py-12 text-center">
-        <p className="text-sm text-secondary-500">Chưa có phiên bản nào.</p>
-        <Link
-          href={`/products/${productId}/variants/new`}
-          className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
-        >
-          Thêm phiên bản đầu tiên
-        </Link>
-      </div>
-    );
-  }
+  // ── Columns ───────────────────────────────────────────────────────────────
+
+  const columns: ColumnDef<VariantRow>[] = [
+    {
+      key: "name",
+      header: "Phiên bản",
+      width: "w-90",
+      render: (_val, row) => {
+        const isDefault = !!row.isDefault;
+        return (
+          <div>
+            <Tooltip content={row.name} placement="top" anchorToContent>
+              <p className="font-medium text-secondary-800 truncate max-w-xs">{row.name}</p>
+            </Tooltip>
+            <div className="mt-1 flex items-center gap-2">
+              {isDefault ? (
+                <Badge variant="success" size="sm">Mặc định</Badge>
+              ) : (
+                <Toggle
+                  size="sm"
+                  label="Đặt mặc định"
+                  checked={false}
+                  onChange={() => handleSetDefault(row.id as string)}
+                />
+              )}
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      key: "sku",
+      header: "SKU",
+      width: "w-35",
+      render: (_val, row) => (
+        <Tooltip content={row.sku} placement="top" anchorToContent>
+          <span className="font-mono text-xs text-secondary-600 truncate max-w-[180px] block">
+            {row.sku as string}
+          </span>
+        </Tooltip>
+      ),
+    },
+    {
+      key: "price",
+      header: "Giá",
+      align: "right",
+      render: (_val, row) => (
+        <span className="font-medium tabular-nums text-secondary-800">
+          {formatVND(row.price as number)}
+        </span>
+      ),
+    },
+    {
+      key: "stock",
+      header: "Tồn kho",
+      align: "center",
+      render: (_val, row) => {
+        const s = row.stock as number;
+        if (s === 0) return <Badge variant="error" size="sm">Hết hàng</Badge>;
+        if (s <= 5) return <Badge variant="warning" size="sm">{s} còn lại</Badge>;
+        return <span className="text-secondary-700">{s.toLocaleString()}</span>;
+      },
+    },
+    {
+      key: "status",
+      header: "Trạng thái",
+      align: "center",
+      render: (_val, row) => (
+        <StatusBadge status={row.status as ProductVariant["status"]} size="sm" />
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      align: "right",
+      render: (_val, row) => (
+        <RowActions>
+          <RowActionView
+            href={`/products/${productId}/variants/${row.id as string}`}
+            ariaLabel={`Xem phiên bản ${row.name as string}`}
+          />
+          <RowActionClone
+            ariaLabel={`Nhân bản phiên bản ${row.name as string}`}
+            isLoading={cloningVariantId === row.id}
+            onClick={() => void handleCloneVariant(row as unknown as ProductVariant)}
+          />
+          <RowActionEdit
+            href={`/products/${productId}/variants/${row.id as string}/edit`}
+            ariaLabel={`Chỉnh sửa phiên bản ${row.name as string}`}
+          />
+          <RowActionDelete
+            ariaLabel={`Xoá phiên bản ${row.name as string}`}
+            onClick={() => setDeleteTarget(row as unknown as ProductVariant)}
+          />
+        </RowActions>
+      ),
+    },
+  ];
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
       {/* Header row — count + Add Variant button */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-secondary-500">
-          {variants.length} phiên bản
-        </p>
+        <p className="text-sm text-secondary-500
+        ">{variants.length} phiên bản</p>
         <Link
           href={`/products/${productId}/variants/new`}
-          className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
         >
           <PlusIcon className="h-4 w-4" aria-hidden="true" />
           Thêm phiên bản
         </Link>
       </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-secondary-100">
-              <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Phiên bản
-              </th>
-              <th className="pb-3 pr-4 text-left text-xs font-medium uppercase tracking-wide text-secondary-500">
-                SKU
-              </th>
-              <th className="pb-3 pr-4 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Giá
-              </th>
-              <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Tồn kho
-              </th>
-              <th className="pb-3 pr-4 text-center text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Trạng thái
-              </th>
-              <th className="pb-3 text-right text-xs font-medium uppercase tracking-wide text-secondary-500">
-                Hành động
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-secondary-50">
-            {variants.map((v) => (
-              <tr key={v.id} className="transition-colors hover:bg-secondary-50/50">
-                <td className="py-3 pr-4">
-                  <p className="font-medium text-secondary-800">{v.name}</p>
-                  <p className="mt-0.5 text-xs text-secondary-400">
-                    {formatDateTime(v.updatedAt)}
-                  </p>
-                </td>
-                <td className="py-3 pr-4">
-                  <span className="font-mono text-xs text-secondary-600">{v.sku}</span>
-                </td>
-                <td className="py-3 pr-4 text-right">
-                  <span className="font-medium tabular-nums text-secondary-800">
-                    {formatVND(v.price)}
-                  </span>
-                </td>
-                <td className="py-3 pr-4 text-center">
-                  {v.stock === 0 ? (
-                    <Badge variant="error" size="sm">Out of stock</Badge>
-                  ) : v.stock <= 5 ? (
-                    <Badge variant="warning" size="sm">{v.stock} left</Badge>
-                  ) : (
-                    <span className="text-secondary-700">{v.stock.toLocaleString()}</span>
-                  )}
-                </td>
-                <td className="py-3 pr-4 text-center">
-                  <StatusBadge status={v.status} size="sm" />
-                </td>
-                <td className="py-3 text-right">
-                  <RowActions>
-                    <RowActionView
-                      href={`/products/${productId}/variants/${v.id}`}
-                      ariaLabel={`Xem phiên bản ${v.name}`}
-                    />
-                    <RowActionClone
-                      ariaLabel={`Nhân bản phiên bản ${v.name}`}
-                      isLoading={cloningVariantId === v.id}
-                      onClick={() => void handleCloneVariant(v)}
-                    />
-                    <RowActionEdit
-                      href={`/products/${productId}/variants/${v.id}/edit`}
-                      ariaLabel={`Chỉnh sửa phiên bản ${v.name}`}
-                    />
-                    <RowActionDelete
-                      ariaLabel={`Xoá phiên bản ${v.name}`}
-                      onClick={() => setDeleteTarget(v)}
-                    />
-                  </RowActions>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <DataTable<VariantRow>
+        data={variants as VariantRow[]}
+        columns={columns}
+        keyField="id"
+        page={1}
+        pageSize={variants.length || 10}
+        totalRows={variants.length}
+        onPageChange={() => { }}
+        onPageSizeChange={() => { }}
+        hidePagination
+        emptyMessage="Chưa có phiên bản nào."
+        emptyAction={
+          <Link
+            href={`/products/${productId}/variants/new`}
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-primary-600 hover:text-primary-700"
+          >
+            Thêm phiên bản đầu tiên
+          </Link>
+        }
+      />
 
       <ConfirmDialog
         isOpen={!!deleteTarget}

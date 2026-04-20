@@ -19,6 +19,7 @@ import {
   bulkUpdateVariantStatus,
   cloneProduct,
   cloneVariant,
+  setDefaultVariant,
 } from "@/src/services/product.service";
 import { useToast } from "@/src/components/ui/Toast";
 import type { Product, ProductVariant } from "@/src/types/product.types";
@@ -358,6 +359,22 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
     }
   }, [showToast]);
 
+  // ── Set default variant ────────────────────────────────────────────────────
+
+  const handleSetDefaultVariant = useCallback((productId: string, variantId: string) => {
+    void setDefaultVariant(productId, variantId).then(() => {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id !== productId ? p : {
+            ...p,
+            defaultVariantId: variantId,
+            variants: p.variants.map((v) => ({ ...v, isDefault: v.id === variantId })),
+          }
+        )
+      );
+    });
+  }, []);
+
   // ── CSV export ─────────────────────────────────────────────────────────────
 
   const handleExport = useCallback(() => {
@@ -396,14 +413,16 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
           variant={v}
           productId={productId}
           isSelected={isSelected}
+          isDefault={!!v.isDefault}
           onCheck={handleVariantCheck}
+          onSetDefault={(variantId) => handleSetDefaultVariant(productId, variantId)}
           onDeleteClick={setDeleteVariantTarget}
           onCloneClick={(variant) => void handleCloneVariant(variant, productId)}
           isCloning={cloningVariantId === v.id}
         />
       );
     },
-    [selectedVariantIds, handleVariantCheck]
+    [selectedVariantIds, handleVariantCheck, handleSetDefaultVariant]
   );
 
   // ── Toolbar actions ────────────────────────────────────────────────────────

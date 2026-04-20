@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ArrowLeftIcon, PlusIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
+import { Toggle } from "@/src/components/ui/Toggle";
 import { useToast } from "@/src/components/ui/Toast";
 import {
   DataTable,
@@ -14,7 +15,7 @@ import {
 } from "@/src/components/admin/DataTable";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import type { PhienBanSanPham } from "@/src/types/variant.types";
-import { deleteVariant } from "@/src/services/variant.service";
+import { deleteVariant, setDefaultVariant } from "@/src/services/variant.service";
 import { formatVND } from "@/src/lib/format";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,6 +40,14 @@ export function VariantsPageClient({
   const [deleteTarget, setDeleteTarget] = useState<PhienBanSanPham | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  function handleSetDefault(variantId: string) {
+    void setDefaultVariant(productId, variantId).then(() => {
+      setData((prev) =>
+        prev.map((v) => ({ ...v, isDefault: v.id === variantId }))
+      );
+    });
+  }
+
   async function handleConfirmDelete() {
     if (!deleteTarget) return;
     setIsDeleting(true);
@@ -61,7 +70,19 @@ export function VariantsPageClient({
       render: (_val, row) => (
         <div>
           <p className="font-medium text-secondary-900">{row.name as string}</p>
-          <p className="font-mono text-xs text-secondary-400">{row.sku as string}</p>
+          <div className="mt-1 flex items-center gap-2">
+            <p className="font-mono text-xs text-secondary-400">{row.sku as string}</p>
+            {row.isDefault ? (
+              <Badge variant="success" size="sm">Mặc định</Badge>
+            ) : (
+              <Toggle
+                size="sm"
+                label="Đặt mặc định"
+                checked={false}
+                onChange={() => handleSetDefault(row.id as string)}
+              />
+            )}
+          </div>
         </div>
       ),
     },

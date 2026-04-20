@@ -10,7 +10,9 @@ import {
   RowActionClone,
 } from "@/src/components/admin/DataTable";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
+import { Badge } from "@/src/components/ui/Badge";
 import { Checkbox } from "@/src/components/ui/Checkbox";
+import { Toggle } from "@/src/components/ui/Toggle";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { formatVND } from "@/src/lib/format";
 import { formatDate, StockCell } from "./_shared";
@@ -22,7 +24,9 @@ interface VariantSubRowProps {
   variant: ProductVariant;
   productId: string;
   isSelected: boolean;
+  isDefault: boolean;
   onCheck: (id: string, checked: boolean) => void;
+  onSetDefault: (variantId: string) => void;
   onDeleteClick: (target: { id: string; name: string; sku: string }) => void;
   onCloneClick: (variant: ProductVariant) => void;
   isCloning: boolean;
@@ -50,7 +54,9 @@ export function VariantSubRow({
   variant: v,
   productId,
   isSelected,
+  isDefault,
   onCheck,
+  onSetDefault,
   onDeleteClick,
   onCloneClick,
   isCloning,
@@ -94,7 +100,7 @@ export function VariantSubRow({
         )}
       </td>
 
-      {/* col 3 — variant name (link with tooltip) + SKU */}
+      {/* col 3 — variant name (link with tooltip) + SKU + default badge/toggle */}
       <td className="px-4 py-2">
         <Tooltip content={v.name} placement="top" anchorToContent>
           <Link
@@ -104,7 +110,19 @@ export function VariantSubRow({
             {v.name}
           </Link>
         </Tooltip>
-        <p className="text-xs text-secondary-400 font-mono mt-0.5">{v.sku}</p>
+        <div className="flex items-center gap-2 mt-1">
+          <p className="text-xs text-secondary-400 font-mono">{v.sku}</p>
+          {isDefault ? (
+            <Badge variant="success" size="sm">Mặc định</Badge>
+          ) : (
+            <Toggle
+              size="sm"
+              label="Đặt mặc định"
+              checked={false}
+              onChange={() => onSetDefault(v.id)}
+            />
+          )}
+        </div>
       </td>
 
       {/* col 4 — category (belongs to product, empty here) */}

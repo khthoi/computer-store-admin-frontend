@@ -15,6 +15,8 @@ export interface ProductVariant {
   thumbnailUrl?: string;
   /** ISO date string for when this variant was last modified */
   updatedAt: string;
+  /** True for the single variant shown by default on listing/product cards */
+  isDefault?: boolean;
 }
 
 export type CreatorRole = "Admin" | "Editor" | "Staff";
@@ -43,6 +45,8 @@ export interface Product {
    * Populated from the API; used by the delete guard in ProductsTable.
    */
   hasActiveOrders?: boolean;
+  /** ID of the variant shown by default on listing/product cards */
+  defaultVariantId?: string;
   createdAt: string;  // ISO date string
   updatedAt: string;  // ISO date string
   /** Average customer rating out of 5 */
@@ -131,6 +135,8 @@ export interface ProductVariantDetail {
   /** tenPhienBan */
   name: string;
   sku: string;
+  /** True for the single variant shown by default on listing/product cards */
+  isDefault?: boolean;
   /** giaGoc */
   originalPrice: number;
   /** giaBan */

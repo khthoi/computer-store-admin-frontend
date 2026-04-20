@@ -14,4 +14,6 @@ export interface PhienBanSanPham {
   thumbnailUrl?: string;
   updatedAt: string; // ISO date string
   createdAt: string; // ISO date string
+  /** True for the single variant shown by default on listing/product cards */
+  isDefault?: boolean;
 }

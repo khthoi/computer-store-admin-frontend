@@ -3,10 +3,10 @@ import {
   TagIcon,
   ScaleIcon,
   CalendarDaysIcon,
+  StarIcon,
 } from "@heroicons/react/24/outline";
 import { formatDateTime } from "@/src/lib/format";
 import type { ProductVariantDetail } from "@/src/types/product.types";
-import { Tooltip } from "recharts";
 import { Tooltip as UITooltip } from "@/src/components/ui/Tooltip";
 // ─── VariantInfoSection ───────────────────────────────────────────────────────
 
@@ -22,6 +22,13 @@ export function VariantInfoSection({ variant }: VariantInfoSectionProps) {
       </h2>
 
       <ul className="space-y-3">
+        {variant.isDefault && (
+          <li className="flex items-center gap-2 rounded-lg bg-success-50 px-3 py-2 ring-1 ring-inset ring-success-200 w-fit">
+            <StarIcon className="h-4 w-4 shrink-0 text-success-600" aria-hidden="true" />
+            <span className="text-sm font-medium text-success-700">Phiên bản mặc định</span>
+          </li>
+        )}
+
         <InfoRow icon={<CubeIcon />} label="Tên phiên bản">
           <UITooltip content={variant.name} placement="right">
             <span className="text-sm text-secondary-800">{variant.name}</span>

@@ -90,6 +90,17 @@ export async function deleteVariant(_variantId: string): Promise<void> {
 }
 
 /**
+ * Set a variant as the default for its product.
+ * Mock implementation — replace with PATCH /admin/products/:productId/variants/:variantId/set-default
+ */
+export async function setDefaultVariant(
+  _productId: string,
+  _variantId: string
+): Promise<void> {
+  await new Promise<void>((resolve) => setTimeout(resolve, 300));
+}
+
+/**
  * Bulk update variant status.
  * Mock implementation — replace with real PATCH /admin/variants/bulk
  */

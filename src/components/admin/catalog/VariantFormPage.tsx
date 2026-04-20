@@ -52,6 +52,7 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
     originalPrice: "",
     salePrice:     "",
     status:        "visible",
+    isDefault:     false,
   });
 
   const [description, setDescription] = useState("");
