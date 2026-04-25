@@ -1,7 +1,6 @@
+import { apiFetch } from "@/src/services/api";
 import type { NhanVien, AuditLogEntry } from "@/src/types/employee.types";
 import type { VaiTro } from "@/src/types/role.types";
-import { MOCK_EMPLOYEES, MOCK_AUDIT_LOGS } from "@/src/app/(dashboard)/employees/_mock";
-import { MOCK_ROLES } from "@/src/app/(dashboard)/roles/_mock";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -23,62 +22,106 @@ export interface ProfileData {
   auditLogs: AuditLogEntry[];
 }
 
-// ─── Mock — current user is nv-001 ────────────────────────────────────────────
-// Replace with: GET /admin/me  (derived from JWT session)
+// ─── Server-safe fetch (used by server component page.tsx) ────────────────────
 
-const CURRENT_EMPLOYEE_ID = "nv-001";
+async function serverFetch<T>(path: string): Promise<T> {
+  const { cookies } = await import("next/headers");
+  const store = await cookies();
+  const raw = store.get("auth_token")?.value;
+  const token = raw ? decodeURIComponent(raw) : undefined;
+
+  const API_BASE = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api`;
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    cache: "no-store",
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? `HTTP ${res.status}`);
+  }
+
+  const body = await res.json();
+  return (body as { data: T }).data;
+}
+
+// ─── Upload helper (bypasses apiFetch to avoid Content-Type: application/json) ─
+
+async function uploadFile<T>(path: string, file: File): Promise<T> {
+  const token = document.cookie
+    .split("; ")
+    .find((c) => c.startsWith("auth_token="))
+    ?.split("=")[1];
+
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const API_BASE = `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000"}/api`;
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "POST",
+    body: formData,
+    headers: {
+      ...(token ? { Authorization: `Bearer ${decodeURIComponent(token)}` } : {}),
+    },
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { message?: string }).message ?? `HTTP ${res.status}`);
+  }
+
+  const body = await res.json();
+  return (body as { data: T }).data;
+}
+
+// ─── Service functions ────────────────────────────────────────────────────────
 
 /**
  * Fetch the full profile of the currently logged-in employee.
- * Mock — replace with GET /admin/me
+ * Called from the server component — uses next/headers cookies.
  */
 export async function getCurrentProfile(): Promise<ProfileData> {
-  await new Promise<void>((r) => setTimeout(r, 0));
-
-  const employee = MOCK_EMPLOYEES.find((e) => e.id === CURRENT_EMPLOYEE_ID);
-  if (!employee) throw new Error("Current employee not found");
-
-  const roles = (MOCK_ROLES as VaiTro[]).filter((r) =>
-    employee.roleIds.includes(r.id)
-  );
-  const auditLogs =
-    MOCK_AUDIT_LOGS[CURRENT_EMPLOYEE_ID] ?? MOCK_AUDIT_LOGS["__default__"] ?? [];
-
-  return { employee, roles, auditLogs };
+  return serverFetch<ProfileData>("/admin/me");
 }
 
 /**
  * Update the profile of the currently logged-in employee.
- * Mock — replace with PATCH /admin/me
+ * Called from client component ProfileEditForm.
  */
 export async function updateCurrentProfile(
   payload: UpdateProfilePayload
 ): Promise<NhanVien> {
-  await new Promise<void>((r) => setTimeout(r, 0));
-  const employee = MOCK_EMPLOYEES.find((e) => e.id === CURRENT_EMPLOYEE_ID);
-  if (!employee) throw new Error("Current employee not found");
-  return { ...employee, ...payload };
+  return apiFetch<NhanVien>("/admin/me", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 /**
- * Change the password of the currently logged-in employee.
- * Mock — replace with POST /admin/me/change-password
+ * Request a password change — backend validates current password and sends a
+ * confirmation link to the employee's email. The password is not changed until
+ * the user clicks the link.
+ * Called from client component ChangePasswordForm.
  */
 export async function changeCurrentPassword(
-  _payload: ChangePasswordPayload
-): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 600));
-  // Simulate wrong current password for demo:
-  // if (_payload.currentPassword !== "secret") throw new Error("Mật khẩu hiện tại không đúng.");
+  payload: ChangePasswordPayload
+): Promise<string> {
+  const result = await apiFetch<{ message: string }>("/admin/me/change-password", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+  return result.message;
 }
 
 /**
  * Upload a new avatar for the current employee.
- * Mock — replace with POST /admin/me/avatar
+ * Called from client component ProfileAvatarUploader.
  */
 export async function updateCurrentAvatar(
-  _file: File
+  file: File
 ): Promise<{ avatarUrl: string }> {
-  await new Promise<void>((r) => setTimeout(r, 800));
-  return { avatarUrl: URL.createObjectURL(_file) };
+  return uploadFile<{ avatarUrl: string }>("/admin/me/avatar", file);
 }

@@ -48,16 +48,16 @@ export function ChangePasswordForm({ isOpen, onClose }: ChangePasswordFormProps)
   const onSubmit = useCallback(
     async (values: ChangePasswordFormValues) => {
       try {
-        await changeCurrentPassword({
+        const message = await changeCurrentPassword({
           currentPassword: values.currentPassword,
           newPassword: values.newPassword,
         });
-        showToast("Đổi mật khẩu thành công.", "success");
+        showToast(message, "info", 30000);
         handleClose();
       } catch (err: unknown) {
         const message =
           err instanceof Error ? err.message : "Đổi mật khẩu thất bại, vui lòng thử lại.";
-        showToast(message, "error");
+        showToast(message, "error", 5000);
       }
     },
     [showToast, handleClose]

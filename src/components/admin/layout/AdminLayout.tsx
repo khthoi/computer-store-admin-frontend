@@ -47,6 +47,7 @@ import { AdminHeader } from "@/src/components/admin/layout/AdminHeader";
 import type { AdminNotification } from "@/src/components/admin/layout/NotificationBell";
 import { ToastProvider } from "@/src/components/ui/Toast";
 import { useAuth } from "@/src/store/auth.store";
+import { SessionExpiredModal } from "@/src/components/admin/layout/SessionExpiredModal";
 
 const MOCK_NOTIFICATIONS: AdminNotification[] = [];
 
@@ -488,6 +489,8 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
           {children}
         </main>
       </div>
+
+      <SessionExpiredModal />
     </div>
   );
 }

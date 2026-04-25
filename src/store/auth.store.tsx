@@ -129,19 +129,19 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 function readStoredUser(): AuthUser | null {
   try {
+    // Check localStorage first, fall back to sessionStorage for legacy sessions
     const raw = localStorage.getItem(LS_USER_KEY) ?? sessionStorage.getItem(LS_USER_KEY);
     if (raw) return JSON.parse(raw) as AuthUser;
   } catch {}
   return null;
 }
 
-function writeUser(user: AuthUser, rememberMe: boolean): void {
-  const storage = rememberMe ? localStorage : sessionStorage;
+function writeUser(user: AuthUser): void {
   try {
-    storage.setItem(LS_USER_KEY, JSON.stringify(user));
-    // Also clear the other storage so there's no stale data
-    if (rememberMe) sessionStorage.removeItem(LS_USER_KEY);
-    else localStorage.removeItem(LS_USER_KEY);
+    // Always use localStorage so user data survives tab close.
+    // rememberMe only controls the auth_token cookie lifetime, not display data.
+    localStorage.setItem(LS_USER_KEY, JSON.stringify(user));
+    sessionStorage.removeItem(LS_USER_KEY); // clean up any legacy sessionStorage entry
   } catch {}
 }
 
@@ -176,7 +176,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = useCallback(
     (user: AuthUser, accessToken: string, rememberMe = false) => {
-      writeUser(user, rememberMe);
+      writeUser(user);
+      // rememberMe controls token cookie lifetime: persistent (30 days) vs session
       const maxAge = rememberMe ? 30 * 24 * 60 * 60 : undefined;
       setCookie(COOKIE_TOKEN, accessToken, maxAge);
       dispatch({ type: "LOGIN", payload: user });
