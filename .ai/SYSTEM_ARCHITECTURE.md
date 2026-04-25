@@ -23,7 +23,8 @@
 ┌─────────────────▼────────────────────────────────┐
 │          NEXT.JS ADMIN APP (Port 3001)            │
 │                                                   │
-│  middleware.ts — JWT guard + role check           │
+│  proxy.ts — JWT guard + role check (Next.js 16)   │
+│  (replaces middleware.ts — do NOT create both)    │
 │  ├── (dashboard)/* → require valid JWT            │
 │  ├── /employees → role === "admin"                │
 │  ├── /roles     → role === "admin"                │

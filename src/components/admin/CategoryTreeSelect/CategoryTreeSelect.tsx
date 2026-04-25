@@ -32,6 +32,7 @@ export function CategoryTreeSelect({
 }: CategoryTreeSelectProps) {
   const uid = useId();
   const triggerId = `cts-trigger-${uid}`;
+  const labelId   = `cts-label-${uid}`;
   const panelId   = `cts-panel-${uid}`;
 
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -209,7 +210,7 @@ export function CategoryTreeSelect({
       {/* Label */}
       {label && (
         <label
-          htmlFor={triggerId}
+          id={labelId}
           className="block text-sm font-medium text-secondary-700"
         >
           {label}
@@ -228,6 +229,7 @@ export function CategoryTreeSelect({
         aria-haspopup="tree"
         aria-expanded={isOpen}
         aria-controls={isOpen ? panelId : undefined}
+        aria-labelledby={label ? labelId : undefined}
         aria-required={required}
         aria-invalid={!!errorMessage}
         disabled={disabled}

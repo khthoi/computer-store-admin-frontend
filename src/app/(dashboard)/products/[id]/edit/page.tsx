@@ -1,11 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import {
-  getProductById,
-  getProductBrands,
-} from "@/src/services/product.service";
+import { getProductById, getProductBrands } from "@/src/services/product.service";
+import { getCategoryNodeTree } from "@/src/services/category.service";
 import { ProductFormPage } from "@/src/components/admin/products/ProductFormPage";
-import { MOCK_CATEGORIES } from "@/src/app/(dashboard)/products/_categoryMock";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 
@@ -33,9 +30,10 @@ export default async function EditProductPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [product, brands] = await Promise.all([
+  const [product, categories, brands] = await Promise.all([
     getProductById(id),
-    Promise.resolve(getProductBrands()),
+    getCategoryNodeTree(),
+    getProductBrands(),
   ]);
 
   if (!product) notFound();
@@ -44,7 +42,7 @@ export default async function EditProductPage({
     <ProductFormPage
       mode="edit"
       product={product}
-      categories={MOCK_CATEGORIES}
+      categories={categories}
       brands={brands}
     />
   );

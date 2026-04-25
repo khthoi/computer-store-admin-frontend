@@ -7,7 +7,7 @@ src/app/
 ├── (auth)/
 │   ├── login/page.tsx
 │   └── layout.tsx              # Minimal layout (no sidebar)
-├── (dashboard)/                # Protected by middleware.ts
+├── (dashboard)/                # Protected by proxy.ts (Next.js 16 — do NOT use middleware.ts)
 │   ├── layout.tsx              # AdminShell: sidebar + header
 │   ├── page.tsx                # AD-01 Dashboard overview
 │   ├── loading.tsx

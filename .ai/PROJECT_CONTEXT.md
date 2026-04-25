@@ -35,7 +35,7 @@ Manages the full retail operation: products, orders, inventory, customers, suppo
 | SETTINGS | `/settings/*` | Store config: general, payments, shipping, tax… |
 
 ## Critical Business Rules
-1. Role check on every protected page — middleware + component-level guard
+1. Role check on every protected page — proxy.ts (Next.js 16) + component-level guard
 2. Admin-only: `/employees`, `/roles`, `/reports`, `/settings/*`
 3. Order status flow: `pending → confirmed → packing → shipping → delivered`
 4. Stock: auto-deduct on order confirmed, auto-restore on return approved

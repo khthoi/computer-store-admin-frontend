@@ -1,22 +1,23 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { ClockIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/src/components/ui/Modal";
 
 const COUNTDOWN_SECONDS = 5;
 
 export function SessionExpiredModal() {
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
 
   // Listen for the session-expired event dispatched by apiFetch
+  // Use functional setter so concurrent 401s don't reset the countdown once started
   useEffect(() => {
     function handleExpired() {
-      setCountdown(COUNTDOWN_SECONDS);
-      setOpen(true);
+      setOpen((alreadyOpen) => {
+        if (!alreadyOpen) setCountdown(COUNTDOWN_SECONDS);
+        return true;
+      });
     }
     window.addEventListener("session-expired", handleExpired);
     return () => window.removeEventListener("session-expired", handleExpired);
@@ -27,13 +28,14 @@ export function SessionExpiredModal() {
     if (!open) return;
 
     if (countdown <= 0) {
-      router.push("/login");
+      // Hard redirect — soft router.push can silently fail when session is broken
+      window.location.replace("/login");
       return;
     }
 
     const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
     return () => clearTimeout(timer);
-  }, [open, countdown, router]);
+  }, [open, countdown]);
 
   return (
     <Modal

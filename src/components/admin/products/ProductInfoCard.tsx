@@ -83,7 +83,7 @@ export function ProductInfoCard({ product }: Props) {
             <span>
               <span className="text-secondary-400">Đánh giá: </span>
               <span className="font-medium text-secondary-900">
-                {product.averageRating.toFixed(1)}
+                {(product.averageRating ?? 0).toFixed(1)}
               </span>
               <span className="text-secondary-400"> / 5</span>
               {product.reviewCount !== undefined && (

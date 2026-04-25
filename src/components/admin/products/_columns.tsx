@@ -19,7 +19,10 @@ export type ProductRow = Product & Record<string, unknown>;
 export function buildColumns(
   onDelete: (product: Product) => void,
   onClone: (product: Product) => void,
-  cloningProductId: string | null,
+  pendingClones: Map<string, string>,
+  savingCloneId: string | null,
+  onSavePending: (id: string) => void,
+  onCancelPending: (id: string) => void,
 ): ColumnDef<ProductRow>[] {
   return [
     // col 2 — Image slot: empty spacer for product rows (variants show thumbnail)
@@ -118,7 +121,7 @@ export function buildColumns(
         </span>
       ),
     },
-    // col 9 — Row actions: Edit + Delete with tooltips (View removed — use name link)
+    // col 9 — Row actions (pending clones show Save/Cancel instead)
     {
       key: "id",
       header: "",
@@ -128,13 +131,38 @@ export function buildColumns(
         const id = value as string;
         const product = row as unknown as Product;
         const name = row.name as string;
+
+        if (pendingClones.has(id)) {
+          const isSaving = savingCloneId === id;
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => onSavePending(id)}
+                className="rounded-md bg-primary-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+              >
+                {isSaving ? "Đang lưu..." : "Lưu"}
+              </button>
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => onCancelPending(id)}
+                className="rounded-md border border-secondary-300 bg-white px-2.5 py-1.5 text-xs font-medium text-secondary-700 hover:bg-secondary-50 disabled:opacity-50"
+              >
+                Hủy
+              </button>
+            </div>
+          );
+        }
+
         return (
           <RowActions>
             <Tooltip content="Nhân bản" placement="top">
               <span className="inline-flex">
                 <RowActionClone
                   ariaLabel={`Nhân bản ${name}`}
-                  isLoading={cloningProductId === id}
+                  isLoading={false}
                   onClick={() => onClone(product)}
                 />
               </span>

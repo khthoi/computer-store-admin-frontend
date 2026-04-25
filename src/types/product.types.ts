@@ -31,6 +31,7 @@ export interface Product {
   name: string;
   slug: string;
   category: string;
+  categoryId: string;
   /** One or more brand labels associated with this product */
   brands: string[];
   /**

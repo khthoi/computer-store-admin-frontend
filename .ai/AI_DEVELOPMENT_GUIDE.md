@@ -34,7 +34,7 @@ export const dynamic = "force-dynamic";
 </AdminPageWrapper>
 ```
 5. Create `loading.tsx` with Skeleton rows
-6. Add role guard to `middleware.ts` if route needs restriction
+6. Add role guard to `proxy.ts` if route needs restriction
 
 ---
 
@@ -82,7 +82,9 @@ Routes: `/products/new` (create) | `/products/:id/edit` (edit)
 ## RECIPE: Role-protected page
 
 ```ts
-// Option A — middleware.ts (preferred for route-level):
+// Option A — proxy.ts (Next.js 16 route guard, replaces middleware.ts):
+// proxy.ts already exists at src/proxy.ts — add role checks there.
+// Example pattern already in proxy.ts:
 if (pathname.startsWith("/employees") && token.role !== "admin") {
   return NextResponse.redirect(new URL("/dashboard", req.url));
 }

@@ -90,9 +90,12 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   const [showBulkVariantDeleteConfirm, setShowBulkVariantDeleteConfirm] = useState(false);
   const [isBulkVariantDeleting, setIsBulkVariantDeleting] = useState(false);
 
-  // ── Clone state ────────────────────────────────────────────────────────────
-  const [cloningProductId, setCloningProductId] = useState<string | null>(null);
-  const [cloningVariantId, setCloningVariantId] = useState<string | null>(null);
+  // ── Clone state (Flow B: local pending until user confirms save) ──────────
+  // Maps pendingId → sourceId
+  const [pendingProductClones, setPendingProductClones] = useState<Map<string, string>>(new Map());
+  const [savingProductCloneId, setSavingProductCloneId] = useState<string | null>(null);
+  const [pendingVariantClones, setPendingVariantClones] = useState<Map<string, { sourceVariantId: string; productId: string }>>(new Map());
+  const [savingVariantCloneId, setSavingVariantCloneId] = useState<string | null>(null);
 
   // ── Reset page when any filter changes ────────────────────────────────────
   useEffect(() => {
@@ -325,55 +328,132 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
     }
   }, [selectedVariantIds]);
 
-  // ── Clone handlers ─────────────────────────────────────────────────────────
+  // ── Clone handlers — Flow B ────────────────────────────────────────────────
 
-  const handleCloneProduct = useCallback(async (product: Product) => {
-    setCloningProductId(product.id);
+  const handleCloneProduct = useCallback((product: Product) => {
+    const pendingId = `PENDING-${Date.now()}`;
+    const now = new Date().toISOString();
+    const pendingClone: Product = {
+      ...product,
+      id: pendingId,
+      name: `Copy of ${product.name}`,
+      slug: `${product.slug}-copy`,
+      status: "draft",
+      hasActiveOrders: false,
+      variants: product.variants.map((v, i) => ({
+        ...v,
+        id: `${pendingId}-V${i}`,
+        sku: `${v.sku}-copy`,
+        status: "inactive" as const,
+        isDefault: i === 0,
+        stock: 0,
+      })),
+      totalStock: 0,
+      createdAt: now,
+      updatedAt: now,
+    };
+    setPendingProductClones((prev) => new Map(prev).set(pendingId, product.id));
+    setProducts((prev) => [pendingClone, ...prev]);
+  }, []);
+
+  const handleSavePendingProduct = useCallback(async (pendingId: string) => {
+    const sourceId = pendingProductClones.get(pendingId);
+    if (!sourceId) return;
+    setSavingProductCloneId(pendingId);
     try {
-      const clone = await cloneProduct(product.id);
-      setProducts((prev) => [clone, ...prev]);
-      showToast(`Đã nhân bản "${product.name}" thành công`, "success");
+      const clone = await cloneProduct(sourceId);
+      setProducts((prev) => prev.map((p) => p.id === pendingId ? clone : p));
+      setPendingProductClones((prev) => { const m = new Map(prev); m.delete(pendingId); return m; });
+      showToast("Đã nhân bản sản phẩm thành công", "success");
     } catch {
       showToast("Nhân bản sản phẩm thất bại", "error");
     } finally {
-      setCloningProductId(null);
+      setSavingProductCloneId(null);
     }
-  }, [showToast]);
+  }, [pendingProductClones, showToast]);
 
-  const handleCloneVariant = useCallback(async (variant: ProductVariant, productId: string) => {
-    setCloningVariantId(variant.id);
+  const handleCancelPendingProduct = useCallback((pendingId: string) => {
+    setProducts((prev) => prev.filter((p) => p.id !== pendingId));
+    setPendingProductClones((prev) => { const m = new Map(prev); m.delete(pendingId); return m; });
+  }, []);
+
+  const handleCloneVariant = useCallback((variant: ProductVariant, productId: string) => {
+    const pendingId = `PENDING-VAR-${Date.now()}`;
+    const pendingClone: ProductVariant = {
+      ...variant,
+      id: pendingId,
+      name: `Copy of ${variant.name}`,
+      sku: `${variant.sku}-copy`,
+      status: "inactive" as const,
+      isDefault: false,
+      stock: 0,
+      updatedAt: new Date().toISOString(),
+    };
+    setPendingVariantClones((prev) =>
+      new Map(prev).set(pendingId, { sourceVariantId: variant.id, productId })
+    );
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id === productId ? { ...p, variants: [...p.variants, pendingClone] } : p
+      )
+    );
+  }, []);
+
+  const handleSavePendingVariant = useCallback(async (pendingId: string) => {
+    const info = pendingVariantClones.get(pendingId);
+    if (!info) return;
+    setSavingVariantCloneId(pendingId);
     try {
-      const clone = await cloneVariant(productId, variant.id);
+      const clone = await cloneVariant(info.productId, info.sourceVariantId);
       setProducts((prev) =>
         prev.map((p) =>
-          p.id === productId
-            ? { ...p, variants: [...p.variants, clone], totalStock: p.totalStock + clone.stock }
-            : p
+          p.id !== info.productId ? p : {
+            ...p,
+            variants: p.variants.map((v) => v.id === pendingId ? clone : v),
+            totalStock: p.totalStock + clone.stock,
+          }
         )
       );
-      showToast(`Đã nhân bản "${variant.name}" thành công`, "success");
+      setPendingVariantClones((prev) => { const m = new Map(prev); m.delete(pendingId); return m; });
+      showToast("Đã nhân bản phiên bản thành công", "success");
     } catch {
       showToast("Nhân bản phiên bản thất bại", "error");
     } finally {
-      setCloningVariantId(null);
+      setSavingVariantCloneId(null);
     }
-  }, [showToast]);
+  }, [pendingVariantClones, showToast]);
+
+  const handleCancelPendingVariant = useCallback((pendingId: string) => {
+    const info = pendingVariantClones.get(pendingId);
+    if (!info) return;
+    setProducts((prev) =>
+      prev.map((p) =>
+        p.id !== info.productId ? p : { ...p, variants: p.variants.filter((v) => v.id !== pendingId) }
+      )
+    );
+    setPendingVariantClones((prev) => { const m = new Map(prev); m.delete(pendingId); return m; });
+  }, [pendingVariantClones]);
 
   // ── Set default variant ────────────────────────────────────────────────────
 
   const handleSetDefaultVariant = useCallback((productId: string, variantId: string) => {
-    void setDefaultVariant(productId, variantId).then(() => {
-      setProducts((prev) =>
-        prev.map((p) =>
-          p.id !== productId ? p : {
-            ...p,
-            defaultVariantId: variantId,
-            variants: p.variants.map((v) => ({ ...v, isDefault: v.id === variantId })),
-          }
-        )
-      );
-    });
-  }, []);
+    void setDefaultVariant(productId, variantId)
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) =>
+            p.id !== productId ? p : {
+              ...p,
+              defaultVariantId: variantId,
+              variants: p.variants.map((v) => ({ ...v, isDefault: v.id === variantId })),
+            }
+          )
+        );
+        showToast("Đã đặt phiên bản mặc định.", "success");
+      })
+      .catch(() => {
+        showToast("Không thể đặt phiên bản mặc định.", "error");
+      });
+  }, [showToast]);
 
   // ── CSV export ─────────────────────────────────────────────────────────────
 
@@ -396,8 +476,15 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   // ── Column definitions (built from sub-module) ─────────────────────────────
 
   const columns = useMemo(
-    () => buildColumns(handleDeleteClick, handleCloneProduct, cloningProductId),
-    [handleDeleteClick, handleCloneProduct, cloningProductId]
+    () => buildColumns(
+      handleDeleteClick,
+      handleCloneProduct,
+      pendingProductClones,
+      savingProductCloneId,
+      handleSavePendingProduct,
+      handleCancelPendingProduct,
+    ),
+    [handleDeleteClick, handleCloneProduct, pendingProductClones, savingProductCloneId, handleSavePendingProduct, handleCancelPendingProduct]
   );
 
   // ── Sub-row renderer (delegates to VariantSubRow component) ───────────────
@@ -417,12 +504,25 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
           onCheck={handleVariantCheck}
           onSetDefault={(variantId) => handleSetDefaultVariant(productId, variantId)}
           onDeleteClick={setDeleteVariantTarget}
-          onCloneClick={(variant) => void handleCloneVariant(variant, productId)}
-          isCloning={cloningVariantId === v.id}
+          onCloneClick={(variant) => handleCloneVariant(variant, productId)}
+          isCloning={false}
+          isPending={pendingVariantClones.has(v.id)}
+          isSaving={savingVariantCloneId === v.id}
+          onSave={() => void handleSavePendingVariant(v.id)}
+          onCancel={() => handleCancelPendingVariant(v.id)}
         />
       );
     },
-    [selectedVariantIds, handleVariantCheck, handleSetDefaultVariant]
+    [
+      selectedVariantIds,
+      handleVariantCheck,
+      handleSetDefaultVariant,
+      handleCloneVariant,
+      pendingVariantClones,
+      savingVariantCloneId,
+      handleSavePendingVariant,
+      handleCancelPendingVariant,
+    ]
   );
 
   // ── Toolbar actions ────────────────────────────────────────────────────────

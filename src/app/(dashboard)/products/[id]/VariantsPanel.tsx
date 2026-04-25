@@ -26,6 +26,9 @@ import { useToast } from "@/src/components/ui/Toast";
 import { formatVND } from "@/src/lib/format";
 import type { ProductVariant } from "@/src/types/product.types";
 
+// Pending clone: maps localPendingId → sourceVariantId
+type PendingMap = Map<string, string>;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type VariantRow = ProductVariant & Record<string, unknown>;
@@ -42,33 +45,72 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
   const [variants, setVariants] = useState<ProductVariant[]>(initialVariants);
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [cloningVariantId, setCloningVariantId] = useState<string | null>(null);
+
+  // pending: localId → sourceVariantId
+  const [pendingClones, setPendingClones] = useState<PendingMap>(new Map());
+  const [savingCloneId, setSavingCloneId] = useState<string | null>(null);
 
   // ── Set default ───────────────────────────────────────────────────────────
 
   const handleSetDefault = useCallback((variantId: string) => {
-    void setDefaultVariant(productId, variantId).then(() => {
-      setVariants((prev) =>
-        prev.map((v) => ({ ...v, isDefault: v.id === variantId }))
-      );
-      showToast("Đã đặt phiên bản mặc định.", "success");
-    });
+    void setDefaultVariant(productId, variantId)
+      .then(() => {
+        setVariants((prev) =>
+          prev.map((v) => ({ ...v, isDefault: v.id === variantId }))
+        );
+        showToast("Đã đặt phiên bản mặc định.", "success");
+      })
+      .catch(() => {
+        showToast("Không thể đặt phiên bản mặc định.", "error");
+      });
   }, [productId, showToast]);
 
-  // ── Clone ─────────────────────────────────────────────────────────────────
+  // ── Clone — Flow B: create local pending first ────────────────────────────
 
-  const handleCloneVariant = useCallback(async (variant: ProductVariant) => {
-    setCloningVariantId(variant.id);
+  const handleCloneVariant = useCallback((variant: ProductVariant) => {
+    const pendingId = `PENDING-VAR-${Date.now()}`;
+    const pendingClone: ProductVariant = {
+      ...variant,
+      id: pendingId,
+      name: `Copy of ${variant.name}`,
+      sku: `${variant.sku}-copy`,
+      status: "inactive" as const,
+      isDefault: false,
+      stock: 0,
+      updatedAt: new Date().toISOString(),
+    };
+    setPendingClones((prev) => new Map(prev).set(pendingId, variant.id));
+    setVariants((prev) => [...prev, pendingClone]);
+  }, []);
+
+  const handleSavePending = useCallback(async (pendingId: string) => {
+    const sourceId = pendingClones.get(pendingId);
+    if (!sourceId) return;
+    setSavingCloneId(pendingId);
     try {
-      const clone = await cloneVariant(productId, variant.id);
-      setVariants((prev) => [...prev, clone]);
-      showToast(`Đã nhân bản "${variant.name}" thành công`, "success");
+      const clone = await cloneVariant(productId, sourceId);
+      setVariants((prev) => prev.map((v) => v.id === pendingId ? clone : v));
+      setPendingClones((prev) => {
+        const m = new Map(prev);
+        m.delete(pendingId);
+        return m;
+      });
+      showToast("Đã nhân bản phiên bản thành công", "success");
     } catch {
       showToast("Nhân bản phiên bản thất bại", "error");
     } finally {
-      setCloningVariantId(null);
+      setSavingCloneId(null);
     }
-  }, [productId, showToast]);
+  }, [pendingClones, productId, showToast]);
+
+  const handleCancelPending = useCallback((pendingId: string) => {
+    setVariants((prev) => prev.filter((v) => v.id !== pendingId));
+    setPendingClones((prev) => {
+      const m = new Map(prev);
+      m.delete(pendingId);
+      return m;
+    });
+  }, []);
 
   // ── Delete ────────────────────────────────────────────────────────────────
 
@@ -160,27 +202,56 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
       key: "actions",
       header: "",
       align: "right",
-      render: (_val, row) => (
-        <RowActions>
-          <RowActionView
-            href={`/products/${productId}/variants/${row.id as string}`}
-            ariaLabel={`Xem phiên bản ${row.name as string}`}
-          />
-          <RowActionClone
-            ariaLabel={`Nhân bản phiên bản ${row.name as string}`}
-            isLoading={cloningVariantId === row.id}
-            onClick={() => void handleCloneVariant(row as unknown as ProductVariant)}
-          />
-          <RowActionEdit
-            href={`/products/${productId}/variants/${row.id as string}/edit`}
-            ariaLabel={`Chỉnh sửa phiên bản ${row.name as string}`}
-          />
-          <RowActionDelete
-            ariaLabel={`Xoá phiên bản ${row.name as string}`}
-            onClick={() => setDeleteTarget(row as unknown as ProductVariant)}
-          />
-        </RowActions>
-      ),
+      render: (_val, row) => {
+        const rowId = row.id as string;
+        const isPending = pendingClones.has(rowId);
+        const isSaving = savingCloneId === rowId;
+
+        if (isPending) {
+          return (
+            <div className="flex items-center justify-end gap-1.5">
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => void handleSavePending(rowId)}
+                className="rounded-md bg-primary-600 px-2.5 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 disabled:opacity-50"
+              >
+                {isSaving ? "Đang lưu..." : "Lưu"}
+              </button>
+              <button
+                type="button"
+                disabled={isSaving}
+                onClick={() => handleCancelPending(rowId)}
+                className="rounded-md border border-secondary-300 bg-white px-2.5 py-1.5 text-xs font-medium text-secondary-700 hover:bg-secondary-50 disabled:opacity-50"
+              >
+                Hủy
+              </button>
+            </div>
+          );
+        }
+
+        return (
+          <RowActions>
+            <RowActionView
+              href={`/products/${productId}/variants/${rowId}`}
+              ariaLabel={`Xem phiên bản ${row.name as string}`}
+            />
+            <RowActionClone
+              ariaLabel={`Nhân bản phiên bản ${row.name as string}`}
+              isLoading={false}
+              onClick={() => handleCloneVariant(row as unknown as ProductVariant)}
+            />
+            <RowActionEdit
+              href={`/products/${productId}/variants/${rowId}/edit`}
+              ariaLabel={`Chỉnh sửa phiên bản ${row.name as string}`}
+            />
+            <RowActionDelete
+              ariaLabel={`Xoá phiên bản ${row.name as string}`}
+              onClick={() => setDeleteTarget(row as unknown as ProductVariant)}
+            />
+          </RowActions>
+        );
+      },
     },
   ];
 

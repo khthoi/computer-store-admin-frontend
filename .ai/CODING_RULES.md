@@ -9,9 +9,11 @@ import { Modal }  from "@/src/components/ui/Modal";
 Never recreate components that exist in `src/components/ui/`.
 
 ## RULE 2: Role check on every protected page
-Option A (preferred): `middleware.ts` route-level guard.
+Option A (preferred): `proxy.ts` route-level guard (Next.js 16 — replaces `middleware.ts`).
+`src/proxy.ts` already exists and protects all `(dashboard)/` routes. Add role-specific
+checks there. Do NOT create `middleware.ts` — it conflicts with `proxy.ts`.
 Option B: `useRoleGuard()` hook in page component.
-NEVER skip role check assuming middleware handles it alone — double-check.
+NEVER skip role check assuming proxy handles it alone — double-check.
 
 ## RULE 3: No ISR, no static — admin data must always be fresh
 ```ts

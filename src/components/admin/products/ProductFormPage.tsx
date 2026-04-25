@@ -84,7 +84,7 @@ export function ProductFormPage({
   // ── Field state ─────────────────────────────────────────────────────────
   const [name,     setName]     = useState(product?.name     ?? "");
   const [slug,     setSlug]     = useState(product?.slug     ?? "");
-  const [category, setCategory] = useState(product?.category ?? "");
+  const [category, setCategory] = useState(product?.categoryId ?? "");
   const [brand,    setBrand]    = useState<string[]>(product?.brands ?? []);
   const [status,   setStatus]   = useState<string>(product?.status ?? "draft");
   const [errors,   setErrors]   = useState<FormErrors>({});

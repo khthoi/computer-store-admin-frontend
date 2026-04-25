@@ -1,5 +1,7 @@
 import type { DanhMuc, DanhMucNode, DanhMucNodeType, FilterParams } from "@/src/types/category.types";
+import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect/types";
 import { MOCK_CATEGORIES, buildCategoryTree } from "@/src/app/(dashboard)/categories/_mock";
+import { apiFetch } from "@/src/services/api";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AnyCat = any;
@@ -142,4 +144,26 @@ export async function reorderCategories(
   _orderedIds: string[]
 ): Promise<void> {
   await new Promise<void>((r) => setTimeout(r, 400));
+}
+
+// ─── Product form helper ───────────────────────────────────────────────────
+
+interface CategoryApiNode {
+  id: number;
+  tenDanhMuc: string;
+  children?: CategoryApiNode[];
+}
+
+function mapToNode(c: CategoryApiNode): CategoryNode {
+  return {
+    id: String(c.id),
+    label: c.tenDanhMuc,
+    children: c.children?.length ? c.children.map(mapToNode) : undefined,
+  };
+}
+
+/** Returns the public category tree mapped to CategoryNode[] for CategoryTreeSelect. */
+export async function getCategoryNodeTree(): Promise<CategoryNode[]> {
+  const tree = await apiFetch<CategoryApiNode[]>("/categories");
+  return tree.map(mapToNode);
 }

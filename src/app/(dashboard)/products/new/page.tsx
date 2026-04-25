@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getProductBrands } from "@/src/services/product.service";
+import { getCategoryNodeTree } from "@/src/services/category.service";
 import { ProductFormPage } from "@/src/components/admin/products/ProductFormPage";
-import { MOCK_CATEGORIES } from "@/src/app/(dashboard)/products/_categoryMock";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 
@@ -14,13 +14,16 @@ export const metadata: Metadata = {
 
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
-export default function NewProductPage() {
-  const brands = getProductBrands();
+export default async function NewProductPage() {
+  const [categories, brands] = await Promise.all([
+    getCategoryNodeTree(),
+    getProductBrands(),
+  ]);
 
   return (
     <ProductFormPage
       mode="create"
-      categories={MOCK_CATEGORIES}
+      categories={categories}
       brands={brands}
     />
   );
