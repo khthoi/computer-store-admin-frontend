@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { CloudArrowUpIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { CloudArrowUpIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ChevronDownIcon, FolderIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/src/components/ui/Modal";
 import { Button } from "@/src/components/ui/Button";
 import { Spinner } from "@/src/components/ui/Spinner";
@@ -26,6 +26,7 @@ export interface MediaUploadModalProps {
   open: boolean;
   onClose: () => void;
   folderId?: string | null;
+  folderName?: string;
   onUploaded?: (files: MediaFile[]) => void;
 }
 
@@ -42,7 +43,7 @@ const MAX_SIZE_MB = 50;
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function MediaUploadModal({ open, onClose, folderId, onUploaded }: MediaUploadModalProps) {
+export function MediaUploadModal({ open, onClose, folderId, folderName, onUploaded }: MediaUploadModalProps) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -128,6 +129,15 @@ export function MediaUploadModal({ open, onClose, folderId, onUploaded }: MediaU
   return (
     <Modal isOpen={open} onClose={handleClose} title="Tải lên media" size="2xl" animated>
       <div className="flex flex-col gap-4 p-5">
+        {/* Folder indicator */}
+        <div className="flex items-center gap-2 rounded-lg border border-secondary-200 bg-secondary-50 px-3 py-2">
+          <FolderIcon className="h-4 w-4 shrink-0 text-secondary-400" />
+          <span className="text-xs text-secondary-500">Tải lên vào:</span>
+          <span className="text-xs font-medium text-secondary-800">
+            {folderName ?? "Thư mục mặc định"}
+          </span>
+        </div>
+
         {/* Drop zone */}
         <div
           onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}

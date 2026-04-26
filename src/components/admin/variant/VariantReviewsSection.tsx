@@ -5,6 +5,7 @@ import { StarIcon } from "@heroicons/react/24/outline";
 import { useToast }              from "@/src/components/ui/Toast";
 import { Select }                from "@/src/components/ui/Select";
 import { ReviewModerationModal } from "@/src/components/admin/reviews/ReviewModerationModal";
+import { Pagination }            from "@/src/components/navigation/Pagination";
 import { VariantRatingSummary }  from "./VariantRatingSummary";
 import { VariantReviewCard }     from "./VariantReviewCard";
 import { moderateReview }        from "@/src/services/review.service";
@@ -75,6 +76,8 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
   const [reviews,      setReviews]      = useState<ReviewSummary[]>(initialReviews);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [ratingFilter, setRatingFilter] = useState<"" | "1" | "2" | "3" | "4" | "5">("");
+  const [currentPage,  setCurrentPage]  = useState(1);
+  const PAGE_SIZE = 5;
 
   // ── Modal state ───────────────────────────────────────────────────────────
   const [modalTarget, setModalTarget] = useState<ReviewSummary | null>(null);
@@ -91,6 +94,10 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
       return true;
     });
   }, [reviews, statusFilter, ratingFilter]);
+
+  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage    = Math.min(currentPage, totalPages);
+  const paginated   = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   // ── Open modal ────────────────────────────────────────────────────────────
   function openModerate(review: ReviewSummary) {
@@ -164,7 +171,7 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
             <button
               key={tab.value}
               type="button"
-              onClick={() => setStatusFilter(tab.value)}
+              onClick={() => { setStatusFilter(tab.value); setCurrentPage(1); }}
               className={[
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 statusFilter === tab.value
@@ -193,7 +200,7 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
             placeholder="Tất cả sao"
             options={RATING_OPTIONS}
             value={ratingFilter}
-            onChange={(v) => setRatingFilter((v ?? "") as typeof ratingFilter)}
+            onChange={(v) => { setRatingFilter((v ?? "") as typeof ratingFilter); setCurrentPage(1); }}
             clearable
             size="sm"
           />
@@ -202,15 +209,31 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
 
       {/* ── Review list ── */}
       {filtered.length > 0 ? (
-        <div className="space-y-3">
-          {filtered.map((review) => (
-            <VariantReviewCard
-              key={review.reviewId}
-              review={review}
-              onOpenModerate={openModerate}
-            />
-          ))}
-        </div>
+        <>
+          <div className="space-y-3">
+            {paginated.map((review) => (
+              <VariantReviewCard
+                key={review.reviewId}
+                review={review}
+                onOpenModerate={openModerate}
+              />
+            ))}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-secondary-400">
+                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} / {filtered.length} đánh giá
+              </p>
+              <Pagination
+                size="sm"
+                page={safePage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+              />
+            </div>
+          )}
+        </>
       ) : (
         <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-secondary-200 py-12 text-center">
           <StarIcon className="mb-2 h-8 w-8 text-secondary-300" aria-hidden="true" />

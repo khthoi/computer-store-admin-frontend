@@ -17,7 +17,9 @@ export const MOCK_PRODUCTS: Product[] = [
     slug: "asus-rog-strix-rtx-4090-oc",
     category: "GPU",
     brands: ["ASUS", "NVIDIA"],
-    totalStock: 14,
+    categoryId: "gpu",
+    brands: ["ASUS", "NVIDIA"],
+    brandIds: ["asus", "nvidia"],
     status: "published",
     hasActiveOrders: true,
     defaultVariantId: "var-001-a",
@@ -54,7 +56,9 @@ export const MOCK_PRODUCTS: Product[] = [
     id: "prod-002",
     name: "Intel Core i9-14900K Processor",
     slug: "intel-core-i9-14900k",
-    category: "CPU",
+    categoryId: "cpu",
+    brands: ["Intel"],
+    brandIds: ["iCPU", "intel"],
     brands: ["Intel"],
     totalStock: 38,
     status: "published",
@@ -99,7 +103,9 @@ export const MOCK_PRODUCTS: Product[] = [
   // ── 3. SSD ────────────────────────────────────────────────────────────────
   {
     id: "prod-003",
-    name: "Samsung 990 Pro NVMe M.2 SSD",
+    categoryId: "ssd",
+    brands: ["Samsung"],
+    brandIds: ["sung 990 Pro NVMe M.2 SSD", "samsung"],
     slug: "samsung-990-pro-nvme-m2",
     category: "SSD",
     brands: ["Samsung"],
@@ -135,7 +141,9 @@ export const MOCK_PRODUCTS: Product[] = [
   },
 
   // ── 4. RAM ────────────────────────────────────────────────────────────────
-  {
+  {categoryId: "ram",
+    brands: ["G.Skill"],
+    brandIds: ["g.skill"],
     id: "prod-004",
     name: "G.Skill Trident Z5 RGB DDR5 RAM",
     slug: "gskill-trident-z5-rgb-ddr5",
@@ -189,7 +197,9 @@ export const MOCK_PRODUCTS: Product[] = [
       },
     ],
   },
-
+categoryId: "monitor",
+    brands: ["ASUS"],
+    brandIds: ["asus"],
   // ── 5. Monitor ────────────────────────────────────────────────────────────
   {
     id: "prod-005",
@@ -200,6 +210,8 @@ export const MOCK_PRODUCTS: Product[] = [
     totalStock: 7,
     status: "draft",
     defaultVariantId: "var-005-a",
+    categoryId: "monitor",
+    brandIds: ["asus"],
     averageRating: 4.3,
     reviewCount: 67,
     createdBy: { name: "Nguyễn Văn An", role: "Admin" },
@@ -225,7 +237,9 @@ export const MOCK_PRODUCTS: Product[] = [
         status: "active",
         updatedAt: "2026-03-23T12:00:00Z",
       },
-    ],
+    categoryId: "cooling",
+    brands: ["Noctua"],
+    brandIds: ["noctua"],
   },
 
   // ── 6. Cooling ────────────────────────────────────────────────────────────
@@ -259,9 +273,12 @@ export const MOCK_PRODUCTS: Product[] = [
         sku: "NOCTUA-NHD15G2-HDT",
         name: "Heatpipe Direct Touch Edition",
         price: 2_890_000,
-        stock: 3,   // ≤ 5 — low stock
+        stock: 3,
         status: "active",
-        updatedAt: "2026-03-20T15:45:00Z",
+    categoryId: "motherboard",
+    brands: ["ASUS", "Intel", "ROG", "Republic of Gamers", "ASUS ROG"],
+    brandIds: ["asus", "intel", "rog", "republicofgamers", "asusrog"],
+        updatedAt: "2026-03-20T14:00:00Z",
       },
     ],
   },
@@ -297,7 +314,7 @@ export const MOCK_PRODUCTS: Product[] = [
         sku: "ROG-Z790-APEX-DDR4",
         name: "DDR4 Edition",
         price: 21_200_000,
-        stock: 2,   // ≤ 5 — low stock
+        stock: 2,
         status: "inactive",
         updatedAt: "2026-01-20T10:00:00Z",
       },
@@ -305,8 +322,10 @@ export const MOCK_PRODUCTS: Product[] = [
         id: "var-007-c",
         sku: "ROG-Z790-APEX-EVO",
         name: "Apex Extreme EVO",
-        price: 31_000_000,
-        stock: 2,   // ≤ 5 — low stock
+    categoryId: "case",
+    brands: ["Lian Li"],
+    brandIds: ["lian-l0_000,
+        stock: 2,
         status: "inactive",
         updatedAt: "2026-01-20T10:00:00Z",
       },

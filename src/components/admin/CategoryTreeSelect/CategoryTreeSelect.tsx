@@ -124,17 +124,18 @@ export function CategoryTreeSelect({
 
   // ── Trigger styles ─────────────────────────────────────────────────────────
   const triggerBase = [
-    "flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-0",
+    "flex w-full items-center gap-2 rounded border px-3 py-2 text-left text-sm transition-colors duration-150",
+    "cursor-pointer focus:outline-none focus:ring-2",
+    "disabled:cursor-not-allowed disabled:bg-secondary-100 disabled:text-secondary-400",
   ].join(" ");
 
   const triggerState = disabled
-    ? "border-secondary-200 bg-secondary-50 text-secondary-400 cursor-not-allowed opacity-70"
+    ? "border-secondary-200 bg-secondary-50 text-secondary-400 opacity-70"
     : errorMessage
-    ? "border-error-400 bg-white text-secondary-900 focus-visible:ring-error-300 hover:border-error-500"
+    ? "border-error-400 bg-white text-secondary-900 focus:border-error-500 focus:ring-error-500/15"
     : isOpen
-    ? "border-primary-500 bg-white text-secondary-900 ring-2 ring-primary-200"
-    : "border-secondary-200 bg-white text-secondary-900 hover:border-secondary-300 focus-visible:ring-primary-200";
+    ? "border-primary-500 bg-white text-secondary-900 ring-2 ring-primary-500/15"
+    : "border-secondary-300 bg-white text-secondary-900 hover:border-secondary-400 focus:border-primary-500 focus:ring-primary-500/15";
 
   // ── Panel JSX (rendered into portal) ──────────────────────────────────────
   const panel =

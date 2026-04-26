@@ -1,5 +1,6 @@
-// ─── Content Management mock service ─────────────────────────────────────────
+// ─── Content Management service ───────────────────────────────────────────────
 
+import { apiFetch } from "@/src/services/api";
 import type {
   MediaFile,
   MediaFolder,
@@ -286,51 +287,122 @@ const TESTIMONIALS: Testimonial[] = [
 
 // ─── Media Library ────────────────────────────────────────────────────────────
 
+// ─── Backend API types ────────────────────────────────────────────────────────
+
+interface BackendAsset {
+  id: number;
+  urlGoc: string;
+  tenFileGoc: string;
+  loaiFile: string;
+  mimeType: string;
+  kichThuocByte: number;
+  chieuRong: number | null;
+  chieuCao: number | null;
+  altText: string | null;
+  caption: string | null;
+  thuMucId: number | null;
+  soLanSuDung: number;
+  trangThai: string;
+  nguoiUploadId: number;
+  ngayUpload: string;
+}
+
+interface BackendMediaFolder {
+  id: number;
+  tenHienThi: string;
+  duongDan: string;
+  isActive: boolean;
+  phamVi: string;
+  ngayTao: string;
+  ngayCapNhat: string;
+}
+
+function mapAssetToMediaFile(asset: BackendAsset): MediaFile {
+  const loaiFile = asset.loaiFile;
+  const fileType = loaiFile === "image" ? "image" : loaiFile === "video" ? "video" : "document";
+  return {
+    id: String(asset.id),
+    folderId: asset.thuMucId != null ? String(asset.thuMucId) : null,
+    filename: asset.tenFileGoc,
+    originalName: asset.tenFileGoc,
+    mimeType: asset.mimeType,
+    fileType: fileType as MediaFile["fileType"],
+    url: asset.urlGoc,
+    thumbnailUrl: asset.urlGoc,
+    size: asset.kichThuocByte,
+    width: asset.chieuRong ?? undefined,
+    height: asset.chieuCao ?? undefined,
+    altText: asset.altText ?? undefined,
+    caption: asset.caption ?? undefined,
+    status: asset.trangThai === "active" ? "active" : "unused",
+    usageCount: asset.soLanSuDung,
+    uploadedBy: String(asset.nguoiUploadId),
+    uploadedAt: asset.ngayUpload,
+    updatedAt: asset.ngayUpload,
+  };
+}
+
+function mapFolderToMediaFolder(folder: BackendMediaFolder): MediaFolder {
+  return {
+    id: String(folder.id),
+    name: folder.tenHienThi,
+    slug: folder.duongDan,
+    parentId: null,
+    fileCount: 0,
+    visibility: folder.phamVi === "private" ? "private" : "public",
+    createdAt: folder.ngayTao,
+    updatedAt: folder.ngayCapNhat,
+  };
+}
+
+// ─── Media ────────────────────────────────────────────────────────────────────
+
 export async function getMediaFiles(params: MediaListParams = {}): Promise<MediaListResult> {
-  await delay();
-  const { q = "", folderId, fileType = [], page = 1, pageSize = 24 } = params;
+  const { q, folderId, fileType = [], page = 1, pageSize = 24 } = params;
 
-  let list = [...MEDIA_FILES];
-  if (q) list = list.filter((f) => matchQ(f.filename, q) || matchQ(f.altText ?? "", q));
-  if (folderId !== undefined) list = list.filter((f) => f.folderId === folderId);
-  if (fileType.length) list = list.filter((f) => fileType.includes(f.fileType));
+  const qs = new URLSearchParams();
+  if (q) qs.set("search", q);
+  if (folderId != null) qs.set("thuMucId", folderId);
+  if (fileType.length === 1) {
+    const backendType = fileType[0] === "document" ? "raw" : fileType[0];
+    qs.set("loaiFile", backendType);
+  }
+  qs.set("page", String(page));
+  qs.set("limit", String(pageSize));
 
-  const { data, total } = paginate(list, page, pageSize);
-  return { data, total, folders: MEDIA_FOLDERS };
+  const [assetsRes, foldersRes] = await Promise.all([
+    apiFetch<{ items: BackendAsset[]; total: number }>(`/admin/media?${qs}`),
+    apiFetch<BackendMediaFolder[]>("/admin/media/folders"),
+  ]);
+
+  return {
+    data: assetsRes.items.map(mapAssetToMediaFile),
+    total: assetsRes.total,
+    folders: foldersRes.map(mapFolderToMediaFolder),
+  };
 }
 
 export async function getMediaFolders(): Promise<MediaFolder[]> {
-  await delay(200);
-  return MEDIA_FOLDERS;
+  const folders = await apiFetch<BackendMediaFolder[]>("/admin/media/folders");
+  return folders.map(mapFolderToMediaFolder);
 }
 
 export async function uploadMediaFile(file: File, params: MediaUploadParams = {}): Promise<MediaFile> {
-  await delay(1200);
-  const newFile: MediaFile = {
-    id: `m${Date.now()}`,
-    folderId: params.folderId ?? null,
-    filename: file.name,
-    originalName: file.name,
-    mimeType: file.type,
-    fileType: file.type.startsWith("image/") ? "image" : file.type.startsWith("video/") ? "video" : "document",
-    url: `https://placehold.co/800x600/e0e7ff/4338ca?text=${encodeURIComponent(file.name.split(".")[0])}`,
-    size: file.size,
-    altText: params.altText ?? "",
-    caption: params.caption ?? "",
-    status: "active",
-    usageCount: 0,
-    uploadedBy: "Admin",
-    uploadedAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-  };
-  MEDIA_FILES.unshift(newFile);
-  return newFile;
+  const formData = new FormData();
+  formData.append("file", file);
+  if (params.folderId != null) formData.append("thuMucId", params.folderId);
+  if (params.altText) formData.append("altText", params.altText);
+  if (params.caption) formData.append("caption", params.caption);
+
+  const asset = await apiFetch<BackendAsset>("/admin/media/upload", {
+    method: "POST",
+    body: formData,
+  });
+  return mapAssetToMediaFile(asset);
 }
 
 export async function deleteMediaFile(id: string): Promise<void> {
-  await delay(300);
-  const idx = MEDIA_FILES.findIndex((f) => f.id === id);
-  if (idx !== -1) MEDIA_FILES.splice(idx, 1);
+  await apiFetch<void>(`/admin/media/${id}`, { method: "DELETE" });
 }
 
 export async function updateMediaFile(id: string, updates: Partial<Pick<MediaFile, "altText" | "caption" | "folderId">>): Promise<MediaFile> {

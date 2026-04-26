@@ -20,7 +20,6 @@ import type { MediaType, VariantMedia } from "@/src/types/product.types";
 const TYPE_OPTIONS: { value: MediaType; label: string }[] = [
   { value: "main",    label: "Main"    },
   { value: "gallery", label: "Gallery" },
-  { value: "360",     label: "360°"    },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────

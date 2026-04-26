@@ -63,13 +63,13 @@ export function buildColumns(
     {
       key: "category",
       header: "Danh mục",
-      width: "w-28",
+      width: "w-40",
       align: "center",
       render: (value) => (
         <span className="text-sm text-secondary-600">{value as string}</span>
       ),
     },
-    // col 5 — Base price (min of variant prices)
+    // col 5 — Base price (price of the default variant, fallback to first)
     {
       key: "variants",
       header: "Giá cơ bản",
@@ -77,11 +77,11 @@ export function buildColumns(
       align: "right",
       width: "w-36",
       render: (_value, row) => {
-        const prices = (row.variants as ProductVariant[]).map((v) => v.price);
-        const min = prices.length > 0 ? Math.min(...prices) : undefined;
+        const variants = row.variants as ProductVariant[];
+        const defaultVariant = variants.find((v) => v.isDefault) ?? variants[0];
         return (
           <span className="font-medium text-secondary-800 tabular-nums text-sm">
-            {min !== undefined ? formatVND(min) : "—"}
+            {defaultVariant ? formatVND(defaultVariant.price) : "—"}
           </span>
         );
       },

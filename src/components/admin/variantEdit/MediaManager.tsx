@@ -23,13 +23,11 @@ import type { VariantMedia, MediaType } from "@/src/types/product.types";
 const TYPE_OPTIONS = [
   { value: "main",    label: "Main"    },
   { value: "gallery", label: "Gallery" },
-  { value: "360",     label: "360°"    },
 ];
 
 const TYPE_BADGE: Record<MediaType, React.ReactNode> = {
   main:    <Badge variant="primary" size="sm">Main</Badge>,
   gallery: <Badge variant="default" size="sm">Gallery</Badge>,
-  "360":   <Badge variant="warning" size="sm">360°</Badge>,
 };
 
 // ─── Source badge ─────────────────────────────────────────────────────────────

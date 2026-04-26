@@ -1,60 +1,30 @@
 import type { HinhAnhSanPham } from "@/src/types/image.types";
+import { apiFetch } from "@/src/services/api";
 
-// ─── Mock image data ───────────────────────────────────────────────────────
-// Placeholder images per variant — replace with real storage URLs.
-
-const MOCK_IMAGES: HinhAnhSanPham[] = [
-  {
-    id: "img-001-a-1",
-    variantId: "var-001-a",
-    url: "https://product.hstatic.net/200000722513/product/fwebp__6__be7ded7631fb4241b3edaf400ed9c617_master.png",
-    alt: "RTX 4090 Standard - Ảnh 1",
-    displayOrder: 1,
-    createdAt: "2026-01-10T07:00:00Z",
-  },
-  {
-    id: "img-001-a-2",
-    variantId: "var-001-a",
-    url: "https://placehold.co/400x400/1a1a2e/ffffff?text=RTX+4090+Standard+2",
-    alt: "RTX 4090 Standard - Ảnh 2",
-    displayOrder: 2,
-    createdAt: "2026-01-10T07:00:00Z",
-  },
-  {
-    id: "img-001-b-1",
-    variantId: "var-001-b",
-    url: "https://placehold.co/400x400/f5f5f5/1a1a2e?text=RTX+4090+White",
-    alt: "RTX 4090 White Edition - Ảnh 1",
-    displayOrder: 1,
-    createdAt: "2026-01-10T07:00:00Z",
-  },
-  {
-    id: "img-002-a-1",
-    variantId: "var-002-a",
-    url: "https://placehold.co/400x400/0068b5/ffffff?text=i9-14900K+Box",
-    alt: "Intel i9-14900K Box - Ảnh 1",
-    displayOrder: 1,
-    createdAt: "2026-01-12T08:00:00Z",
-  },
-  {
-    id: "img-003-a-1",
-    variantId: "var-003-a",
-    url: "https://placehold.co/400x400/1428a0/ffffff?text=990+Pro+1TB",
-    alt: "Samsung 990 Pro 1TB - Ảnh 1",
-    displayOrder: 1,
-    createdAt: "2026-01-15T06:00:00Z",
-  },
-];
+// Backend shape from GET /admin/products/variants/:variantId/images
+interface ImageMediaResponse {
+  id: string;
+  variantId: string;
+  url: string;
+  assetId: string | null;
+  type: "main" | "gallery" | "360";
+  order: number;
+  altText?: string;
+}
 
 // ─── Service ───────────────────────────────────────────────────────────────
 
-/**
- * Fetch images for a variant.
- * Mock implementation — replace with GET /admin/products/:productId/variants/:variantId/images
- */
 export async function getImages(variantId: string): Promise<HinhAnhSanPham[]> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  return MOCK_IMAGES.filter((img) => img.variantId === variantId);
+  const images = await apiFetch<ImageMediaResponse[]>(`/admin/products/variants/${variantId}/images`);
+  const now = new Date().toISOString();
+  return (images ?? []).map((img) => ({
+    id: img.id,
+    variantId: img.variantId,
+    url: img.url,
+    alt: img.altText ?? "",
+    displayOrder: img.order,
+    createdAt: now,
+  }));
 }
 
 /**

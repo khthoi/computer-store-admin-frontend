@@ -34,6 +34,7 @@ export interface Product {
   categoryId: string;
   /** One or more brand labels associated with this product */
   brands: string[];
+  brandIds: string[];
   /**
    * Products do NOT have thumbnails — images belong to individual variants.
    * This field is intentionally absent; see ProductVariant.thumbnailUrl.
@@ -64,7 +65,7 @@ export type VariantStatus = ProductVariant["status"];
 // ─── Variant detail types (richer model for the variant detail page) ──────────
 
 export type DetailVariantStatus = "visible" | "hidden" | "out_of_stock";
-export type MediaType = "main" | "gallery" | "360";
+export type MediaType = "main" | "gallery";
 
 export interface VariantMedia {
   id: string;

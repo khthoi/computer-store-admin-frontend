@@ -16,6 +16,7 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "cdn2.cellphones.com.vn" },
       { protocol: "https", hostname: "images.unsplash.com" },
       { protocol: "https", hostname: "hacom.vn" },
+      { protocol: "https", hostname: "kccshop.vn" },
     ],
     qualities: [70, 75, 90],
     deviceSizes: [64, 128, 256, 384, 640],

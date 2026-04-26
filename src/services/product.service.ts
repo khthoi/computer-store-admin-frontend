@@ -1,7 +1,5 @@
 import type { Product, ProductVariant, ProductVariantDetail, DetailVariantStatus, SpecificationGroup, VariantMedia, VariantSalesStats } from "@/src/types/product.types";
 import type { ReviewSummary } from "@/src/types/review.types";
-import { MOCK_VARIANT } from "@/src/app/(dashboard)/products/[id]/variants/[variantId]/_mock";
-import { MOCK_SPEC_TEMPLATES } from "@/src/app/(dashboard)/products/_mock_spec_templates";
 import { apiFetch } from "@/src/services/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -76,8 +74,15 @@ export async function bulkUpdateVariantStatus(
   variantIds: string[],
   status: ProductVariant["status"]
 ): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 400));
-  void variantIds; void status;
+  const trangThai = status === "active" ? "HienThi" : "An";
+  await Promise.all(
+    variantIds.map((id) =>
+      apiFetch<unknown>(`/admin/products/variants/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ trangThai }),
+      })
+    )
+  );
 }
 
 export async function getProductById(id: string): Promise<Product | null> {
@@ -120,74 +125,44 @@ export interface UpdateProductPayload {
 }
 
 export async function createProduct(data: CreateProductPayload): Promise<Product> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 600));
-  const now = new Date().toISOString();
-  const variants: ProductVariant[] = data.variants.map((v, i) => ({
-    id: `var-new-${Date.now()}-${i}`,
-    name: v.name,
-    sku: v.sku,
-    price: v.price,
-    stock: v.stock,
-    status: v.status,
-    updatedAt: now,
-  }));
-  return {
-    id: `prod-${Date.now()}`,
-    name: data.name,
-    slug: data.slug,
-    category: data.category,
-    brands: data.brands,
-    totalStock: variants.reduce((s, v) => s + v.stock, 0),
-    status: data.status,
-    variants,
-    createdAt: now,
-    updatedAt: now,
-  };
+  return apiFetch<Product>("/admin/products", {
+    method: "POST",
+    body: JSON.stringify({
+      tenSanPham: data.name,
+      maSanPham:  data.slug || data.name.slice(0, 100),
+      slug:       data.slug || undefined,
+      danhMucId:  Number(data.category),
+      trangThai:  statusToTrangThai(data.status),
+      brandIds:   data.brands.map(Number),
+    }),
+  });
 }
 
 export async function updateProduct(
   id: string,
   data: UpdateProductPayload
 ): Promise<Product> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 600));
-  const existing = await getProductById(id);
-  if (!existing) throw new Error(`Product ${id} not found`);
-  const now = new Date().toISOString();
-  const variants: ProductVariant[] = (data.variants ?? existing.variants).map((v, i) => {
-    const existingVariant = existing.variants.find((ev) => ev.id === v.id);
-    return {
-      id: v.id ?? `var-new-${Date.now()}-${i}`,
-      name: v.name,
-      sku: v.sku,
-      price: v.price,
-      stock: v.stock,
-      status: v.status,
-      thumbnailUrl: existingVariant?.thumbnailUrl,
-      updatedAt: now,
-    };
+  return apiFetch<Product>(`/admin/products/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(data.name     && { tenSanPham: data.name }),
+      ...(data.slug     && { slug: data.slug }),
+      ...(data.category && { danhMucId: Number(data.category) }),
+      ...(data.status   && { trangThai: statusToTrangThai(data.status) }),
+      ...(data.brands   && { brandIds: data.brands.map(Number) }),
+    }),
   });
-  return {
-    ...existing,
-    name: data.name ?? existing.name,
-    slug: data.slug ?? existing.slug,
-    category: data.category ?? existing.category,
-    brands: data.brands ?? existing.brands,
-    status: data.status ?? existing.status,
-    variants,
-    totalStock: variants.reduce((s, v) => s + v.stock, 0),
-    updatedAt: now,
-  };
 }
 
 export async function getVariantById(
   productId: string,
   variantId: string
 ): Promise<ProductVariantDetail | null> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 50));
-  if (MOCK_VARIANT.productId === productId && MOCK_VARIANT.id === variantId) {
-    return MOCK_VARIANT;
+  try {
+    return await apiFetch<ProductVariantDetail>(`/admin/products/${productId}/variants/${variantId}`);
+  } catch {
+    return null;
   }
-  return null;
 }
 
 // ─── Variant detail update ─────────────────────────────────────────────────────
@@ -205,19 +180,65 @@ export interface UpdateVariantDetailPayload {
 }
 
 export async function updateVariantDetail(
-  _productId: string,
-  _variantId: string,
-  _data: UpdateVariantDetailPayload
+  productId: string,
+  variantId: string,
+  data: UpdateVariantDetailPayload
 ): Promise<ProductVariantDetail> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 600));
-  return MOCK_VARIANT;
+  const body: Record<string, unknown> = {};
+  if (data.name !== undefined)          body.tenPhienBan = data.name;
+  if (data.sku !== undefined)           body.sku = data.sku;
+  if (data.originalPrice !== undefined) body.giaGoc = data.originalPrice;
+  if (data.salePrice !== undefined)     body.giaBan = data.salePrice;
+  if (data.weight !== undefined)        body.trongLuong = data.weight;
+  if (data.description !== undefined)   body.moTaChiTiet = data.description;
+  if (data.status !== undefined)        body.trangThai = detailStatusToDb(data.status);
+
+  if (Object.keys(body).length > 0) {
+    await apiFetch<unknown>(`/admin/products/variants/${variantId}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    });
+  }
+
+  if (data.specificationGroups !== undefined) {
+    const specs = data.specificationGroups.flatMap((g) =>
+      g.items.map((item) => ({
+        loaiThongSoId: Number(item.typeId),
+        giaTriThongSo: item.value,
+        ...(item.giaTriChuan && { giaTriChuan: item.giaTriChuan }),
+        ...(item.giaTriSo != null && { giaTriSo: item.giaTriSo }),
+      }))
+    );
+    await apiFetch<unknown>(`/admin/products/${productId}/variants/${variantId}/specs`, {
+      method: "PUT",
+      body: JSON.stringify({ specs }),
+    });
+  }
+
+  if (data.media !== undefined) {
+    await apiFetch<unknown>(`/admin/products/${productId}/variants/${variantId}/media`, {
+      method: "PUT",
+      body: JSON.stringify({
+        media: data.media.map((m) => ({
+          url: m.url,
+          assetId: m.assetId ?? null,
+          type: m.type,
+          order: m.order,
+          ...(m.altText && { altText: m.altText }),
+        })),
+      }),
+    });
+  }
+
+  return apiFetch<ProductVariantDetail>(`/admin/products/${productId}/variants/${variantId}`);
 }
 
 export async function getNewVariantTemplate(
   productId: string
 ): Promise<SpecificationGroup[]> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 50));
-  return MOCK_SPEC_TEMPLATES[productId] ?? [];
+  const product = await apiFetch<{ categoryId: string }>(`/admin/products/${productId}`);
+  if (!product.categoryId) return [];
+  return apiFetch<SpecificationGroup[]>(`/admin/specs/template?categoryId=${product.categoryId}`);
 }
 
 // ─── Variant detail create ─────────────────────────────────────────────────────
@@ -238,22 +259,55 @@ export async function createVariantDetail(
   productId: string,
   data: CreateVariantDetailPayload
 ): Promise<ProductVariantDetail> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 600));
-  const now = new Date().toISOString();
-  return {
-    id:                  `var-${Date.now()}`,
-    productId,
-    name:                data.name,
-    sku:                 data.sku,
-    originalPrice:       data.originalPrice,
-    salePrice:           data.salePrice,
-    weight:              data.weight ?? undefined,
-    status:              data.status,
-    updatedAt:           now,
-    description:         data.description ?? "",
-    specificationGroups: data.specificationGroups ?? [],
-    media:               data.media ?? [],
-  };
+  const raw = await apiFetch<{ id: number; sanPhamId: number }>(
+    `/admin/products/${productId}/variants`,
+    {
+      method: "POST",
+      body: JSON.stringify({
+        tenPhienBan: data.name,
+        sku: data.sku,
+        giaGoc: data.originalPrice,
+        giaBan: data.salePrice,
+        ...(data.weight != null && { trongLuong: data.weight }),
+        trangThai: detailStatusToDb(data.status),
+        ...(data.description && { moTaChiTiet: data.description }),
+      }),
+    }
+  );
+
+  const variantId = String(raw.id);
+
+  if (data.specificationGroups?.length) {
+    const specs = data.specificationGroups.flatMap((g) =>
+      g.items.map((item) => ({
+        loaiThongSoId: Number(item.typeId),
+        giaTriThongSo: item.value,
+        ...(item.giaTriChuan && { giaTriChuan: item.giaTriChuan }),
+        ...(item.giaTriSo != null && { giaTriSo: item.giaTriSo }),
+      }))
+    );
+    await apiFetch<unknown>(`/admin/products/${productId}/variants/${variantId}/specs`, {
+      method: "PUT",
+      body: JSON.stringify({ specs }),
+    });
+  }
+
+  if (data.media?.length) {
+    await apiFetch<unknown>(`/admin/products/${productId}/variants/${variantId}/media`, {
+      method: "PUT",
+      body: JSON.stringify({
+        media: data.media.map((m) => ({
+          url: m.url,
+          assetId: m.assetId ?? null,
+          type: m.type,
+          order: m.order,
+          ...(m.altText && { altText: m.altText }),
+        })),
+      }),
+    });
+  }
+
+  return apiFetch<ProductVariantDetail>(`/admin/products/${productId}/variants/${variantId}`);
 }
 
 export async function cloneProduct(id: string): Promise<Product> {
@@ -275,11 +329,13 @@ export function getProductCategories(): string[] {
   return [];
 }
 
-interface BrandApiItem { tenThuongHieu: string; }
+interface BrandApiItem { id: number; tenThuongHieu: string; }
 
-export async function getProductBrands(): Promise<string[]> {
+export interface BrandOption { id: string; name: string; }
+
+export async function getProductBrands(): Promise<BrandOption[]> {
   const items = await apiFetch<BrandApiItem[]>("/admin/brands");
-  return items.map((b) => b.tenThuongHieu);
+  return items.map((b) => ({ id: String(b.id), name: b.tenThuongHieu }));
 }
 
 // ─── Variant sales stats ──────────────────────────────────────────────────────
@@ -300,80 +356,38 @@ export async function getVariantSalesStats(
 // ─── Variant reviews ──────────────────────────────────────────────────────────
 
 export async function getVariantReviews(variantId: string): Promise<ReviewSummary[]> {
-  await delay(300);
-  const phienBanId = Number(variantId) || 101;
+  const result = await apiFetch<{ data: any[]; total: number; page: number; limit: number; totalPages: number }>(
+    `/admin/reviews?variantId=${encodeURIComponent(variantId)}&limit=200`,
+  );
+  return (result?.data ?? []).map(mapToReviewSummary);
+}
 
-  return [
-    {
-      reviewId: 1001,
-      phienBanId,
-      tenSanPham:      "ASUS ROG Strix GeForce RTX 4090 OC",
-      tenPhienBan:     "24GB GDDR6X — Standard Edition",
-      anhPhienBan:     "https://picsum.photos/seed/rtx4090/80/80",
-      khachHangId:     501,
-      khachHangTen:    "Nguyễn Minh Tuấn",
-      donHangId:       801,
-      maDonHang:       "DH-2024-000801",
-      rating:          5,
-      tieuDe:          "Card đồ họa tốt nhất tôi từng dùng",
-      noiDung:         "Hiệu năng cực kỳ ấn tượng, chạy 4K 144fps mượt mà. Tản nhiệt tốt, sau 2 giờ gaming nhiệt độ chỉ 72°C. Đóng gói cẩn thận, giao hàng nhanh. Rất hài lòng với sản phẩm!",
-      trangThai:       "Approved",
-      daPhanHoi:       true,
-      helpfulCount:    28,
-      nguon:           "Website",
-      nguoiDuyetId:    1,
-      nguoiDuyetTen:   "Admin Hệ thống",
-      duyetTai:        "2024-11-05T09:00:00Z",
-      createdAt:       "2024-11-04T15:30:00Z",
-      updatedAt:       "2024-11-05T09:00:00Z",
-    },
-    {
-      reviewId: 1002,
-      phienBanId,
-      tenSanPham:      "ASUS ROG Strix GeForce RTX 4090 OC",
-      tenPhienBan:     "24GB GDDR6X — Standard Edition",
-      anhPhienBan:     "https://picsum.photos/seed/rtx4090/80/80",
-      khachHangId:     502,
-      khachHangTen:    "Trần Quốc Bảo",
-      donHangId:       802,
-      maDonHang:       "DH-2024-000802",
-      rating:          4,
-      tieuDe:          "Mạnh nhưng hơi nóng",
-      noiDung:         "Card chạy rất mạnh, 3DMark đạt điểm cao. Tuy nhiên dưới tải nặng nhiệt độ lên đến 85°C, cần case thông gió tốt. Nhìn chung vẫn xứng đáng với số tiền bỏ ra.",
-      trangThai:       "Approved",
-      daPhanHoi:       true,
-      helpfulCount:    14,
-      nguon:           "Website",
-      nguoiDuyetId:    1,
-      nguoiDuyetTen:   "Admin Hệ thống",
-      duyetTai:        "2024-11-08T10:15:00Z",
-      createdAt:       "2024-11-07T20:10:00Z",
-      updatedAt:       "2024-11-08T10:15:00Z",
-    },
-    {
-      reviewId: 1003,
-      phienBanId,
-      tenSanPham:      "ASUS ROG Strix GeForce RTX 4090 OC",
-      tenPhienBan:     "24GB GDDR6X — Standard Edition",
-      anhPhienBan:     "https://picsum.photos/seed/rtx4090/80/80",
-      khachHangId:     503,
-      khachHangTen:    "Lê Thị Phương Anh",
-      donHangId:       803,
-      maDonHang:       "DH-2024-000803",
-      rating:          4,
-      tieuDe:          "Sản phẩm ổn, đáng mua",
-      noiDung:         "Dùng để làm việc đồ họa và render video 3D, tốc độ render nhanh hơn card cũ 3 lần. RGB đẹp, thiết kế sang trọng. Chỉ tiếc là kích thước khá lớn, không vừa một số case nhỏ.",
-      trangThai:       "Approved",
-      daPhanHoi:       false,
-      helpfulCount:    9,
-      nguon:           "Website",
-      nguoiDuyetId:    1,
-      nguoiDuyetTen:   "Admin Hệ thống",
-      duyetTai:        "2024-11-12T14:00:00Z",
-      createdAt:       "2024-11-11T11:45:00Z",
-      updatedAt:       "2024-11-12T14:00:00Z",
-    },
-  ];
+function mapToReviewSummary(r: any): ReviewSummary {
+  return {
+    reviewId:        r.id,
+    phienBanId:      r.variantId,
+    tenSanPham:      r.tenSanPham ?? "",
+    tenPhienBan:     r.tenPhienBan ?? "",
+    anhPhienBan:     r.anhPhienBan ?? undefined,
+    khachHangId:     r.customerId,
+    khachHangTen:    r.khachHangTen ?? "",
+    khachHangAvatar: r.khachHangAvatar ?? undefined,
+    donHangId:       r.orderId,
+    maDonHang:       r.maDonHang ?? "",
+    rating:          r.rating as 1 | 2 | 3 | 4 | 5,
+    tieuDe:          r.title ?? undefined,
+    noiDung:         r.content ?? undefined,
+    trangThai:       r.status as ReviewSummary["trangThai"],
+    daPhanHoi:       Boolean(r.hasReply),
+    helpfulCount:    r.helpfulCount ?? 0,
+    nguon:           "Website",
+    nguoiDuyetId:    r.approvedById ?? undefined,
+    nguoiDuyetTen:   r.nguoiDuyetTen ?? undefined,
+    lyDoTuChoi:      r.rejectReason ?? undefined,
+    duyetTai:        r.approvedAt ?? undefined,
+    createdAt:       typeof r.createdAt === "string" ? r.createdAt : new Date(r.createdAt).toISOString(),
+    updatedAt:       typeof r.updatedAt === "string" ? r.updatedAt : new Date(r.updatedAt).toISOString(),
+  };
 }
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
@@ -387,6 +401,15 @@ function statusToTrangThai(status: Product["status"]): string {
     published: "DangBan",
     draft: "Nhap",
     archived: "NgungBan",
+  };
+  return map[status];
+}
+
+function detailStatusToDb(status: DetailVariantStatus): string {
+  const map: Record<DetailVariantStatus, string> = {
+    visible: "HienThi",
+    hidden: "An",
+    out_of_stock: "HetHang",
   };
   return map[status];
 }

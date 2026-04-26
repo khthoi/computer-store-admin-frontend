@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
+import { updateVariantDetail } from "@/src/services/product.service";
 
 // ─── Dynamic import — CKEditor must be client-only ────────────────────────────
 
@@ -24,19 +25,59 @@ const RichTextEditor = dynamic(
 );
 
 // ─── VariantDescriptionSection ────────────────────────────────────────────────
+//
+// Two modes:
+//   Standalone (default) — no `onChange` prop: shows preview + Edit/Save/Cancel
+//     buttons. Save is handled internally (mock until API is wired).
+//   Controlled — `onChange` prop provided: renders the editor directly with no
+//     internal Save button. The parent page owns the save action.
 
 interface VariantDescriptionSectionProps {
   description: string;
+  /** Required for standalone mode so the internal Save button can call the API. */
+  productId?: string;
+  variantId?: string;
+  /**
+   * When provided the component operates in controlled mode: the editor is
+   * always visible, every change is forwarded to the parent, and the internal
+   * Edit / Save / Cancel buttons are hidden.
+   */
+  onChange?: (value: string) => void;
 }
 
 export function VariantDescriptionSection({
   description,
+  productId,
+  variantId,
+  onChange,
 }: VariantDescriptionSectionProps) {
   const { showToast } = useToast();
+
+  // ── Standalone-mode state (ignored when onChange is provided) ─────────────
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState(description);
   const [saved, setSaved] = useState(description);
   const [isSaving, setIsSaving] = useState(false);
+
+  // ── Controlled mode ───────────────────────────────────────────────────────
+
+  if (onChange) {
+    return (
+      <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
+        <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
+          Mô tả phiên bản
+        </h2>
+        <RichTextEditor
+          value={description}
+          onChange={onChange}
+          placeholder="Write the variant description…"
+          minHeight={240}
+        />
+      </div>
+    );
+  }
+
+  // ── Standalone mode ───────────────────────────────────────────────────────
 
   function handleEdit() {
     setDraft(saved);
@@ -49,13 +90,18 @@ export function VariantDescriptionSection({
   }
 
   async function handleSave() {
+    if (!productId || !variantId) return;
     setIsSaving(true);
-    // Mock save — replace with real API call
-    await new Promise<void>((resolve) => setTimeout(resolve, 400));
-    setSaved(draft);
-    setIsEditing(false);
-    setIsSaving(false);
-    showToast("Description saved.", "success");
+    try {
+      await updateVariantDetail(productId, variantId, { description: draft });
+      setSaved(draft);
+      setIsEditing(false);
+      showToast("Mô tả đã được lưu.", "success");
+    } catch {
+      showToast("Lưu thất bại. Vui lòng thử lại.", "error");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
@@ -65,7 +111,7 @@ export function VariantDescriptionSection({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-secondary-500">
           Mô tả
         </h2>
-        {!isEditing && (
+        {!isEditing && productId && variantId && (
           <button
             type="button"
             onClick={handleEdit}

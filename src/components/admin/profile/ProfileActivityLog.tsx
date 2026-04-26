@@ -124,7 +124,7 @@ export function ProfileActivityLog({ entries }: ProfileActivityLogProps) {
       totalRows={entries.length}
       onPageChange={setPage}
       onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-      hidePagination={entries.length <= pageSize}
+      hidePagination={entries.length <= 10}
       searchPlaceholder="Tìm kiếm hoạt động…"
       emptyMessage="Chưa có lịch sử hoạt động."
     />

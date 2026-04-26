@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
@@ -12,19 +11,10 @@ import { VariantInfoForm } from "./VariantInfoForm";
 import { PricingStatusForm } from "./PricingStatusForm";
 import { SpecificationEditor } from "./SpecificationEditor";
 import { MediaManager } from "./MediaManager";
+import { VariantDescriptionSection } from "@/src/components/admin/variant/VariantDescriptionSection";
 import type { Product, ProductVariantDetail, SpecificationGroup, VariantMedia } from "@/src/types/product.types";
 import type { VariantInfoFormValue } from "./VariantInfoForm";
 import type { PricingStatusFormValue } from "./PricingStatusForm";
-
-// ─── Dynamic import — CKEditor must be client-only ───────────────────────────
-
-const RichTextEditor = dynamic(
-  () => import("@/src/components/editor").then((m) => ({ default: m.RichTextEditor })),
-  {
-    ssr: false,
-    loading: () => <div className="h-48 animate-pulse rounded-lg bg-secondary-100" />,
-  }
-);
 
 // ─── VariantEditPage ──────────────────────────────────────────────────────────
 
@@ -184,17 +174,10 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
         {/* ── Right column ── */}
         <div className="space-y-6">
           {/* Description */}
-          <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
-            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
-              Mô tả phiên bản
-            </h2>
-            <RichTextEditor
-              value={description}
-              onChange={setDescription}
-              placeholder="Write the variant description…"
-              minHeight={240}
-            />
-          </div>
+          <VariantDescriptionSection
+            description={description}
+            onChange={setDescription}
+          />
 
           {/* Specifications */}
           <SpecificationEditor groups={specs} onChange={setSpecs} />

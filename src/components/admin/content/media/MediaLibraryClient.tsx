@@ -148,6 +148,7 @@ export function MediaLibraryClient() {
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         folderId={selectedFolderId}
+        folderName={folders.find((f) => f.id === selectedFolderId)?.name}
         onUploaded={handleUploaded}
       />
     </div>

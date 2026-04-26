@@ -14,6 +14,7 @@ import { Checkbox } from "@/src/components/ui/Checkbox";
 import { Select } from "@/src/components/ui/Select";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import Link from "next/link";
+import { BulkBar } from "@/src/components/admin/BulkBar";
 import {
   MagnifyingGlassIcon,
   ChevronUpDownIcon,
@@ -162,6 +163,14 @@ export interface DataTableProps<T extends Record<string, unknown>> {
   hideToolbar?: boolean;
 
   /**
+   * Extra bulk-action bar rendered in the same position as the primary bulk
+   * action bar (between toolbar and table). Intended for heterogeneous
+   * selection modes — e.g. a variant bulk bar shown when sub-rows are selected
+   * while the parent DataTable selection is empty.
+   */
+  additionalBulkBar?: ReactNode;
+
+  /**
    * When `true`, the outer wrapper `<div>` (border, rounded corners, bg) is
    * omitted and the component renders its inner sections (toolbar, table,
    * pagination) directly into a `<>Fragment</>`.
@@ -297,6 +306,7 @@ export function DataTable<T extends Record<string, unknown>>({
   rowClassName,
   hidePagination = false,
   hideToolbar = false,
+  additionalBulkBar,
   bare = false,
   tableLayout = "auto",
   className = "",
@@ -472,51 +482,17 @@ export function DataTable<T extends Record<string, unknown>>({
         )}
       </div>}
 
-      {/* ── Bulk action bar ── */}
+      {/* ── Bulk action bar (product / parent row selection) ── */}
       {selectable && selectedKeys.length > 0 && (
-        <div
-          role="toolbar"
-          aria-label="Bulk actions"
-          className="flex flex-wrap items-center gap-3 border-b border-primary-200 bg-primary-50 px-4 py-2.5"
-        >
-          <span className="text-sm font-medium text-primary-700">
-            {selectedKeys.length} selected
-          </span>
-          <div className="flex flex-wrap gap-2">
-            {bulkActions.map((action) => (
-              <button
-                key={action.id}
-                type="button"
-                onClick={() => action.onClick(selectedKeys)}
-                className={[
-                  "flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors",
-                  action.isDanger
-                    ? "border-error-300 bg-white text-error-600 hover:bg-error-50"
-                    : "border-secondary-200 bg-white text-secondary-700 hover:bg-secondary-50",
-                  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-                ].join(" ")}
-              >
-                {action.icon && (
-                  <span className="w-3.5 h-3.5" aria-hidden="true">
-                    {action.icon}
-                  </span>
-                )}
-                {action.label}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              setSelected(new Set());
-              onSelectionChange?.([]);
-            }}
-            className="ml-auto text-xs text-secondary-500 hover:text-secondary-800 focus-visible:outline-none"
-          >
-            Clear selection
-          </button>
-        </div>
+        <BulkBar
+          count={selectedKeys.length}
+          actions={bulkActions.map((a) => ({ ...a, onClick: () => a.onClick(selectedKeys) }))}
+          onClear={() => { setSelected(new Set()); onSelectionChange?.([]); }}
+        />
       )}
+
+      {/* ── Additional bulk bar (e.g. variant / sub-row selection) ── */}
+      {additionalBulkBar}
 
       {/* ── Table ── */}
       <div className="overflow-x-auto">

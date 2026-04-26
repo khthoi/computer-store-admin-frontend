@@ -64,7 +64,11 @@ export default async function VariantDetailPage({
 
         {/* ── Right column ── */}
         <div className="space-y-6">
-          <VariantDescriptionSection description={variant.description} />
+          <VariantDescriptionSection
+            description={variant.description}
+            productId={product.id}
+            variantId={variant.id}
+          />
 
           {/* Specifications — one card per group */}
           {variant.specificationGroups.length > 0 && (

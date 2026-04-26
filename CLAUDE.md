@@ -8,6 +8,17 @@ Port: 3001 | Backend: NestJS port 4000 | Auth: NextAuth.js JWT + RBAC
 2. Reading `.ai/SYSTEM_ARCHITECTURE.md` (role auth + data freshness)
 3. Reading `.ai/AI_DEVELOPMENT_GUIDE.md` (task recipes)
 
+## MOCK DATA RULE
+
+**Never modify mock data files** — any file named `_mock.ts`, `_mock_*.ts`, or exporting `MOCK_*` constants.
+Mock files are temporary placeholders that will be deleted when real API integration is complete.
+
+- Integration fixes go in `src/services/<module>.service.ts` only
+- If a service returns mock data, replace it with a real `apiFetch` call — do not patch the mock
+- Never add `categoryId`, `brandIds`, or other fields to mock objects to silence type errors
+
+---
+
 ## CRITICAL RULES
 - Admin pages NEVER use ISR/cache — always `export const dynamic = "force-dynamic"`
 - Every page in `(dashboard)/` needs role-based auth (middleware.ts + useRoleGuard)

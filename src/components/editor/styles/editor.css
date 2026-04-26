@@ -322,13 +322,42 @@
 .rte-preview img { max-width: 100%; border-radius: 6px; height: auto; display: block; }
 
 /* CKEditor wraps images in <figure class="image"> */
-.rte-preview figure.image { margin: 0.75rem 0; }
+/* display:table lets margin:auto center a shrink-wrapped block */
+.rte-preview figure.image {
+  display: table;
+  margin: 0.75rem auto;
+}
 .rte-preview figure.image img { max-width: 100%; }
 .rte-preview figure.image figcaption {
   font-size: 12px;
   color: var(--color-secondary-500, #6b7280);
   text-align: center;
   margin-top: 4px;
+}
+
+/* imageStyle:side → float right */
+.rte-preview figure.image.image-style-side {
+  display: block;
+  float: right;
+  max-width: 50%;
+  margin: 0.75rem 0 0.75rem 1.5rem;
+}
+
+/* Explicit alignment classes (imageStyle:alignLeft / alignCenter / alignRight) */
+.rte-preview figure.image.image-style-align-left {
+  display: block;
+  float: left;
+  margin: 0.75rem 1.5rem 0.75rem 0;
+}
+.rte-preview figure.image.image-style-align-center {
+  display: table;
+  float: none;
+  margin: 0.75rem auto;
+}
+.rte-preview figure.image.image-style-align-right {
+  display: block;
+  float: right;
+  margin: 0.75rem 0 0.75rem 1.5rem;
 }
 
 /* ─── Text alignment ─────────────────────────────────────────────────────────

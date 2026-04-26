@@ -190,6 +190,7 @@ export function MediaPickerModal({
         open={uploadOpen}
         onClose={() => setUploadOpen(false)}
         folderId={selectedFolderId}
+        folderName={folders.find((f) => f.id === selectedFolderId)?.name}
         onUploaded={handleUploaded}
       />
     </>

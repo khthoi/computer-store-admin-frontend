@@ -112,7 +112,7 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
               <label
                 key={opt.value}
                 className={[
-                  "flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
+                  "relative flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors",
                   checked
                     ? "border-primary-500 bg-primary-50"
                     : "border-secondary-200 hover:border-secondary-300 hover:bg-secondary-50",

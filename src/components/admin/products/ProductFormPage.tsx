@@ -22,6 +22,7 @@ import {
   createProduct,
   updateProduct,
   deleteVariant,
+  type BrandOption,
 } from "@/src/services/product.service";
 import { formatVND } from "@/src/lib/format";
 import type { Product, ProductVariant } from "@/src/types/product.types";
@@ -32,7 +33,7 @@ export interface ProductFormPageProps {
   mode: "create" | "edit";
   product?: Product;
   categories: CategoryNode[];
-  brands: string[];
+  brands: BrandOption[];
 }
 
 interface FormErrors {
@@ -85,7 +86,7 @@ export function ProductFormPage({
   const [name,     setName]     = useState(product?.name     ?? "");
   const [slug,     setSlug]     = useState(product?.slug     ?? "");
   const [category, setCategory] = useState(product?.categoryId ?? "");
-  const [brand,    setBrand]    = useState<string[]>(product?.brands ?? []);
+  const [brand,    setBrand]    = useState<string[]>(product?.brandIds ?? []);
   const [status,   setStatus]   = useState<string>(product?.status ?? "draft");
   const [errors,   setErrors]   = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -120,6 +121,9 @@ export function ProductFormPage({
       await deleteVariant(deleteTarget.id);
       setVariantList((prev) => prev.filter((v) => v.id !== deleteTarget.id));
       setDeleteTarget(null);
+      showToast("Đã xoá phiên bản.", "success");
+    } catch {
+      showToast("Không thể xoá phiên bản. Vui lòng thử lại.", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -130,9 +134,9 @@ export function ProductFormPage({
     e.preventDefault();
 
     const newErrors: FormErrors = {};
-    if (!name.trim())     newErrors.name     = "Product name is required.";
-    if (!category.trim()) newErrors.category = "Category is required.";
-    if (brand.length === 0) newErrors.brand  = "Brand is required.";
+    if (!name.trim())       newErrors.name     = "Tên sản phẩm là bắt buộc.";
+    if (!category.trim())   newErrors.category = "Danh mục là bắt buộc.";
+    if (brand.length === 0) newErrors.brand    = "Thương hiệu là bắt buộc.";
 
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
@@ -150,8 +154,9 @@ export function ProductFormPage({
           status:   status as Product["status"],
           variants: [],
         });
-        showToast("Product created successfully.", "success");
+        showToast("Tạo sản phẩm thành công.", "success");
         router.push(`/products/${created.id}`);
+        // Keep spinner until navigation unmounts the component
       } else {
         const updated = await updateProduct(product!.id, {
           name:     name.trim(),
@@ -161,12 +166,12 @@ export function ProductFormPage({
           status:   status as Product["status"],
           // variants intentionally omitted — managed via the detail page
         });
-        showToast("Product updated successfully.", "success");
+        showToast("Cập nhật sản phẩm thành công.", "success");
         router.push(`/products/${updated.id}`);
+        // Keep spinner until navigation unmounts the component
       }
     } catch {
-      showToast("Something went wrong. Please try again.", "error");
-    } finally {
+      showToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
       setIsSubmitting(false);
     }
   };
@@ -252,7 +257,7 @@ export function ProductFormPage({
                 clearable
                 creatable
                 helperText="Chọn thương hiệu hiện có hoặc nhập để tạo mới."
-                options={brands.map((b) => ({ value: b, label: b }))}
+                options={brands.map((b) => ({ value: b.id, label: b.name }))}
                 errorMessage={errors.brand}
               />
             </div>

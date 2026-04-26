@@ -39,13 +39,13 @@ export interface ReviewModerationModalProps {
 
 const ACTION_CONFIG: Record<
   ModerateReviewPayload["action"],
-  { title: string; description: string; confirmLabel: string; confirmVariant: "primary" | "danger" | "secondary" }
+  { title: string; description: string; confirmLabel: string; confirmVariant: "primary" | "danger" | "secondary" | "warning" | "success" }
 > = {
   approve: {
     title:          "Duyệt đánh giá",
     description:    "Đánh giá sẽ được hiển thị công khai trên trang sản phẩm.",
     confirmLabel:   "Duyệt",
-    confirmVariant: "primary",
+    confirmVariant: "success",
   },
   reject: {
     title:          "Từ chối đánh giá",
@@ -57,13 +57,13 @@ const ACTION_CONFIG: Record<
     title:          "Ẩn đánh giá",
     description:    "Đánh giá sẽ bị ẩn khỏi trang sản phẩm nhưng vẫn được lưu trong hệ thống.",
     confirmLabel:   "Ẩn đánh giá",
-    confirmVariant: "secondary",
+    confirmVariant: "warning",
   },
   unhide: {
     title:          "Hiện lại đánh giá",
     description:    "Đánh giá sẽ được hiển thị trở lại trên trang sản phẩm.",
     confirmLabel:   "Hiện lại",
-    confirmVariant: "primary",
+    confirmVariant: "success",
   },
 };
 
@@ -148,6 +148,7 @@ export function ReviewModerationModal({
       onClose={onClose}
       title={config?.title ?? "Kiểm duyệt đánh giá"}
       size="xl"
+      animated
       closeOnBackdrop={!isLoading}
       closeOnEscape={!isLoading}
       hideCloseButton={isLoading}

@@ -8,8 +8,11 @@ import {
   ArchiveBoxIcon,
   TrashIcon,
   ArrowDownTrayIcon,
+  CheckCircleIcon,
+  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import { DataTable, type SortDir } from "@/src/components/admin/DataTable";
+import { BulkBar, type BulkBarAction } from "@/src/components/admin/BulkBar";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import {
@@ -25,7 +28,6 @@ import { useToast } from "@/src/components/ui/Toast";
 import type { Product, ProductVariant } from "@/src/types/product.types";
 import { buildColumns, type ProductRow } from "./_columns";
 import { VariantSubRow } from "./_VariantSubRow";
-import { VariantBulkBar } from "./_VariantBulkBar";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -214,28 +216,37 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       await deleteProduct(deleteTarget.id);
       setProducts((prev) => prev.filter((p) => p.id !== deleteTarget.id));
       setDeleteTarget(null);
+      showToast(`Đã xoá sản phẩm "${deleteTarget.name}".`, "success");
+    } catch {
+      showToast("Không thể xoá sản phẩm. Vui lòng thử lại.", "error");
     } finally {
       setIsDeleting(false);
     }
-  }, [deleteTarget]);
+  }, [deleteTarget, showToast]);
 
   // ── Product bulk handlers ──────────────────────────────────────────────────
 
   const handleBulkPublish = useCallback((keys: string[]) => {
-    void bulkUpdateStatus(keys, "published").then(() => {
-      setProducts((prev) =>
-        prev.map((p) => keys.includes(p.id) ? { ...p, status: "published" as const } : p)
-      );
-    });
-  }, []);
+    void bulkUpdateStatus(keys, "published")
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) => keys.includes(p.id) ? { ...p, status: "published" as const } : p)
+        );
+        showToast(`Đã kích hoạt ${keys.length} sản phẩm.`, "success");
+      })
+      .catch(() => showToast("Không thể cập nhật trạng thái sản phẩm.", "error"));
+  }, [showToast]);
 
   const handleBulkArchive = useCallback((keys: string[]) => {
-    void bulkUpdateStatus(keys, "archived").then(() => {
-      setProducts((prev) =>
-        prev.map((p) => keys.includes(p.id) ? { ...p, status: "archived" as const } : p)
-      );
-    });
-  }, []);
+    void bulkUpdateStatus(keys, "archived")
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) => keys.includes(p.id) ? { ...p, status: "archived" as const } : p)
+        );
+        showToast(`Đã lưu trữ ${keys.length} sản phẩm.`, "success");
+      })
+      .catch(() => showToast("Không thể cập nhật trạng thái sản phẩm.", "error"));
+  }, [showToast]);
 
   const handleBulkDeleteClick = useCallback((keys: string[]) => {
     const deletable = products
@@ -249,11 +260,15 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
     try {
       await Promise.all(bulkDeleteTargets.map((id) => deleteProduct(id)));
       setProducts((prev) => prev.filter((p) => !bulkDeleteTargets.includes(p.id)));
+      setSelectedProductIds([]);
       setBulkDeleteTargets([]);
+      showToast(`Đã xoá ${bulkDeleteTargets.length} sản phẩm.`, "success");
+    } catch {
+      showToast("Không thể xoá sản phẩm. Vui lòng thử lại.", "error");
     } finally {
       setIsBulkDeleting(false);
     }
-  }, [bulkDeleteTargets]);
+  }, [bulkDeleteTargets, showToast]);
 
   // ── Variant delete handlers ────────────────────────────────────────────────
 
@@ -274,38 +289,47 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       );
       setSelectedVariantIds((prev) => prev.filter((id) => id !== deleteVariantTarget.id));
       setDeleteVariantTarget(null);
+      showToast("Đã xoá phiên bản.", "success");
+    } catch {
+      showToast("Không thể xoá phiên bản. Vui lòng thử lại.", "error");
     } finally {
       setIsDeletingVariant(false);
     }
-  }, [deleteVariantTarget]);
+  }, [deleteVariantTarget, showToast]);
 
   // ── Variant bulk handlers ──────────────────────────────────────────────────
 
   const handleBulkVariantSetActive = useCallback(() => {
-    void bulkUpdateVariantStatus(selectedVariantIds, "active").then(() => {
-      setProducts((prev) =>
-        prev.map((p) => ({
-          ...p,
-          variants: p.variants.map((v) =>
-            selectedVariantIds.includes(v.id) ? { ...v, status: "active" as const } : v
-          ),
-        }))
-      );
-    });
-  }, [selectedVariantIds]);
+    void bulkUpdateVariantStatus(selectedVariantIds, "active")
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) => ({
+            ...p,
+            variants: p.variants.map((v) =>
+              selectedVariantIds.includes(v.id) ? { ...v, status: "active" as const } : v
+            ),
+          }))
+        );
+        showToast(`Đã kích hoạt ${selectedVariantIds.length} phiên bản.`, "success");
+      })
+      .catch(() => showToast("Không thể cập nhật trạng thái phiên bản.", "error"));
+  }, [selectedVariantIds, showToast]);
 
   const handleBulkVariantSetInactive = useCallback(() => {
-    void bulkUpdateVariantStatus(selectedVariantIds, "inactive").then(() => {
-      setProducts((prev) =>
-        prev.map((p) => ({
-          ...p,
-          variants: p.variants.map((v) =>
-            selectedVariantIds.includes(v.id) ? { ...v, status: "inactive" as const } : v
-          ),
-        }))
-      );
-    });
-  }, [selectedVariantIds]);
+    void bulkUpdateVariantStatus(selectedVariantIds, "inactive")
+      .then(() => {
+        setProducts((prev) =>
+          prev.map((p) => ({
+            ...p,
+            variants: p.variants.map((v) =>
+              selectedVariantIds.includes(v.id) ? { ...v, status: "inactive" as const } : v
+            ),
+          }))
+        );
+        showToast(`Đã ẩn ${selectedVariantIds.length} phiên bản.`, "success");
+      })
+      .catch(() => showToast("Không thể cập nhật trạng thái phiên bản.", "error"));
+  }, [selectedVariantIds, showToast]);
 
   const handleBulkVariantDeleteConfirm = useCallback(async () => {
     setIsBulkVariantDeleting(true);
@@ -321,12 +345,15 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
           };
         })
       );
+      showToast(`Đã xoá ${selectedVariantIds.length} phiên bản.`, "success");
       setSelectedVariantIds([]);
       setShowBulkVariantDeleteConfirm(false);
+    } catch {
+      showToast("Không thể xoá phiên bản. Vui lòng thử lại.", "error");
     } finally {
       setIsBulkVariantDeleting(false);
     }
-  }, [selectedVariantIds]);
+  }, [selectedVariantIds, showToast]);
 
   // ── Clone handlers — Flow B ────────────────────────────────────────────────
 
@@ -455,14 +482,44 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
       });
   }, [showToast]);
 
+  // ── Variant bulk action list ───────────────────────────────────────────────
+
+  const variantBulkActions = useMemo<BulkBarAction[]>(
+    () => [
+      {
+        id: "activate",
+        label: "Kích hoạt",
+        icon: <CheckCircleIcon className="w-3.5 h-3.5" />,
+        onClick: handleBulkVariantSetActive,
+      },
+      {
+        id: "inactive",
+        label: "Lưu trữ",
+        icon: <XCircleIcon className="w-3.5 h-3.5" />,
+        onClick: handleBulkVariantSetInactive,
+      },
+      {
+        id: "delete",
+        label: "Xoá",
+        icon: <TrashIcon className="w-3.5 h-3.5" />,
+        isDanger: true,
+        onClick: () => setShowBulkVariantDeleteConfirm(true),
+      },
+    ],
+    [handleBulkVariantSetActive, handleBulkVariantSetInactive]
+  );
+
   // ── CSV export ─────────────────────────────────────────────────────────────
 
   const handleExport = useCallback(() => {
     const headers = ["ID", "Name", "Slug", "Category", "Brand", "Base Price", "Total Stock", "Status", "Created At", "Updated At"];
-    const rows = sorted.map((p) => [
-      p.id, `"${p.name}"`, p.slug, p.category, `"${p.brands.join(", ")}"`,
-      p.variants.length > 0 ? Math.min(...p.variants.map((v) => v.price)) : "", p.totalStock, p.status, p.createdAt, p.updatedAt,
-    ]);
+    const rows = sorted.map((p) => {
+      const defaultVariant = p.variants.find((v) => v.isDefault) ?? p.variants[0];
+      return [
+        p.id, `"${p.name}"`, p.slug, p.category, `"${p.brands.join(", ")}"`,
+        defaultVariant ? defaultVariant.price : "", p.totalStock, p.status, p.createdAt, p.updatedAt,
+      ];
+    });
     const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -557,17 +614,6 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
 
   return (
     <>
-      {/* Variant bulk-action bar (visible only when variant rows are selected) */}
-      {selectionMode === "variants" && (
-        <VariantBulkBar
-          count={selectedVariantIds.length}
-          onSetActive={handleBulkVariantSetActive}
-          onSetInactive={handleBulkVariantSetInactive}
-          onDeleteClick={() => setShowBulkVariantDeleteConfirm(true)}
-          onClear={() => setSelectedVariantIds([])}
-        />
-      )}
-
       {/* ── DataTable ── */}
       <DataTable<ProductRow>
         data={filteredPage as ProductRow[]}
@@ -577,6 +623,18 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         selectable
         selectedKeys={selectedProductIds}
         onSelectionChange={handleProductSelectionChange}
+        additionalBulkBar={
+          selectionMode === "variants" ? (
+            <BulkBar
+              count={selectedVariantIds.length}
+              countLabel="biến thể đã chọn"
+              actions={variantBulkActions}
+              onClear={() => setSelectedVariantIds([])}
+              clearLabel="Bỏ chọn"
+              ariaLabel="Thao tác hàng loạt biến thể"
+            />
+          ) : null
+        }
         bulkActions={[
           {
             id: "publish",

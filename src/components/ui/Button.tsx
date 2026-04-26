@@ -7,7 +7,7 @@ import { ArrowPathIcon } from "@heroicons/react/24/outline";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 /** Visual style variant of the button */
-export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "warning" | "success";
 
 /** Size of the button */
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
@@ -88,6 +88,18 @@ const VARIANT: Record<ButtonVariant, string> = {
     "bg-error-600 text-white shadow-sm " +
     "hover:bg-error-700 active:bg-error-800 " +
     "focus-visible:ring-error-500",
+  
+  warning:
+    "bg-warning-600 text-white shadow-sm " +
+    "hover:bg-warning-700 active:bg-warning-800 " +
+    "focus-visible:ring-warning-500",
+  
+  success:
+    "bg-success-600 text-white shadow-sm " +
+    "hover:bg-success-700 active:bg-success-800 " +
+    "focus-visible:ring-success-500",
+
+  // Outline variant is handled separately since it has a different structure
 
   // Base outline styles — color is injected via OUTLINE_COLOR
   outline: "bg-transparent border",

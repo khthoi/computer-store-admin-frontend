@@ -37,7 +37,8 @@
       "Bash(ls \"D:\\\\\\\\Online PC Store System\\\\\\\\Docs\\\\\\\\\")",
       "Bash(find /d -name \"*.docx\")",
       "Bash(pandoc \"D:/Online PC Store System/Documentation/System Design/Docs/Tài liệu đặc tả ERD - Hệ thống bán lẻ máy tính & linh kiện trực tuyến.docx\" -t markdown --wrap=none)",
-      "Bash(PYTHONUTF8=1 python generate_backend_doc.py)"
+      "Bash(PYTHONUTF8=1 python generate_backend_doc.py)",
+      "Bash(curl -s http://localhost:4000/api/categories)"
     ]
   }
 }

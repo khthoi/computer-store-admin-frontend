@@ -9,6 +9,7 @@ import type {
   AddReviewMessagePayload,
   BulkModeratePayload,
 } from "@/src/types/review.types";
+import { apiFetch } from "@/src/services/api";
 
 // ─── In-memory store ──────────────────────────────────────────────────────────
 
@@ -629,50 +630,19 @@ export async function getReviewDetail(reviewId: number): Promise<ReviewDetail> {
 }
 
 export async function moderateReview(payload: ModerateReviewPayload): Promise<void> {
-  await delay(400);
+  const { reviewId, action, lyDoTuChoi } = payload;
 
-  const idx = REVIEWS.findIndex((r) => r.reviewId === payload.reviewId);
-  if (idx === -1) throw new Error(`Review ${payload.reviewId} not found`);
+  // "unhide" has no dedicated endpoint — semantically identical to re-approving
+  const endpoint = action === "unhide"
+    ? `/admin/reviews/${reviewId}/approve`
+    : `/admin/reviews/${reviewId}/${action}`;
 
-  const now = new Date().toISOString();
+  const needsBody = (action === "reject" || action === "hide") && lyDoTuChoi;
 
-  const statusMap: Record<ModerateReviewPayload["action"], ReviewStatus> = {
-    approve: "Approved",
-    reject:  "Rejected",
-    hide:    "Hidden",
-    unhide:  "Approved",
-  };
-
-  REVIEWS[idx] = {
-    ...REVIEWS[idx],
-    trangThai:    statusMap[payload.action],
-    lyDoTuChoi:   payload.action === "reject" ? payload.lyDoTuChoi : REVIEWS[idx].lyDoTuChoi,
-    nguoiDuyetId: 1,
-    nguoiDuyetTen: "Admin Hệ thống",
-    duyetTai:     now,
-    updatedAt:    now,
-  };
-
-  // Add system log message
-  const msgs = REVIEW_MESSAGES[payload.reviewId] ?? [];
-  const actionLabels: Record<ModerateReviewPayload["action"], string> = {
-    approve: "được duyệt",
-    reject:  "bị từ chối",
-    hide:    "bị ẩn",
-    unhide:  "được hiện lại",
-  };
-  msgs.push({
-    messageId:           nextMessageId++,
-    reviewId:            payload.reviewId,
-    senderType:          "HeThong",
-    senderName:          "Hệ thống",
-    noiDungTinNhan:      `Đánh giá đã ${actionLabels[payload.action]} bởi Admin Hệ thống`,
-    messageType:         "SystemLog",
-    isVisibleToCustomer: false,
-    createdAt:           now,
-    updatedAt:           now,
+  await apiFetch<void>(endpoint, {
+    method: "PUT",
+    ...(needsBody ? { body: JSON.stringify({ reason: lyDoTuChoi }) } : {}),
   });
-  REVIEW_MESSAGES[payload.reviewId] = msgs;
 }
 
 export async function moderateReviewBulk(payload: BulkModeratePayload): Promise<void> {

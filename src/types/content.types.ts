@@ -14,6 +14,7 @@ export interface MediaFolder {
   slug: string;
   parentId: string | null;
   fileCount: number;
+  visibility: "public" | "private";
   createdAt: string;
   updatedAt: string;
 }

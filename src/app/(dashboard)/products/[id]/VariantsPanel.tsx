@@ -43,6 +43,7 @@ interface VariantsPanelProps {
 export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps) {
   const { showToast } = useToast();
   const [variants, setVariants] = useState<ProductVariant[]>(initialVariants);
+  const [searchQuery, setSearchQuery] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
@@ -255,14 +256,24 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
     },
   ];
 
+  // ── Search filter (client-side) ───────────────────────────────────────────
+
+  const q = searchQuery.trim().toLowerCase();
+  const displayedVariants = q
+    ? variants.filter(
+        (v) =>
+          v.name.toLowerCase().includes(q) ||
+          v.sku.toLowerCase().includes(q)
+      )
+    : variants;
+
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <>
       {/* Header row — count + Add Variant button */}
       <div className="mb-4 flex items-center justify-between">
-        <p className="text-sm text-secondary-500
-        ">{variants.length} phiên bản</p>
+        <p className="text-sm text-secondary-500">{variants.length} phiên bản</p>
         <Link
           href={`/products/${productId}/variants/new`}
           className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
@@ -273,16 +284,19 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
       </div>
 
       <DataTable<VariantRow>
-        data={variants as VariantRow[]}
+        data={displayedVariants as VariantRow[]}
         columns={columns}
         keyField="id"
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Tìm theo tên hoặc SKU…"
         page={1}
-        pageSize={variants.length || 10}
-        totalRows={variants.length}
+        pageSize={displayedVariants.length || 10}
+        totalRows={displayedVariants.length}
         onPageChange={() => { }}
         onPageSizeChange={() => { }}
         hidePagination
-        emptyMessage="Chưa có phiên bản nào."
+        emptyMessage={q ? "Không tìm thấy phiên bản phù hợp." : "Chưa có phiên bản nào."}
         emptyAction={
           <Link
             href={`/products/${productId}/variants/new`}
