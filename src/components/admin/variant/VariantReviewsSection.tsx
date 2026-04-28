@@ -1,44 +1,17 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { StarIcon } from "@heroicons/react/24/outline";
+import { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import { StarIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { useToast }              from "@/src/components/ui/Toast";
 import { Select }                from "@/src/components/ui/Select";
 import { ReviewModerationModal } from "@/src/components/admin/reviews/ReviewModerationModal";
 import { Pagination }            from "@/src/components/navigation/Pagination";
 import { VariantRatingSummary }  from "./VariantRatingSummary";
 import { VariantReviewCard }     from "./VariantReviewCard";
+import { getVariantReviews }     from "@/src/services/product.service";
 import { moderateReview }        from "@/src/services/review.service";
 import type { ReviewSummary, ReviewStatus, ModerateReviewPayload } from "@/src/types/review.types";
 import type { VariantReviewStats } from "@/src/types/product.types";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function buildStats(reviews: ReviewSummary[]): VariantReviewStats {
-  const phanBoRating = { "5": 0, "4": 0, "3": 0, "2": 0, "1": 0 };
-  let sumRating = 0;
-  let daDuyet = 0, choDuyet = 0, tuChoi = 0, daAn = 0;
-
-  for (const r of reviews) {
-    phanBoRating[String(r.rating) as keyof typeof phanBoRating]++;
-    sumRating += r.rating;
-    if (r.trangThai === "Approved") daDuyet++;
-    else if (r.trangThai === "Pending")  choDuyet++;
-    else if (r.trangThai === "Rejected") tuChoi++;
-    else if (r.trangThai === "Hidden")   daAn++;
-  }
-
-  const total = reviews.length;
-  return {
-    tongDanhGia:  total,
-    daDuyet,
-    choDuyet,
-    tuChoi,
-    daAn,
-    tbRating:     total > 0 ? Math.round((sumRating / total) * 10) / 10 : 0,
-    phanBoRating,
-  };
-}
 
 // ─── Filter config ────────────────────────────────────────────────────────────
 
@@ -60,44 +33,84 @@ const RATING_OPTIONS: { value: "1"|"2"|"3"|"4"|"5"; label: string }[] = [
   { value: "1", label: "★☆☆☆☆  1 sao" },
 ];
 
+const PAGE_SIZE = 6;
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 interface VariantReviewsSectionProps {
   variantId: string;
-  reviews:   ReviewSummary[];
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function VariantReviewsSection({ reviews: initialReviews }: VariantReviewsSectionProps) {
+export function VariantReviewsSection({ variantId }: VariantReviewsSectionProps) {
   const { showToast } = useToast();
 
-  // ── List state ────────────────────────────────────────────────────────────
-  const [reviews,      setReviews]      = useState<ReviewSummary[]>(initialReviews);
+  // ── Server data ───────────────────────────────────────────────────────────
+  const [reviews,    setReviews]    = useState<ReviewSummary[]>([]);
+  const [stats,      setStats]      = useState<VariantReviewStats | null>(null);
+  const [total,      setTotal]      = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading,    setLoading]    = useState(true);
+
+  // ── Filter / pagination state ─────────────────────────────────────────────
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [ratingFilter, setRatingFilter] = useState<"" | "1" | "2" | "3" | "4" | "5">("");
   const [currentPage,  setCurrentPage]  = useState(1);
-  const PAGE_SIZE = 5;
 
   // ── Modal state ───────────────────────────────────────────────────────────
   const [modalTarget, setModalTarget] = useState<ReviewSummary | null>(null);
   const [modalAction, setModalAction] = useState<ModerateReviewPayload["action"] | null>(null);
 
-  // ── Derived stats ─────────────────────────────────────────────────────────
-  const stats = useMemo(() => buildStats(reviews), [reviews]);
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  const prevFilterKey = useRef(JSON.stringify({ statusFilter: "all", ratingFilter: "" }));
 
-  // ── Filtered list ─────────────────────────────────────────────────────────
-  const filtered = useMemo(() => {
-    return reviews.filter((r) => {
-      if (statusFilter !== "all" && r.trangThai !== statusFilter) return false;
-      if (ratingFilter && String(r.rating) !== ratingFilter)       return false;
-      return true;
-    });
-  }, [reviews, statusFilter, ratingFilter]);
+  const fetchReviews = useCallback(async (page: number, status: StatusFilter, rating: string) => {
+    setLoading(true);
+    try {
+      const result = await getVariantReviews(variantId, {
+        page,
+        limit: PAGE_SIZE,
+        status: status !== "all" ? status : undefined,
+        rating: rating ? Number(rating) : undefined,
+      });
+      setReviews(result.data);
+      setStats(result.stats);
+      setTotal(result.total);
+      setTotalPages(result.totalPages);
+    } catch {
+      showToast("Không thể tải đánh giá. Vui lòng thử lại.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [variantId, showToast]);
 
-  const totalPages  = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const safePage    = Math.min(currentPage, totalPages);
-  const paginated   = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+  // Initial load
+  useEffect(() => {
+    void fetchReviews(1, "all", "");
+  }, [fetchReviews]);
+
+  // Re-fetch when filters or page change
+  useEffect(() => {
+    const filterKey = JSON.stringify({ statusFilter, ratingFilter });
+    const isFilterChange = filterKey !== prevFilterKey.current;
+    prevFilterKey.current = filterKey;
+
+    const page = isFilterChange ? 1 : currentPage;
+    if (isFilterChange) setCurrentPage(1);
+
+    void fetchReviews(page, statusFilter, ratingFilter);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [statusFilter, ratingFilter, currentPage]);
+
+  // ── Tab badge counts from stats ───────────────────────────────────────────
+  const tabCounts: Record<StatusFilter, number> = useMemo(() => ({
+    all:      stats?.tongDanhGia ?? 0,
+    Pending:  stats?.choDuyet    ?? 0,
+    Approved: stats?.daDuyet     ?? 0,
+    Rejected: stats?.tuChoi      ?? 0,
+    Hidden:   stats?.daAn        ?? 0,
+  }), [stats]);
 
   // ── Open modal ────────────────────────────────────────────────────────────
   function openModerate(review: ReviewSummary) {
@@ -120,32 +133,14 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
       unhide:  "Đã hiện lại đánh giá",
     };
     showToast(TOAST[action], "success");
-
-    // Update local state to reflect new status
-    const nextStatus: Record<ModerateReviewPayload["action"], ReviewStatus> = {
-      approve: "Approved",
-      reject:  "Rejected",
-      hide:    "Hidden",
-      unhide:  "Approved",
-    };
-    setReviews((prev) =>
-      prev.map((r) =>
-        r.reviewId === reviewId ? { ...r, trangThai: nextStatus[action] } : r
-      )
-    );
-
     setModalTarget(null);
     setModalAction(null);
+
+    // Refetch current page to reflect updated status
+    void fetchReviews(currentPage, statusFilter, ratingFilter);
   }
 
-  // ── Tab badge counts ──────────────────────────────────────────────────────
-  const tabCounts: Record<StatusFilter, number> = {
-    all:      reviews.length,
-    Pending:  stats.choDuyet,
-    Approved: stats.daDuyet,
-    Rejected: stats.tuChoi,
-    Hidden:   stats.daAn,
-  };
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <section className="space-y-4">
@@ -155,13 +150,15 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
         <h2 className="text-base font-semibold text-secondary-900">
           Đánh giá khách hàng
         </h2>
-        <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-100 px-1.5 text-xs font-semibold text-secondary-600">
-          {reviews.length}
-        </span>
+        {stats && (
+          <span className="ml-1 inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-secondary-100 px-1.5 text-xs font-semibold text-secondary-600">
+            {stats.tongDanhGia}
+          </span>
+        )}
       </div>
 
       {/* ── Rating summary ── */}
-      {reviews.length > 0 && <VariantRatingSummary stats={stats} />}
+      {stats && stats.tongDanhGia > 0 && <VariantRatingSummary stats={stats} />}
 
       {/* ── Filter bar ── */}
       <div className="flex flex-wrap items-center gap-3">
@@ -171,7 +168,7 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
             <button
               key={tab.value}
               type="button"
-              onClick={() => { setStatusFilter(tab.value); setCurrentPage(1); }}
+              onClick={() => setStatusFilter(tab.value)}
               className={[
                 "inline-flex items-center gap-1 rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
                 statusFilter === tab.value
@@ -194,13 +191,13 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
           ))}
         </div>
 
-        {/* Rating Select (UI component) */}
+        {/* Rating Select */}
         <div className="w-45 shrink-0">
           <Select
             placeholder="Tất cả sao"
             options={RATING_OPTIONS}
             value={ratingFilter}
-            onChange={(v) => { setRatingFilter((v ?? "") as typeof ratingFilter); setCurrentPage(1); }}
+            onChange={(v) => setRatingFilter((v ?? "") as typeof ratingFilter)}
             clearable
             size="sm"
           />
@@ -208,10 +205,26 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
       </div>
 
       {/* ── Review list ── */}
-      {filtered.length > 0 ? (
-        <>
+      <div className="relative min-h-[120px]">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70">
+            <ArrowPathIcon className="w-5 h-5 animate-spin text-primary-600" aria-hidden="true" />
+          </div>
+        )}
+
+        {!loading && reviews.length === 0 ? (
+          <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-secondary-200 py-12 text-center">
+            <StarIcon className="mb-2 h-8 w-8 text-secondary-300" aria-hidden="true" />
+            <p className="text-sm font-medium text-secondary-500">Không có đánh giá nào</p>
+            <p className="mt-0.5 text-xs text-secondary-400">
+              {statusFilter !== "all" || ratingFilter
+                ? "Thử bỏ bộ lọc để xem tất cả đánh giá"
+                : "Chưa có đánh giá nào cho phiên bản sản phẩm này"}
+            </p>
+          </div>
+        ) : (
           <div className="space-y-3">
-            {paginated.map((review) => (
+            {reviews.map((review) => (
               <VariantReviewCard
                 key={review.reviewId}
                 review={review}
@@ -219,30 +232,21 @@ export function VariantReviewsSection({ reviews: initialReviews }: VariantReview
               />
             ))}
           </div>
+        )}
+      </div>
 
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between pt-2">
-              <p className="text-xs text-secondary-400">
-                {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} / {filtered.length} đánh giá
-              </p>
-              <Pagination
-                size="sm"
-                page={safePage}
-                totalPages={totalPages}
-                onPageChange={setCurrentPage}
-              />
-            </div>
-          )}
-        </>
-      ) : (
-        <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-secondary-200 py-12 text-center">
-          <StarIcon className="mb-2 h-8 w-8 text-secondary-300" aria-hidden="true" />
-          <p className="text-sm font-medium text-secondary-500">Không có đánh giá nào</p>
-          <p className="mt-0.5 text-xs text-secondary-400">
-            {statusFilter !== "all" || ratingFilter
-              ? "Thử bỏ bộ lọc để xem tất cả đánh giá"
-              : "Chưa có đánh giá nào cho phiên bản sản phẩm này"}
+      {/* ── Pagination ── */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-xs text-secondary-400">
+            {(currentPage - 1) * PAGE_SIZE + 1}–{Math.min(currentPage * PAGE_SIZE, total)} / {total} đánh giá
           </p>
+          <Pagination
+            size="sm"
+            page={currentPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+          />
         </div>
       )}
 

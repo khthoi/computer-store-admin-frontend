@@ -7,9 +7,8 @@ export type TransactionStatus = "Cho" | "ThanhCong" | "ThatBai" | "DaHoan";
 export type TransactionPaymentMethod =
   | "COD"
   | "ChuyenKhoan"
-  | "VNPAY"
-  | "Momo"
-  | "ZaloPay"
+  | "TheNganHang"
+  | "ViDienTu"
   | "TraGop";
 
 // ─── Core entity (maps 1-1 to giao_dich table) ───────────────────────────────

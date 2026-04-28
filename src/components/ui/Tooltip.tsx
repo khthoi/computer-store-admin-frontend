@@ -49,8 +49,18 @@ export interface TooltipProps {
    * @default 200
    */
   delay?: number;
-  /** Kept for API compatibility — ignored by Floating UI layout. */
+  /**
+   * Max width of the tooltip panel. Only takes effect when `multiline` is true.
+   * @default "280px"
+   */
   maxWidth?: string;
+  /**
+   * Allow tooltip content to wrap across multiple lines.
+   * When false (default) content stays on one line.
+   * When true, content wraps at `maxWidth` (default 280 px).
+   * @default false
+   */
+  multiline?: boolean;
   /** Disable the tooltip entirely */
   disabled?: boolean;
   /**
@@ -98,6 +108,8 @@ export function Tooltip({
   placement = "top",
   offsetPx = 8,
   delay = 50,
+  maxWidth = "280px",
+  multiline = false,
   disabled = false,
   anchorToContent = false,
   children,
@@ -204,8 +216,13 @@ export function Tooltip({
             className="pointer-events-auto"
           >
             <div
-              style={transitionStyles}
-              className="rounded-md bg-secondary-900 px-2.5 py-1.5 text-[11px] font-medium leading-none text-white shadow-lg"
+              style={{ ...transitionStyles, ...(multiline ? { maxWidth } : {}) }}
+              className={[
+                "rounded-md bg-secondary-900 px-2.5 py-1.5 text-[11px] font-medium text-white shadow-lg",
+                multiline
+                  ? "whitespace-normal break-words leading-snug"
+                  : "whitespace-nowrap leading-none",
+              ].join(" ")}
             >
               {content}
             </div>
@@ -219,12 +236,14 @@ export function Tooltip({
 /*
  * ─── Prop Table ───────────────────────────────────────────────────────────────
  *
- * Name       Type              Default  Description
- * ────────────────────────────────────────────────────────────────────────────
- * content    ReactNode         required Tooltip text / JSX
- * placement  Placement         "top"    Preferred side; auto-flips near edges
- * offsetPx   number            8        Gap between trigger and panel (px)
- * delay      number            200      Hover open delay (ms)
- * disabled   boolean           false    Suppress tooltip entirely
- * children   ReactNode         required The element that triggers the tooltip
+ * Name       Type              Default   Description
+ * ─────────────────────────────────────────────────────────────────────────────
+ * content    ReactNode         required  Tooltip text / JSX
+ * placement  Placement         "top"     Preferred side; auto-flips near edges
+ * offsetPx   number            8         Gap between trigger and panel (px)
+ * delay      number            200       Hover open delay (ms)
+ * multiline  boolean           false     Wrap content across lines at maxWidth
+ * maxWidth   string            "280px"   Max panel width (only when multiline)
+ * disabled   boolean           false     Suppress tooltip entirely
+ * children   ReactNode         required  The element that triggers the tooltip
  */

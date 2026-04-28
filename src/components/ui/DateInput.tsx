@@ -375,11 +375,12 @@ interface TimePickerProps {
   showSeconds?: boolean;
   disabled?:   boolean;
   onChange:    (h: number, m: number, s: number) => void;
+  className?:  string;
 }
 
-function TimePicker({ h, m, s, showSeconds, disabled, onChange }: TimePickerProps) {
+function TimePicker({ h, m, s, showSeconds, disabled, onChange, className = "" }: TimePickerProps) {
   return (
-    <div className="flex items-center justify-center gap-2 border-t border-secondary-100 px-3 py-3">
+    <div className={`flex items-center justify-center gap-2 px-3 py-3 ${className}`}>
       <ClockIcon className="h-3.5 w-3.5 shrink-0 text-secondary-400 self-center mb-5" aria-hidden />
       <div className="flex items-end gap-1">
         <TimeUnit value={h} max={23} label="Giờ"  disabled={disabled} onChange={(v) => onChange(v, m, s)} />
@@ -488,7 +489,8 @@ export function DateInput({
   const dropdownRef  = useRef<HTMLDivElement>(null);
 
   // ── Panel height (for flip-up detection) ─────────────────────────────────
-  const PANEL_H = showTime ? (showSeconds ? 465 : 435) : 335;
+  // When showTime, TimePicker sits beside the calendar (horizontal layout) so height = calendar height.
+  const PANEL_H = 335;
 
   // ── Position: portal alignment ────────────────────────────────────────────
   const updatePosition = useCallback(() => {
@@ -647,29 +649,33 @@ export function DateInput({
               minWidth: "288px",
             }}
           >
-            {/* Calendar */}
-            <Calendar selected={currentDatePart} onSelect={handleSelect} />
+            {showTime ? (
+              /* Date + time: calendar on the left, time picker on the right */
+              <div className="flex">
+                <Calendar selected={currentDatePart} onSelect={handleSelect} />
 
-            {/* Time picker — shown only when showTime */}
-            {showTime && (
-              <>
-                <TimePicker
-                  h={panelH} m={panelM} s={panelS}
-                  showSeconds={showSeconds}
-                  disabled={disabled}
-                  onChange={handleTimeChange}
-                />
-                {/* Confirm footer */}
-                <div className="border-t border-secondary-100 px-3 py-2 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={handleConfirm}
-                    className="rounded-lg bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
-                  >
-                    Xong
-                  </button>
+                <div className="flex flex-col justify-between border-l border-secondary-100">
+                  <TimePicker
+                    h={panelH} m={panelM} s={panelS}
+                    showSeconds={showSeconds}
+                    disabled={disabled}
+                    onChange={handleTimeChange}
+                    className="flex-1"
+                  />
+                  <div className="border-t border-secondary-100 px-3 py-2 flex justify-end">
+                    <button
+                      type="button"
+                      onClick={handleConfirm}
+                      className="rounded-lg bg-primary-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 transition-colors"
+                    >
+                      Xong
+                    </button>
+                  </div>
                 </div>
-              </>
+              </div>
+            ) : (
+              /* Date only */
+              <Calendar selected={currentDatePart} onSelect={handleSelect} />
             )}
           </div>,
           document.body

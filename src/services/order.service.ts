@@ -1,5 +1,5 @@
-import type { Order, OrderStatus, OrderSummary, OrderInternalNote, OrderShipping, OrderRefundRecord } from "@/src/types/order.types";
-import { MOCK_ORDERS, MOCK_ORDER_SUMMARIES } from "@/src/app/(dashboard)/orders/_mock";
+import type { Order, OrderStatus, OrderSummary, OrderInternalNote, OrderRefundRecord, OrderReturnRequest } from "@/src/types/order.types";
+import { apiFetch } from "@/src/services/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -9,6 +9,8 @@ export interface GetOrdersParams {
   paymentStatus?: string;
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortOrder?: string;
 }
 
 export interface GetOrdersResult {
@@ -18,52 +20,51 @@ export interface GetOrdersResult {
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-/**
- * Fetch order summaries with optional filtering and pagination.
- * Mock implementation — replace with GET /admin/orders
- */
 export async function getOrders(
   params: GetOrdersParams = {}
 ): Promise<GetOrdersResult> {
-  const { q = "", status = "", paymentStatus = "", page = 1, pageSize = 20 } = params;
+  const { q, status, paymentStatus, page = 1, pageSize, sortBy, sortOrder } = params;
 
-  let filtered = [...MOCK_ORDER_SUMMARIES];
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (pageSize) qs.set("limit", String(pageSize));
+  if (q) qs.set("q", q);
+  if (status) qs.set("trangThai", STATUS_TO_VN[status] ?? "");
+  if (paymentStatus) qs.set("trangThaiThanhToan", PAYMENT_STATUS_TO_VN[paymentStatus] ?? "");
+  if (sortBy) qs.set("sortBy", sortBy);
+  if (sortOrder) qs.set("sortOrder", sortOrder);
 
-  if (q) {
-    const lower = q.toLowerCase();
-    filtered = filtered.filter(
-      (o) =>
-        o.id.toLowerCase().includes(lower) ||
-        o.customerName.toLowerCase().includes(lower) ||
-        o.customerPhone.includes(lower)
-    );
-  }
-
-  if (status) {
-    filtered = filtered.filter((o) => o.status === status);
-  }
-
-  if (paymentStatus) {
-    filtered = filtered.filter((o) => o.paymentStatus === paymentStatus);
-  }
-
-  // Most recent first
-  filtered.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
-  const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  const data  = filtered.slice(start, start + pageSize);
-
-  return { data, total };
+  const result = await apiFetch<{ data: OrderSummary[]; total: number }>(
+    `/admin/orders?${qs}`
+  );
+  return { data: result.data, total: result.total };
 }
 
-/**
- * Fetch a single order by ID.
- * Mock implementation — replace with GET /admin/orders/:id
- */
+const STATUS_TO_VN: Record<string, string> = {
+  pending:    "ChoTT",
+  confirmed:  "DaXacNhan",
+  processing: "DongGoi",
+  shipped:    "DangGiao",
+  delivered:  "DaGiao",
+  cancelled:  "DaHuy",
+  returned:   "HoanTra",
+};
+
+const PAYMENT_STATUS_TO_VN: Record<string, string> = {
+  unpaid:             "ChuaThanhToan",
+  paid:               "DaThanhToan",
+  refunded:           "DaHoanTien",
+  partially_refunded: "HoanTienMotPhan",
+};
+
 export async function getOrderById(id: string): Promise<Order | null> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 50));
-  return MOCK_ORDERS.find((o) => o.id === id) ?? null;
+  try {
+    return await apiFetch<Order>(`/admin/orders/${id}`);
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message ?? '';
+    if (msg === 'Đơn hàng không tồn tại' || msg.startsWith('HTTP 404')) return null;
+    throw err;
+  }
 }
 
 // ─── Payloads ──────────────────────────────────────────────────────────────────
@@ -91,145 +92,135 @@ export interface ProcessRefundPayload {
   items: { productId: string; variantId: string; quantity: number }[];
   processedBy: string;
   note?: string;
+  returnRequestId: number;
+}
+
+export interface SettleRefundPayload {
+  externalRef: string;
+  bank?: string;
+  settledAt?: string;
+  note?: string;
+}
+
+export interface RejectRefundPayload {
+  reason: string;
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
 /**
- * Update order status and append a status history entry.
- * Mock implementation — replace with PATCH /admin/orders/:id/status
+ * Update order status.
+ * id must be the numeric order ID (String(order.id)), not the order code.
  */
 export async function updateOrderStatus(
   id: string,
   payload: UpdateOrderStatusPayload
-): Promise<Order> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 500));
-  const order = MOCK_ORDERS.find((o) => o.id === id);
-  if (!order) throw new Error(`Order ${id} not found`);
-  const now = new Date().toISOString();
-  order.status    = payload.status;
-  order.updatedAt = now;
-  order.statusHistory.push({
-    status:    payload.status,
-    timestamp: now,
-    actorName: "Admin",
-    actorRole: "Admin",
-    note:      payload.note,
+): Promise<void> {
+  await apiFetch<void>(`/admin/orders/${id}/status`, {
+    method: "PUT",
+    body: JSON.stringify({
+      trangThai: STATUS_TO_VN[payload.status] ?? payload.status,
+      ...(payload.note ? { ghiChu: payload.note } : {}),
+    }),
   });
-  order.activityLog.push({
-    id:        `act-${Date.now()}`,
-    timestamp: now,
-    actorName: "Admin",
-    actorRole: "Admin",
-    action:    "Status changed",
-    detail:    `→ ${payload.status}${payload.note ? `: ${payload.note}` : ""}`,
-  });
-  return order;
 }
 
 /**
  * Update shipping info (carrier, tracking number, estimated delivery).
- * Mock implementation — replace with PATCH /admin/orders/:id/shipping
+ * PATCH /admin/orders/:id/shipping — returns updated full Order.
  */
 export async function updateOrderShipping(
   id: string,
   payload: UpdateOrderShippingPayload
 ): Promise<Order> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 400));
-  const order = MOCK_ORDERS.find((o) => o.id === id);
-  if (!order) throw new Error(`Order ${id} not found`);
-  const now = new Date().toISOString();
-  order.shipping = { ...order.shipping, ...payload } as OrderShipping;
-  order.updatedAt = now;
-  order.activityLog.push({
-    id:        `act-${Date.now()}`,
-    timestamp: now,
-    actorName: "Admin",
-    actorRole: "Admin",
-    action:    "Shipping updated",
-    detail:    `Carrier: ${payload.carrier ?? order.shipping.carrier}, Tracking: ${payload.trackingNumber ?? order.shipping.trackingNumber}`,
+  return apiFetch<Order>(`/admin/orders/${id}/shipping`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
   });
-  return order;
 }
 
 /**
  * Add an internal note to an order.
- * Mock implementation — replace with POST /admin/orders/:id/notes
+ * POST /admin/orders/:id/notes — returns the created OrderInternalNote.
  */
 export async function addOrderNote(
   id: string,
   payload: AddOrderNotePayload
 ): Promise<OrderInternalNote> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 300));
-  const order = MOCK_ORDERS.find((o) => o.id === id);
-  if (!order) throw new Error(`Order ${id} not found`);
-  const now  = new Date().toISOString();
-  const note: OrderInternalNote = {
-    id:         `note-${Date.now()}`,
-    authorName: payload.authorName,
-    authorRole: payload.authorRole,
-    text:       payload.text,
-    createdAt:  now,
-  };
-  order.internalNotes.push(note);
-  order.updatedAt = now;
-  return note;
+  return apiFetch<OrderInternalNote>(`/admin/orders/${id}/notes`, {
+    method: "POST",
+    body: JSON.stringify({
+      text:       payload.text,
+      authorName: payload.authorName,
+      authorRole: payload.authorRole,
+    }),
+  });
 }
 
 /**
  * Process a refund for an order.
- * Mock implementation — replace with POST /admin/orders/:id/refunds
+ * POST /admin/orders/:id/refunds — returns the created OrderRefundRecord.
  */
 export async function processRefund(
   id: string,
   payload: ProcessRefundPayload
 ): Promise<OrderRefundRecord> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 600));
-  const order = MOCK_ORDERS.find((o) => o.id === id);
-  if (!order) throw new Error(`Order ${id} not found`);
-  const now    = new Date().toISOString();
-  const refund: OrderRefundRecord = {
-    id:          `ref-${Date.now()}`,
-    createdAt:   now,
-    method:      payload.method,
-    amount:      payload.amount,
-    items:       payload.items,
-    processedBy: payload.processedBy,
-  };
-  order.refunds.push(refund);
-  order.paymentStatus = "refunded";
-  order.updatedAt     = now;
-  order.activityLog.push({
-    id:        `act-${Date.now()}`,
-    timestamp: now,
-    actorName: payload.processedBy,
-    actorRole: "Admin",
-    action:    "Refund processed",
-    detail:    `${payload.amount.toLocaleString("vi-VN")}₫ via ${payload.method}`,
+  return apiFetch<OrderRefundRecord>(`/admin/orders/${id}/refunds`, {
+    method: "POST",
+    body: JSON.stringify({
+      method:          payload.method,
+      amount:          payload.amount,
+      items:           payload.items,
+      processedBy:     payload.processedBy,
+      yeuCauDoiTraId:  payload.returnRequestId,
+    }),
   });
-  return refund;
 }
 
 /**
- * Cancel an order.
- * Mock implementation — replace with POST /admin/orders/:id/cancel
+ * Cancel an order by updating its status to "cancelled".
  */
 export async function cancelOrder(
   id: string,
   note?: string
-): Promise<Order> {
-  return updateOrderStatus(id, { status: "cancelled", note });
+): Promise<void> {
+  await updateOrderStatus(id, { status: "cancelled", note });
 }
 
 /**
- * Fetch all orders for a specific customer, sorted newest first.
- * Mock implementation — replace with GET /admin/customers/:customerId/orders
+ * Fetch all return requests for an order.
+ * GET /admin/orders/:id/return-requests
  */
-export async function getOrdersByCustomerId(
-  customerId: string
-): Promise<OrderSummary[]> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 50));
-  return MOCK_ORDER_SUMMARIES
-    .filter((o) => o.customerId === customerId)
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+export async function getOrderReturnRequests(id: string): Promise<OrderReturnRequest[]> {
+  return apiFetch<OrderReturnRequest[]>(`/admin/orders/${id}/return-requests`);
+}
+
+/**
+ * Confirm a pending refund was successfully processed externally (Track A).
+ * PATCH /admin/orders/:id/refunds/:refundId/settle
+ */
+export async function settleRefund(
+  orderId: string,
+  refundId: string,
+  payload: SettleRefundPayload,
+): Promise<OrderRefundRecord> {
+  return apiFetch<OrderRefundRecord>(`/admin/orders/${orderId}/refunds/${refundId}/settle`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+/**
+ * Mark a pending refund as failed/rejected (Track A).
+ * PATCH /admin/orders/:id/refunds/:refundId/reject
+ */
+export async function rejectRefund(
+  orderId: string,
+  refundId: string,
+  payload: RejectRefundPayload,
+): Promise<OrderRefundRecord> {
+  return apiFetch<OrderRefundRecord>(`/admin/orders/${orderId}/refunds/${refundId}/reject`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }

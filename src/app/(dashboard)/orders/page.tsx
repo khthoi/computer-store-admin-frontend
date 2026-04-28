@@ -14,7 +14,13 @@ export const metadata: Metadata = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function OrdersPage() {
-  const { data: orders, total } = await getOrders({ pageSize: 1000 });
+  let orders: import("@/src/types/order.types").OrderSummary[] = [];
+  let total = 0;
+  try {
+    ({ data: orders, total } = await getOrders({ pageSize: 10 }));
+  } catch {
+    // Backend unavailable — render empty shell; client-side refetch will recover
+  }
 
   return (
     <div className="space-y-6 p-6">
@@ -29,7 +35,7 @@ export default async function OrdersPage() {
       </div>
 
       {/* ── Table ── */}
-      <OrdersTable initialOrders={orders} />
+      <OrdersTable initialOrders={orders} initialTotal={total} />
     </div>
   );
 }

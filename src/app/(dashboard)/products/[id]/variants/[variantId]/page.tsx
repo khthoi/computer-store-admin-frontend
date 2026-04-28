@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { getProductById, getVariantById, getVariantSalesStats, getVariantReviews } from "@/src/services/product.service";
+import { getProductById, getVariantById, getVariantSalesStats } from "@/src/services/product.service";
 import {
   VariantHeader,
   ProductSummaryCard,
@@ -40,11 +40,10 @@ export default async function VariantDetailPage({
 }) {
   const { id, variantId } = await params;
 
-  const [product, variant, salesStats, reviews] = await Promise.all([
+  const [product, variant, salesStats] = await Promise.all([
     getProductById(id),
     getVariantById(id, variantId),
     getVariantSalesStats(id, variantId),
-    getVariantReviews(variantId),
   ]);
 
   if (!product || !variant) notFound();
@@ -85,7 +84,7 @@ export default async function VariantDetailPage({
           <MediaGallery media={variant.media} />
 
           {/* ── Customer reviews ── */}
-          <VariantReviewsSection variantId={variantId} reviews={reviews} />
+          <VariantReviewsSection variantId={variantId} />
         </div>
       </div>
     </div>

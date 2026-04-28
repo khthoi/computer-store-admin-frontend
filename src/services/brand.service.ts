@@ -1,5 +1,5 @@
 import type { ThuongHieu } from "@/src/types/brand.types";
-import { MOCK_BRANDS } from "@/src/app/(dashboard)/brands/_mock";
+import { apiFetch } from "@/src/services/api";
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 
@@ -10,6 +10,7 @@ export interface BrandFormData {
   websiteUrl: string;
   countryOfOrigin: string;
   active: boolean;
+  logoUrl?: string;
 }
 
 export interface GetBrandsParams {
@@ -26,86 +27,71 @@ export interface GetBrandsResult {
 
 // ─── Service ───────────────────────────────────────────────────────────────
 
-/**
- * Fetch brands with optional filtering and pagination.
- * Mock implementation — replace with GET /admin/brands
- */
 export async function getBrands(params: GetBrandsParams = {}): Promise<GetBrandsResult> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  const { q = "", active, page = 1, pageSize = 20 } = params;
+  const { q = "", active, page = 1, pageSize } = params;
 
-  let filtered = MOCK_BRANDS.slice();
+  const all = await apiFetch<ThuongHieu[]>("/admin/brands");
 
+  let filtered = all.slice();
   if (q) {
     const lower = q.toLowerCase();
     filtered = filtered.filter(
       (b) =>
         b.name.toLowerCase().includes(lower) ||
-        b.slug.includes(lower) ||
-        b.description.toLowerCase().includes(lower)
+        b.description.toLowerCase().includes(lower),
     );
   }
-
   if (active !== undefined) {
     filtered = filtered.filter((b) => b.active === active);
   }
 
   const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  return { data: filtered.slice(start, start + pageSize), total };
+  if (pageSize) {
+    const start = (page - 1) * pageSize;
+    filtered = filtered.slice(start, start + pageSize);
+  }
+  return { data: filtered, total };
 }
 
-/**
- * Fetch a single brand by ID.
- * Mock implementation — replace with GET /admin/brands/:id
- */
 export async function getBrandById(id: string): Promise<ThuongHieu | null> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  return MOCK_BRANDS.find((b) => b.id === id) ?? null;
+  try {
+    return await apiFetch<ThuongHieu>(`/admin/brands/${id}`);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Create a new brand.
- * Mock implementation — replace with POST /admin/brands
- */
 export async function createBrand(data: BrandFormData): Promise<ThuongHieu> {
-  await new Promise<void>((r) => setTimeout(r, 600));
-  const now = new Date().toISOString();
-  return {
-    id: `brand-${Date.now()}`,
-    name: data.name,
-    slug: data.slug,
-    description: data.description,
-    websiteUrl: data.websiteUrl,
-    active: data.active,
-    productCount: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
+  return apiFetch<ThuongHieu>("/admin/brands", {
+    method: "POST",
+    body: JSON.stringify({
+      tenThuongHieu: data.name,
+      ...(data.slug ? { slug: data.slug } : {}),
+      ...(data.description ? { moTa: data.description } : {}),
+      trangThai: data.active ? "HienThi" : "An",
+      ...(data.logoUrl ? { logo: data.logoUrl } : {}),
+      ...(data.websiteUrl ? { websiteUrl: data.websiteUrl } : {}),
+    }),
+  });
 }
 
-/**
- * Update a brand.
- * Mock implementation — replace with PUT /admin/brands/:id
- */
 export async function updateBrand(
   id: string,
-  data: Partial<BrandFormData> & { logoUrl?: string }
+  data: Partial<BrandFormData> & { logoUrl?: string },
 ): Promise<ThuongHieu> {
-  await new Promise<void>((r) => setTimeout(r, 600));
-  const existing = MOCK_BRANDS.find((b) => b.id === id);
-  if (!existing) throw new Error(`Brand ${id} not found`);
-  return {
-    ...existing,
-    ...data,
-    updatedAt: new Date().toISOString(),
-  };
+  return apiFetch<ThuongHieu>(`/admin/brands/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({
+      ...(data.name !== undefined ? { tenThuongHieu: data.name } : {}),
+      ...(data.slug !== undefined ? { slug: data.slug || null } : {}),
+      ...(data.description !== undefined ? { moTa: data.description } : {}),
+      ...(data.active !== undefined ? { trangThai: data.active ? "HienThi" : "An" } : {}),
+      ...(data.logoUrl !== undefined ? { logo: data.logoUrl } : {}),
+      ...(data.websiteUrl !== undefined ? { websiteUrl: data.websiteUrl || undefined } : {}),
+    }),
+  });
 }
 
-/**
- * Delete a brand by ID.
- * Mock implementation — replace with DELETE /admin/brands/:id
- */
-export async function deleteBrand(_id: string): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 600));
+export async function deleteBrand(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/brands/${id}`, { method: "DELETE" });
 }

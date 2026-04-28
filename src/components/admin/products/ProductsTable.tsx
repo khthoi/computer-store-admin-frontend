@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import {
@@ -8,6 +8,7 @@ import {
   ArchiveBoxIcon,
   TrashIcon,
   ArrowDownTrayIcon,
+  ArrowPathIcon,
   CheckCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
@@ -16,6 +17,7 @@ import { BulkBar, type BulkBarAction } from "@/src/components/admin/BulkBar";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import {
+  getProducts,
   deleteProduct,
   deleteVariant,
   bulkUpdateStatus,
@@ -33,6 +35,9 @@ import { VariantSubRow } from "./_VariantSubRow";
 
 export interface ProductsTableProps {
   initialProducts: Product[];
+  initialTotal: number;
+  initialTotalPages: number;
+  initialCategories: { id: string; name: string }[];
 }
 
 type SelectionMode = "none" | "products" | "variants";
@@ -49,11 +54,20 @@ type SelectionMode = "none" | "products" | "variants";
  *   checkbox clears any product selections. The bulk-action bar adapts to
  *   show the correct actions for whichever entity type is currently selected.
  */
-export function ProductsTable({ initialProducts }: ProductsTableProps) {
+export function ProductsTable({ initialProducts, initialTotal, initialTotalPages, initialCategories }: ProductsTableProps) {
   const { showToast } = useToast();
 
-  // ── Local product list (updated optimistically on delete) ──────────────────
+  // ── Local product list (current page from server) ──────────────────────────
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [loading, setLoading] = useState(false);
+  const [serverTotal, setServerTotal] = useState<number>(initialTotal);
+  const [serverTotalPages, setServerTotalPages] = useState<number>(initialTotalPages);
+  const fetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+  const prevSearchRef = useRef("");
+  // Set to true by any handler that changes sort/filter/search/pageSize.
+  // Read and cleared in the fetch effect to decide whether to show the loading overlay.
+  const nonPageChangedRef = useRef(false);
 
   // ── Filter / search / sort state ───────────────────────────────────────────
   const [search, setSearch] = useState("");
@@ -99,88 +113,99 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
   const [pendingVariantClones, setPendingVariantClones] = useState<Map<string, { sourceVariantId: string; productId: string }>>(new Map());
   const [savingVariantCloneId, setSavingVariantCloneId] = useState<string | null>(null);
 
-  // ── Reset page when any filter changes ────────────────────────────────────
+  // ── Server fetch on every relevant state change ────────────────────────────
+  // nonPageChangedRef is set by handlers that change sort/filter/search/pageSize,
+  // which also call setPage(1) in the same React batch — guaranteeing a single
+  // render and a single effect run. Reading and clearing the ref here avoids the
+  // double-run race that occurred when a separate page-reset effect caused this
+  // effect to fire twice with a stale "non-page key", suppressing the loader on
+  // sort/filter changes while the user was on any page other than page 1.
   useEffect(() => {
-    setPage(1);
-  }, [search, statusFilter, categoryFilter, sortKey, sortDir]);
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    const isSearchChange = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
 
-  // ── Filter options derived from current data ───────────────────────────────
+    const isNonPageChange = nonPageChangedRef.current;
+    nonPageChangedRef.current = false;
 
-  const statusOptions = useMemo(
-    () => [
-      { value: "published", label: "Published", count: products.filter((p) => p.status === "published").length },
-      { value: "draft", label: "Draft", count: products.filter((p) => p.status === "draft").length },
-      { value: "archived", label: "Archived", count: products.filter((p) => p.status === "archived").length },
-    ],
-    [products]
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = setTimeout(async () => {
+      if (isNonPageChange) setLoading(true);
+      try {
+        const result = await getProducts({
+          q: search || undefined,
+          status: statusFilter.length === 1 ? statusFilter[0] : undefined,
+          category: categoryFilter.length === 1 ? categoryFilter[0] : undefined,
+          page,
+          pageSize,
+          sortBy: sortKey,
+          sortOrder: sortDir,
+        });
+        setProducts(result.data);
+        setServerTotal(result.total);
+        setServerTotalPages(result.totalPages);
+      } catch {
+        // keep existing products on error
+      } finally {
+        setLoading(false);
+      }
+    }, isSearchChange ? 300 : 0);
+    return () => {
+      if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    };
+  }, [page, pageSize, search, statusFilter, categoryFilter, sortKey, sortDir]);
+
+  // ── Filter options ─────────────────────────────────────────────────────────
+  // Counts are not available without loading all data; omitted intentionally.
+
+  const statusOptions = [
+    { value: "published", label: "Published" },
+    { value: "draft", label: "Draft" },
+    { value: "archived", label: "Archived" },
+  ];
+
+  const categoryOptions = useMemo(
+    () => initialCategories.map((c) => ({ value: c.name, label: c.name })),
+    [initialCategories]
   );
 
-  const categoryOptions = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const p of products) {
-      counts.set(p.category, (counts.get(p.category) ?? 0) + 1);
-    }
-    return Array.from(counts.entries())
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([value, count]) => ({ value, label: value, count }));
-  }, [products]);
-
-  // ── Filtered → sorted → paginated data ────────────────────────────────────
-
-  const filtered = useMemo(() => {
-    let result = products;
-
-    if (search) {
-      const lower = search.toLowerCase();
-      result = result.filter(
-        (p) =>
-          p.name.toLowerCase().includes(lower) ||
-          p.slug.includes(lower) ||
-          p.brands.some((b) => b.toLowerCase().includes(lower)) ||
-          p.category.toLowerCase().includes(lower) ||
-          p.variants.some((v) => v.sku.toLowerCase().includes(lower))
-      );
-    }
-
-    if (statusFilter.length) {
-      result = result.filter((p) => statusFilter.includes(p.status));
-    }
-
-    if (categoryFilter.length) {
-      result = result.filter((p) => categoryFilter.includes(p.category));
-    }
-
-    return result;
-  }, [products, search, statusFilter, categoryFilter]);
-
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      const av = (a as unknown as Record<string, unknown>)[sortKey];
-      const bv = (b as unknown as Record<string, unknown>)[sortKey];
-      let cmp = 0;
-      if (typeof av === "number" && typeof bv === "number") {
-        cmp = av - bv;
-      } else if (typeof av === "string" && typeof bv === "string") {
-        cmp = av.localeCompare(bv);
-      }
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir]);
-
-  const totalRows = sorted.length;
-
-  const filteredPage = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return sorted.slice(start, start + pageSize);
-  }, [sorted, page, pageSize]);
+  // ── Total rows comes from server ───────────────────────────────────────────
+  const totalRows = serverTotal;
 
   // ── Sort handler ───────────────────────────────────────────────────────────
 
   const handleSortChange = useCallback((key: string, dir: SortDir) => {
+    nonPageChangedRef.current = true;
     setSortKey(key);
     setSortDir(dir);
+    setPage(1);
+  }, []);
+
+  const handleStatusFilterChange = useCallback((values: string[]) => {
+    nonPageChangedRef.current = true;
+    setStatusFilter(values);
+    setPage(1);
+  }, []);
+
+  const handleCategoryFilterChange = useCallback((values: string[]) => {
+    nonPageChangedRef.current = true;
+    setCategoryFilter(values);
+    setPage(1);
+  }, []);
+
+  const handleSearchChange = useCallback((q: string) => {
+    nonPageChangedRef.current = true;
+    setSearch(q);
+    setPage(1);
+  }, []);
+
+  const handlePageSizeChange = useCallback((size: number) => {
+    nonPageChangedRef.current = true;
+    setPageSize(size);
+    setPage(1);
   }, []);
 
   // ── Selection handlers (mutual exclusivity) ────────────────────────────────
@@ -511,24 +536,36 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
 
   // ── CSV export ─────────────────────────────────────────────────────────────
 
-  const handleExport = useCallback(() => {
-    const headers = ["ID", "Name", "Slug", "Category", "Brand", "Base Price", "Total Stock", "Status", "Created At", "Updated At"];
-    const rows = sorted.map((p) => {
-      const defaultVariant = p.variants.find((v) => v.isDefault) ?? p.variants[0];
-      return [
-        p.id, `"${p.name}"`, p.slug, p.category, `"${p.brands.join(", ")}"`,
-        defaultVariant ? defaultVariant.price : "", p.totalStock, p.status, p.createdAt, p.updatedAt,
-      ];
-    });
-    const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "products.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [sorted]);
+  const handleExport = useCallback(async () => {
+    try {
+      const { data: allData } = await getProducts({ q: search || undefined, pageSize: 1000 });
+      let exportRows = allData;
+      if (statusFilter.length) {
+        exportRows = exportRows.filter((p) => statusFilter.includes(p.status));
+      }
+      if (categoryFilter.length) {
+        exportRows = exportRows.filter((p) => categoryFilter.includes(p.category));
+      }
+      const headers = ["ID", "Name", "Slug", "Category", "Brand", "Base Price", "Total Stock", "Status", "Created At", "Updated At"];
+      const rows = exportRows.map((p) => {
+        const defaultVariant = p.variants.find((v) => v.isDefault) ?? p.variants[0];
+        return [
+          p.id, `"${p.name}"`, p.slug, p.category, `"${p.brands.join(", ")}"`,
+          defaultVariant ? defaultVariant.price : "", p.totalStock, p.status, p.createdAt, p.updatedAt,
+        ];
+      });
+      const csv = [headers, ...rows].map((r) => r.join(",")).join("\n");
+      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "products.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      showToast("Không thể xuất dữ liệu. Vui lòng thử lại.", "error");
+    }
+  }, [search, statusFilter, categoryFilter, showToast]);
 
   // ── Column definitions (built from sub-module) ─────────────────────────────
 
@@ -590,18 +627,18 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
         label="Trạng thái"
         options={statusOptions}
         selected={statusFilter}
-        onChange={setStatusFilter}
+        onChange={handleStatusFilterChange}
       />
       <FilterDropdown
         label="Danh mục"
         options={categoryOptions}
         selected={categoryFilter}
-        onChange={setCategoryFilter}
+        onChange={handleCategoryFilterChange}
         searchable
       />
       <button
         type="button"
-        onClick={handleExport}
+        onClick={() => void handleExport()}
         className="flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-2 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
       >
         <ArrowDownTrayIcon className="w-4 h-4" aria-hidden="true" />
@@ -614,78 +651,85 @@ export function ProductsTable({ initialProducts }: ProductsTableProps) {
 
   return (
     <>
-      {/* ── DataTable ── */}
-      <DataTable<ProductRow>
-        data={filteredPage as ProductRow[]}
-        columns={columns}
+      {/* ── DataTable (with loading overlay) ── */}
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70">
+            <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-600" aria-hidden="true" />
+          </div>
+        )}
+        <DataTable<ProductRow>
+          data={products as ProductRow[]}
+          columns={columns}
 
-        keyField="id"
-        selectable
-        selectedKeys={selectedProductIds}
-        onSelectionChange={handleProductSelectionChange}
-        additionalBulkBar={
-          selectionMode === "variants" ? (
-            <BulkBar
-              count={selectedVariantIds.length}
-              countLabel="biến thể đã chọn"
-              actions={variantBulkActions}
-              onClear={() => setSelectedVariantIds([])}
-              clearLabel="Bỏ chọn"
-              ariaLabel="Thao tác hàng loạt biến thể"
-            />
-          ) : null
-        }
-        bulkActions={[
-          {
-            id: "publish",
-            label: "Kích hoạt",
-            icon: <GlobeAltIcon className="w-3.5 h-3.5" />,
-            onClick: handleBulkPublish,
-          },
-          {
-            id: "archive",
-            label: "Lưu trữ",
-            icon: <ArchiveBoxIcon className="w-3.5 h-3.5" />,
-            onClick: handleBulkArchive,
-          },
-          {
-            id: "delete",
-            label: "Xoá",
-            icon: <TrashIcon className="w-3.5 h-3.5" />,
-            isDanger: true,
-            onClick: handleBulkDeleteClick,
-          },
-        ]}
-        sortKey={sortKey}
-        sortDir={sortDir}
-        onSortChange={handleSortChange}
-        searchQuery={search}
-        onSearchChange={setSearch}
-        searchPlaceholder="Tìm kiếm theo tên, slug, thương hiệu, danh mục, SKU..."
-        toolbarActions={toolbarActions}
-        page={page}
-        pageSize={pageSize}
-        totalRows={totalRows}
-        pageSizeOptions={[10, 25, 50]}
-        onPageChange={setPage}
-        onPageSizeChange={setPageSize}
-        getSubRows={(row) => {
-          const product = row as unknown as Product;
-          return product.variants.length > 0
-            ? (product.variants as unknown as Record<string, unknown>[])
-            : undefined;
-        }}
-        renderSubRow={renderSubRow}
-        emptyMessage="No products found."
-        emptyAction={
-          <Link
-            href="/products/new"
-            className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-          >
-            Thêm sản phẩm
-          </Link>
-        }
-      />
+          keyField="id"
+          selectable
+          selectedKeys={selectedProductIds}
+          onSelectionChange={handleProductSelectionChange}
+          additionalBulkBar={
+            selectionMode === "variants" ? (
+              <BulkBar
+                count={selectedVariantIds.length}
+                countLabel="biến thể đã chọn"
+                actions={variantBulkActions}
+                onClear={() => setSelectedVariantIds([])}
+                clearLabel="Bỏ chọn"
+                ariaLabel="Thao tác hàng loạt biến thể"
+              />
+            ) : null
+          }
+          bulkActions={[
+            {
+              id: "publish",
+              label: "Kích hoạt",
+              icon: <GlobeAltIcon className="w-3.5 h-3.5" />,
+              onClick: handleBulkPublish,
+            },
+            {
+              id: "archive",
+              label: "Lưu trữ",
+              icon: <ArchiveBoxIcon className="w-3.5 h-3.5" />,
+              onClick: handleBulkArchive,
+            },
+            {
+              id: "delete",
+              label: "Xoá",
+              icon: <TrashIcon className="w-3.5 h-3.5" />,
+              isDanger: true,
+              onClick: handleBulkDeleteClick,
+            },
+          ]}
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={handleSortChange}
+          searchQuery={search}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Tìm kiếm theo tên, slug, thương hiệu, danh mục, SKU..."
+          toolbarActions={toolbarActions}
+          page={page}
+          pageSize={pageSize}
+          totalRows={totalRows}
+          pageSizeOptions={[10, 25, 50]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          getSubRows={(row) => {
+            const product = row as unknown as Product;
+            return product.variants.length > 0
+              ? (product.variants as unknown as Record<string, unknown>[])
+              : undefined;
+          }}
+          renderSubRow={renderSubRow}
+          emptyMessage="No products found."
+          emptyAction={
+            <Link
+              href="/products/new"
+              className="inline-flex items-center gap-2 rounded-lg bg-primary-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-primary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+            >
+              Thêm sản phẩm
+            </Link>
+          }
+        />
+      </div>
 
       {/* ── Product: single delete confirm ── */}
       <ConfirmDialog

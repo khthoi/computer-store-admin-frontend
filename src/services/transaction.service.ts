@@ -5,6 +5,7 @@ import type {
   GetTransactionsParams,
   GetTransactionsResult,
 } from "@/src/types/transaction.types";
+import { apiFetch } from "@/src/services/api";
 
 // ─── Mock data ────────────────────────────────────────────────────────────────
 
@@ -186,14 +187,18 @@ export async function getTransactions(
 }
 
 /**
- * Lấy giao dịch của một đơn hàng (quan hệ 1-1).
- * Mock implementation — thay bằng GET /admin/orders/:id/transaction
+ * Lấy giao dịch của một đơn hàng theo mã đơn hàng (quan hệ 1-1).
  */
-export async function getTransactionByOrderId(
-  donHangId: number
+export async function getTransactionByOrderCode(
+  orderCode: string
 ): Promise<Transaction | null> {
-  const found = MOCK_TRANSACTIONS.find((t) => t.donHangId === donHangId);
-  return found ?? null;
+  try {
+    return await apiFetch<Transaction>(`/admin/orders/${orderCode}/transaction`);
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message ?? '';
+    if (msg === 'Không tìm thấy giao dịch' || msg.startsWith('HTTP 404')) return null;
+    throw err;
+  }
 }
 
 /**

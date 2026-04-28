@@ -151,6 +151,9 @@ export function ProfilePageClient({
             </TabPanel>
 
             <TabPanel value="activity" className="p-6">
+              <p className="mb-4 text-xs text-secondary-400">
+                Hiển thị tối đa 50 hành động gần đây nhất.
+              </p>
               <ProfileActivityLog entries={auditLogs} />
             </TabPanel>
           </Tabs>

@@ -139,7 +139,17 @@ export function SpecGroupPanel({
   useEffect(() => {
     if (!isDirty) {
       setAllOrder(buildInitialOrder(view));
+      return;
     }
+    // When dirty, preserve drag order but sync additions/removals from new view
+    const viewIds = new Set([...view.directIncludes, ...view.inheritedIncludes].map((g) => g.id));
+    const viewMap = new Map([...view.directIncludes, ...view.inheritedIncludes].map((g) => [g.id, g]));
+    setAllOrder((prev) => {
+      const kept = prev.filter((g) => viewIds.has(g.id)).map((g) => viewMap.get(g.id)!);
+      const keptIds = new Set(prev.map((g) => g.id));
+      const added = [...view.directIncludes, ...view.inheritedIncludes].filter((g) => !keptIds.has(g.id));
+      return [...kept, ...added];
+    });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view, isDirty]);
 

@@ -10,11 +10,16 @@ export interface GetProductsParams {
   category?: string;
   page?: number;
   pageSize?: number;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
 }
 
 export interface GetProductsResult {
   data: Product[];
   total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -22,19 +27,27 @@ export interface GetProductsResult {
 export async function getProducts(
   params: GetProductsParams = {}
 ): Promise<GetProductsResult> {
-  const { q, status, category, page = 1, pageSize = 100 } = params;
+  const { q, status, category, page = 1, pageSize = 10, sortBy, sortOrder } = params;
 
   const qs = new URLSearchParams();
-  if (q)        qs.set("q", q);
-  if (status)   qs.set("status", status);
-  if (category) qs.set("category", category);
+  if (q)         qs.set("q", q);
+  if (status)    qs.set("status", status);
+  if (category)  qs.set("category", category);
+  if (sortBy)    qs.set("sortBy", sortBy);
+  if (sortOrder) qs.set("sortOrder", sortOrder);
   qs.set("page", String(page));
-  qs.set("pageSize", String(pageSize));
+  qs.set("limit", String(pageSize));
 
-  const result = await apiFetch<{ data: Product[]; total: number }>(
+  const result = await apiFetch<{ data: Product[]; total: number; page: number; limit: number; totalPages: number }>(
     `/admin/products?${qs.toString()}`
   );
-  return { data: result.data, total: result.total };
+  return {
+    data: result.data,
+    total: result.total,
+    page: result.page,
+    limit: result.limit,
+    totalPages: result.totalPages,
+  };
 }
 
 export async function deleteProduct(id: string): Promise<void> {
@@ -329,13 +342,13 @@ export function getProductCategories(): string[] {
   return [];
 }
 
-interface BrandApiItem { id: number; tenThuongHieu: string; }
+interface BrandApiItem { id: string; name: string; }
 
 export interface BrandOption { id: string; name: string; }
 
 export async function getProductBrands(): Promise<BrandOption[]> {
   const items = await apiFetch<BrandApiItem[]>("/admin/brands");
-  return items.map((b) => ({ id: String(b.id), name: b.tenThuongHieu }));
+  return items.map((b) => ({ id: b.id, name: b.name }));
 }
 
 // ─── Variant sales stats ──────────────────────────────────────────────────────
@@ -355,11 +368,51 @@ export async function getVariantSalesStats(
 
 // ─── Variant reviews ──────────────────────────────────────────────────────────
 
-export async function getVariantReviews(variantId: string): Promise<ReviewSummary[]> {
-  const result = await apiFetch<{ data: any[]; total: number; page: number; limit: number; totalPages: number }>(
-    `/admin/reviews?variantId=${encodeURIComponent(variantId)}&limit=200`,
-  );
-  return (result?.data ?? []).map(mapToReviewSummary);
+export interface GetVariantReviewsParams {
+  page?: number;
+  limit?: number;
+  status?: string;
+  rating?: number;
+}
+
+export interface GetVariantReviewsResult {
+  data: ReviewSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+  stats: import("@/src/types/product.types").VariantReviewStats;
+}
+
+export async function getVariantReviews(
+  variantId: string,
+  params: GetVariantReviewsParams = {},
+): Promise<GetVariantReviewsResult> {
+  const { page = 1, limit, status, rating } = params;
+  const qs = new URLSearchParams();
+  qs.set("variantId", variantId);
+  qs.set("page", String(page));
+  if (limit) qs.set("limit", String(limit));
+  if (status) qs.set("status", status);
+  if (rating) qs.set("rating", String(rating));
+
+  const result = await apiFetch<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+    stats: import("@/src/types/product.types").VariantReviewStats;
+  }>(`/admin/reviews?${qs.toString()}`);
+
+  return {
+    data: (result?.data ?? []).map(mapToReviewSummary),
+    total: result.total,
+    page: result.page,
+    limit: result.limit,
+    totalPages: result.totalPages,
+    stats: result.stats,
+  };
 }
 
 function mapToReviewSummary(r: any): ReviewSummary {

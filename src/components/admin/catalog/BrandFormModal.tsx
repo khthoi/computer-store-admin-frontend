@@ -34,16 +34,49 @@ interface BrandFormModalProps {
 
 const COUNTRY_OPTIONS = [
   { value: "VN", label: "Việt Nam" },
-  { value: "US", label: "Hoa Kỳ" },
-  { value: "TW", label: "Đài Loan" },
-  { value: "KR", label: "Hàn Quốc" },
-  { value: "JP", label: "Nhật Bản" },
+  // Đông Á
   { value: "CN", label: "Trung Quốc" },
+  { value: "TW", label: "Đài Loan" },
+  { value: "JP", label: "Nhật Bản" },
+  { value: "KR", label: "Hàn Quốc" },
+  { value: "HK", label: "Hồng Kông" },
+  // Đông Nam Á
+  { value: "SG", label: "Singapore" },
+  { value: "MY", label: "Malaysia" },
+  { value: "TH", label: "Thái Lan" },
+  { value: "ID", label: "Indonesia" },
+  { value: "PH", label: "Philippines" },
+  // Bắc Mỹ
+  { value: "US", label: "Hoa Kỳ" },
+  { value: "CA", label: "Canada" },
+  // Châu Âu
   { value: "DE", label: "Đức" },
+  { value: "NL", label: "Hà Lan" },
+  { value: "GB", label: "Anh" },
+  { value: "FR", label: "Pháp" },
+  { value: "SE", label: "Thụy Điển" },
+  { value: "FI", label: "Phần Lan" },
+  { value: "IT", label: "Ý" },
+  { value: "CH", label: "Thụy Sĩ" },
+  { value: "CZ", label: "Cộng hoà Séc" },
+  { value: "PL", label: "Ba Lan" },
+  // Nam Á & Châu Đại Dương
+  { value: "IN", label: "Ấn Độ" },
+  { value: "AU", label: "Australia" },
   { value: "OTHER", label: "Khác" },
 ];
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const KNOWN_CODES = new Set(
+  COUNTRY_OPTIONS.filter((o) => o.value !== "OTHER").map((o) => o.value),
+);
+
+function parseCountry(value: string): { code: string; custom: string } {
+  if (!value) return { code: "", custom: "" };
+  if (KNOWN_CODES.has(value)) return { code: value, custom: "" };
+  return { code: "OTHER", custom: value };
+}
 
 function generateSlug(name: string): string {
   return name
@@ -69,7 +102,9 @@ export function BrandFormModal({
   const [slug, setSlug] = useState(initialData?.slug ?? "");
   const [description, setDescription] = useState(initialData?.description ?? "");
   const [websiteUrl, setWebsiteUrl] = useState(initialData?.websiteUrl ?? "");
-  const [countryOfOrigin, setCountryOfOrigin] = useState(initialData?.countryOfOrigin ?? "");
+  const initialCountry = parseCountry(initialData?.countryOfOrigin ?? "");
+  const [countryCode, setCountryCode] = useState(initialCountry.code);
+  const [customCountry, setCustomCountry] = useState(initialCountry.custom);
   const [active, setActive] = useState(initialData?.active ?? true);
   const [logoImage, setLogoImage] = useState<ImageFieldValue>(
     initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl) : emptyImageField()
@@ -82,7 +117,9 @@ export function BrandFormModal({
       setSlug(initialData?.slug ?? "");
       setDescription(initialData?.description ?? "");
       setWebsiteUrl(initialData?.websiteUrl ?? "");
-      setCountryOfOrigin(initialData?.countryOfOrigin ?? "");
+      const parsed = parseCountry(initialData?.countryOfOrigin ?? "");
+      setCountryCode(parsed.code);
+      setCustomCountry(parsed.custom);
       setActive(initialData?.active ?? true);
       setLogoImage(initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl) : emptyImageField());
     }
@@ -98,7 +135,7 @@ export function BrandFormModal({
       slug,
       description,
       websiteUrl,
-      countryOfOrigin,
+      countryOfOrigin: countryCode === "OTHER" ? customCountry.trim() : countryCode,
       active,
       logoUrl: logoImage.displayUrl ?? undefined,
     });
@@ -125,7 +162,7 @@ export function BrandFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEdit ? "Sửa thương hiệu" : "Thêm thương hiệu"}
-      size="lg"
+      size="2xl"
       footer={footer}
       animated
     >
@@ -175,6 +212,8 @@ export function BrandFormModal({
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           placeholder="Mô tả ngắn về thương hiệu…"
+          maxCharCount={250}
+          showCharCount
         />
 
         {/* Website URL */}
@@ -190,11 +229,26 @@ export function BrandFormModal({
         <Select
           label="Quốc gia xuất xứ"
           options={COUNTRY_OPTIONS}
-          value={countryOfOrigin}
-          onChange={(v) => setCountryOfOrigin(v as string)}
+          value={countryCode}
+          onChange={(v) => {
+            const code = v as string;
+            setCountryCode(code);
+            if (code !== "OTHER") setCustomCountry("");
+          }}
           placeholder="Chọn quốc gia…"
+          searchable
           clearable
         />
+        {countryCode === "OTHER" && (
+          <Input
+            label="Tên quốc gia"
+            required
+            value={customCountry}
+            onChange={(e) => setCustomCountry(e.target.value)}
+            placeholder="Nhập tên quốc gia…"
+            autoFocus
+          />
+        )}
 
         {/* Active toggle */}
         <div className="pt-1">

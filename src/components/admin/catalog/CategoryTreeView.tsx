@@ -25,6 +25,9 @@ export interface CategoryNode {
   slug: string;
   productCount: number;
   children?: CategoryNode[];
+  badgeText?: string | null;
+  badgeBg?: string | null;
+  badgeFg?: string | null;
 }
 
 interface CategoryTreeViewProps {

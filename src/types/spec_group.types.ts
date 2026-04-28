@@ -8,7 +8,6 @@ export interface SpecGroup {
   id: string;
   name: string;
   description: string;
-  displayOrder: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -16,7 +15,6 @@ export interface SpecGroup {
 export interface SpecGroupFormData {
   name: string;
   description: string;
-  displayOrder: number;
 }
 
 // ─── Spec Type ────────────────────────────────────────────────────────────────
@@ -109,6 +107,8 @@ export interface CategorySpecGroupAssignment {
 
 /** A spec group resolved through the inheritance chain, fully hydrated */
 export interface EffectiveSpecGroup extends SpecGroup {
+  /** Display order within the category (= CategorySpecGroup.thuTuHienThi) */
+  displayOrder: number;
   /** True when this group comes from an ancestor, not directly assigned here */
   isInherited: boolean;
   /** The category where this assignment originates */

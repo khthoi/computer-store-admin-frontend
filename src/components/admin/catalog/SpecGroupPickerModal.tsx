@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { MagnifyingGlassIcon, PlusIcon } from "@heroicons/react/24/outline";
+import { MagnifyingGlassIcon, PlusIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/src/components/ui/Modal";
 import { Input } from "@/src/components/ui/Input";
 import { Button } from "@/src/components/ui/Button";
@@ -16,8 +16,8 @@ export interface SpecGroupPickerModalProps {
   allGroups: SpecGroup[];
   /** IDs of groups already directly assigned or inherited — shown as disabled */
   assignedGroupIds: Set<string>;
-  /** Called when the user confirms selection of a group to assign */
-  onAssign: (specGroupId: string) => Promise<void>;
+  /** Called when the user confirms selection — receives all selected group IDs */
+  onAssign: (specGroupIds: string[]) => Promise<void>;
   /** Called when user clicks "Create new group" — opens the form modal */
   onCreateNew: () => void;
 }
@@ -33,7 +33,7 @@ export function SpecGroupPickerModal({
   onCreateNew,
 }: SpecGroupPickerModalProps) {
   const [query, setQuery] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [assigning, setAssigning] = useState(false);
 
   const filtered = useMemo(() => {
@@ -44,15 +44,24 @@ export function SpecGroupPickerModal({
 
   function handleClose() {
     setQuery("");
-    setSelectedId(null);
+    setSelectedIds(new Set());
     onClose();
   }
 
+  function toggleId(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
   async function handleConfirm() {
-    if (!selectedId) return;
+    if (selectedIds.size === 0) return;
     setAssigning(true);
     try {
-      await onAssign(selectedId);
+      await onAssign(Array.from(selectedIds));
       handleClose();
     } finally {
       setAssigning(false);
@@ -63,6 +72,12 @@ export function SpecGroupPickerModal({
     handleClose();
     onCreateNew();
   }
+
+  const confirmLabel = assigning
+    ? "Đang thêm..."
+    : selectedIds.size > 1
+      ? `Thêm ${selectedIds.size} nhóm`
+      : "Thêm nhóm";
 
   return (
     <Modal
@@ -79,9 +94,9 @@ export function SpecGroupPickerModal({
           <Button
             variant="primary"
             onClick={handleConfirm}
-            disabled={!selectedId || assigning}
+            disabled={selectedIds.size === 0 || assigning}
           >
-            {assigning ? "Đang thêm..." : "Thêm nhóm"}
+            {confirmLabel}
           </Button>
         </>
       }
@@ -96,6 +111,13 @@ export function SpecGroupPickerModal({
           autoFocus
         />
 
+        {/* Selection count hint */}
+        {selectedIds.size > 0 && (
+          <p className="text-xs text-primary-600 font-medium">
+            Đã chọn {selectedIds.size} nhóm
+          </p>
+        )}
+
         {/* List */}
         <div className="max-h-64 overflow-y-auto rounded-lg border border-secondary-200 divide-y divide-secondary-100">
           {filtered.length === 0 ? (
@@ -105,14 +127,14 @@ export function SpecGroupPickerModal({
           ) : (
             filtered.map((group) => {
               const isAssigned = assignedGroupIds.has(group.id);
-              const isSelected = selectedId === group.id;
+              const isSelected = selectedIds.has(group.id);
 
               return (
                 <button
                   key={group.id}
                   type="button"
                   disabled={isAssigned}
-                  onClick={() => setSelectedId(isSelected ? null : group.id)}
+                  onClick={() => toggleId(group.id)}
                   className={[
                     "w-full text-left px-3 py-2.5 flex items-start gap-3 transition-colors",
                     isAssigned
@@ -122,10 +144,10 @@ export function SpecGroupPickerModal({
                         : "hover:bg-secondary-50",
                   ].join(" ")}
                 >
-                  {/* Selection indicator */}
+                  {/* Checkbox indicator */}
                   <span
                     className={[
-                      "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 transition-colors",
+                      "mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border-2 transition-colors",
                       isSelected
                         ? "border-primary-600 bg-primary-600"
                         : "border-secondary-300",
@@ -133,7 +155,7 @@ export function SpecGroupPickerModal({
                     aria-hidden="true"
                   >
                     {isSelected && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                      <CheckIcon className="w-2.5 h-2.5 text-white stroke-[3]" />
                     )}
                   </span>
 

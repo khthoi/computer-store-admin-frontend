@@ -12,7 +12,7 @@ import { Badge } from "@/src/components/ui/Badge";
 import { ColorSelect } from "@/src/components/ui/ColorSelect";
 import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
 import type { ImageFieldValue } from "@/src/components/ui/ImageField";
-import { CategoryParentPicker } from "@/src/components/admin/catalog/CategoryParentPicker";
+import { CategoryTreeSelect, type CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import type { CategoryFormData } from "@/src/services/category.service";
 import type { DanhMucNodeType, FilterParams } from "@/src/types/category.types";
 
@@ -23,9 +23,9 @@ interface CategoryFormModalProps {
   onClose: () => void;
   onSave: (data: CategoryFormData) => void | Promise<void>;
   initialData?: Partial<CategoryFormData>;
-  parentOptions?: { value: string; label: string }[];
+  parentCategories?: CategoryNode[];
   isSaving?: boolean;
-  /** Name of the category being edited — passed to CategoryParentPicker for display */
+  /** Name of the category being edited — shown as helper note on the parent picker */
   editingCategoryName?: string;
 }
 
@@ -307,7 +307,6 @@ function BadgeConfigurator({
           label="Màu nền"
           value={bg}
           onChange={onBgChange}
-          previewText={text || "BADGE"}
         />
         <ColorSelect
           label="Màu chữ"
@@ -318,26 +317,23 @@ function BadgeConfigurator({
             "#1f2937", "#374151", "#000000",
             "#fef9c3", "#dbeafe", "#fce7f3",
           ]}
-          previewText={text || "BADGE"}
         />
       </div>
 
-      {/* Live preview */}
-      {text.trim() && (
-        <div className="flex items-center gap-3 rounded-lg border border-secondary-100 bg-secondary-50 px-4 py-3">
-          <TagIcon className="h-4 w-4 text-secondary-400" />
-          <span className="text-sm text-secondary-600">Xem trước:</span>
-          <span
-            className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
-            style={{ backgroundColor: bg, color: fg }}
-          >
-            {text}
-          </span>
-          <span className="text-xs text-secondary-400">
-            Hiển thị kế bên tên danh mục trong menu
-          </span>
-        </div>
-      )}
+      {/* Live preview — luôn hiển thị */}
+      <div className="flex items-center gap-3 rounded-lg border border-secondary-100 bg-secondary-50 px-4 py-3">
+        <TagIcon className="h-4 w-4 text-secondary-400" />
+        <span className="text-sm text-secondary-600">Xem trước:</span>
+        <span
+          className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
+          style={{ backgroundColor: bg, color: fg }}
+        >
+          {text || "BADGE"}
+        </span>
+        <span className="text-xs text-secondary-400">
+          Hiển thị kế bên tên danh mục trong menu
+        </span>
+      </div>
     </div>
   );
 }
@@ -349,7 +345,7 @@ export function CategoryFormModal({
   onClose,
   onSave,
   initialData,
-  parentOptions = [],
+  parentCategories = [],
   isSaving = false,
   editingCategoryName,
 }: CategoryFormModalProps) {
@@ -377,7 +373,9 @@ export function CategoryFormModal({
 
   // ── Image ────────────────────────────────────────────────────────────────────
   const [categoryImage, setCategoryImage] = useState<ImageFieldValue>(
-    initialData?.imageUrl ? imageFieldFromUrl(initialData.imageUrl) : emptyImageField()
+    initialData?.imageUrl
+      ? imageFieldFromUrl(initialData.imageUrl, initialData.imageAlt)
+      : emptyImageField()
   );
 
   // Sync form when modal opens or initialData changes
@@ -394,7 +392,11 @@ export function CategoryFormModal({
     setBadgeText(initialData?.badgeText ?? "");
     setBadgeBg(initialData?.badgeBg ?? "#ef4444");
     setBadgeFg(initialData?.badgeFg ?? "#ffffff");
-    setCategoryImage(initialData?.imageUrl ? imageFieldFromUrl(initialData.imageUrl) : emptyImageField());
+    setCategoryImage(
+      initialData?.imageUrl
+        ? imageFieldFromUrl(initialData.imageUrl, initialData.imageAlt)
+        : emptyImageField()
+    );
   }, [isOpen, initialData]);
 
   async function handleSubmit() {
@@ -412,6 +414,7 @@ export function CategoryFormModal({
       badgeFg: hasBadge ? badgeFg : null,
       imageUrl: categoryImage.urlFallback ?? null,
       imageAssetId: categoryImage.assetId ?? null,
+      imageAlt: categoryImage.alt ?? null,
     });
   }
 
@@ -475,11 +478,17 @@ export function CategoryFormModal({
               </button>
             </div>
 
-            <CategoryParentPicker
-              options={parentOptions}
-              value={parentId}
-              onChange={setParentId}
-              editingCategoryName={isEdit ? editingCategoryName : undefined}
+            <CategoryTreeSelect
+              label="Danh mục cha"
+              categories={parentCategories}
+              value={parentId || undefined}
+              onChange={(id) => setParentId(id)}
+              placeholder="(Không có — danh mục gốc)"
+              helperText={
+                isEdit && editingCategoryName
+                  ? `Danh mục "${editingCategoryName}" và các danh mục con đã được loại khỏi danh sách.`
+                  : undefined
+              }
             />
 
             <Textarea
@@ -507,6 +516,8 @@ export function CategoryFormModal({
                 value={displayOrder}
                 onChange={(e) => setDisplayOrder(Number(e.target.value))}
                 min={0}
+                readOnly
+                helperText="Quản lý bằng kéo thả"
               />
             </div>
             <Toggle

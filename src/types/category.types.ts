@@ -37,6 +37,10 @@ export interface DanhMuc {
   badgeText: string | null;
   badgeBg: string | null;  // hex e.g. "#ef4444"
   badgeFg: string | null;  // hex e.g. "#ffffff"
+
+  // ── Image ─────────────────────────────────────────────────────────────────
+  imageUrl: string | null;
+  imageAlt: string | null;
 }
 
 /** Tree node shape — mirrors DanhMuc but with recursive children */

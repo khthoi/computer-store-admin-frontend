@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
+import { Badge } from "@/src/components/ui/Badge";
 import { formatVND } from "@/src/lib/format";
 import type { Order } from "@/src/types/order.types";
 
@@ -40,9 +41,10 @@ const CHANNEL_LABELS: Record<string, string> = {
 
 interface OrderDetailPanelProps {
   order: Order;
+  refundedQtyByVariantId?: Record<string, number>;
 }
 
-export function OrderDetailPanel({ order }: OrderDetailPanelProps) {
+export function OrderDetailPanel({ order, refundedQtyByVariantId = {} }: OrderDetailPanelProps) {
   return (
     <div className="space-y-4">
       {/* ── Order meta ────────────────────────────────────────────── */}
@@ -132,8 +134,12 @@ export function OrderDetailPanel({ order }: OrderDetailPanelProps) {
               </tr>
             </thead>
             <tbody className="divide-y divide-secondary-50">
-              {order.lineItems.map((item) => (
-                <tr key={item.id}>
+              {order.lineItems.map((item) => {
+                const refundedQty  = refundedQtyByVariantId[item.variantId] ?? 0;
+                const isFullyDone  = refundedQty >= item.quantity;
+                const isPartial    = refundedQty > 0 && !isFullyDone;
+                return (
+                <tr key={item.id} className={isFullyDone ? "opacity-60" : ""}>
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
                       {item.thumbnailUrl ? (
@@ -157,6 +163,14 @@ export function OrderDetailPanel({ order }: OrderDetailPanelProps) {
                         </Link>
                         <p className="text-xs text-secondary-500">{item.variantName}</p>
                         <p className="text-xs font-mono text-secondary-400">{item.sku}</p>
+                        {isFullyDone && (
+                          <Badge variant="error" size="sm" dot className="mt-1">Đã hoàn toàn bộ</Badge>
+                        )}
+                        {isPartial && (
+                          <Badge variant="warning" size="sm" dot className="mt-1">
+                            Đã hoàn {refundedQty}/{item.quantity}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </td>
@@ -168,7 +182,8 @@ export function OrderDetailPanel({ order }: OrderDetailPanelProps) {
                     {formatVND(item.quantity * item.unitPrice)}
                   </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>

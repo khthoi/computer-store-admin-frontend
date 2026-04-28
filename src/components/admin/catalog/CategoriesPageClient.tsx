@@ -7,6 +7,7 @@ import {
   type CategoryNode,
 } from "@/src/components/admin/catalog/CategoryTreeView";
 import { CategoryFormModal } from "@/src/components/admin/catalog/CategoryFormModal";
+import type { CategoryNode as SelectCategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import type { CategoryFormData } from "@/src/services/category.service";
 import { SpecGroupPanel } from "@/src/components/admin/catalog/SpecGroupPanel";
 import { SpecGroupEditor } from "@/src/components/admin/catalog/SpecGroupEditor";
@@ -22,6 +23,8 @@ import type {
   EffectiveSpecGroup,
 } from "@/src/types/spec_group.types";
 import {
+  getCategories,
+  getCategoryTree,
   createCategory,
   updateCategory,
   deleteCategory,
@@ -55,6 +58,9 @@ function toTreeNode(node: DanhMucNode): CategoryNode {
     slug: node.slug,
     productCount: node.productCount,
     children: node.children?.map(toTreeNode),
+    badgeText: node.badgeText,
+    badgeBg: node.badgeBg,
+    badgeFg: node.badgeFg,
   };
 }
 
@@ -66,6 +72,13 @@ function toFormData(cat: DanhMuc): Partial<CategoryFormData> {
     description: cat.description,
     displayOrder: cat.displayOrder,
     active: cat.active,
+    nodeType: cat.nodeType,
+    filterParams: cat.filterParams,
+    badgeText: cat.badgeText,
+    badgeBg: cat.badgeBg,
+    badgeFg: cat.badgeFg,
+    imageUrl: cat.imageUrl,
+    imageAlt: cat.imageAlt,
   };
 }
 
@@ -77,18 +90,11 @@ function collectDescendantIds(node: DanhMucNode): Set<string> {
   return ids;
 }
 
-function buildParentOptions(
-  nodes: DanhMucNode[],
-  excludeIds: Set<string>,
-  depth = 0
-): { value: string; label: string }[] {
-  const prefix = depth > 0 ? "└" + "─".repeat(depth) + " " : "";
+function toCategoryNodes(nodes: DanhMucNode[], excludeIds: Set<string>): SelectCategoryNode[] {
   return nodes.flatMap((node) => {
     if (excludeIds.has(node.id)) return [];
-    return [
-      { value: node.id, label: prefix + node.name },
-      ...buildParentOptions(node.children ?? [], excludeIds, depth + 1),
-    ];
+    const children = toCategoryNodes(node.children ?? [], excludeIds);
+    return [{ id: node.id, label: node.name, ...(children.length ? { children } : {}) }];
   });
 }
 
@@ -193,6 +199,17 @@ export function CategoriesPageClient({
     }
   }
 
+  // ── Reload category data from server ──────────────────────────────────────
+
+  async function reloadCategoryData() {
+    const [newTree, newFlat] = await Promise.all([
+      getCategoryTree(),
+      getCategories(),
+    ]);
+    setTree(newTree);
+    setFlat(newFlat);
+  }
+
   // ── Category tree helpers ──────────────────────────────────────────────────
 
   function findNode(nodes: DanhMucNode[], id: string): DanhMucNode | null {
@@ -204,13 +221,13 @@ export function CategoriesPageClient({
     return null;
   }
 
-  const parentOptions = useCallback(() => {
-    if (!editingCategoryId) return buildParentOptions(tree, new Set<string>());
+  const getParentCategories = useCallback(() => {
+    if (!editingCategoryId) return toCategoryNodes(tree, new Set<string>());
     const editingNode = findNode(tree, editingCategoryId);
     const excluded = editingNode
       ? collectDescendantIds(editingNode)
       : new Set<string>([editingCategoryId]);
-    return buildParentOptions(tree, excluded);
+    return toCategoryNodes(tree, excluded);
   }, [tree, editingCategoryId]);
 
   // ── Category CRUD ──────────────────────────────────────────────────────────
@@ -236,6 +253,7 @@ export function CategoriesPageClient({
         showToast("Đã thêm danh mục.", "success");
       }
       setCategoryModalOpen(false);
+      await reloadCategoryData();
     } catch {
       showToast("Có lỗi xảy ra. Vui lòng thử lại.", "error");
     } finally {
@@ -246,9 +264,9 @@ export function CategoriesPageClient({
   async function handleDeleteCategory(id: string) {
     try {
       await deleteCategory(id);
-      setFlat((prev) => prev.filter((c) => c.id !== id));
       if (selectedCategoryId === id) setSelectedCategoryId(null);
       showToast("Đã xóa danh mục.", "success");
+      await reloadCategoryData();
     } catch {
       showToast("Có lỗi xảy ra. Vui lòng thử lại.", "error");
     }
@@ -284,11 +302,26 @@ export function CategoriesPageClient({
 
   // ── Spec group assignment ──────────────────────────────────────────────────
 
-  async function handleAssignSpecGroup(specGroupId: string) {
-    if (!selectedCategoryId) return;
-    await assignSpecGroup(selectedCategoryId, specGroupId, "include");
-    showToast("Đã thêm nhóm thuộc tính.", "success");
-    await reloadSpecView();
+  async function handleAssignSpecGroup(specGroupIds: string[]) {
+    if (!selectedCategoryId || specGroupIds.length === 0) return;
+    try {
+      const allExisting = [...specView.directIncludes, ...specView.inheritedIncludes];
+      const baseOrder = allExisting.reduce((max, g) => Math.max(max, g.displayOrder), -1) + 1;
+      for (let i = 0; i < specGroupIds.length; i++) {
+        await assignSpecGroup(selectedCategoryId, specGroupIds[i], "include", baseOrder + i);
+      }
+      showToast(
+        specGroupIds.length > 1
+          ? `Đã thêm ${specGroupIds.length} nhóm thuộc tính.`
+          : "Đã thêm nhóm thuộc tính.",
+        "success"
+      );
+      await reloadSpecView();
+    } catch (e) {
+      console.error("[handleAssignSpecGroup] failed:", e);
+      showToast("Không thể thêm nhóm thuộc tính. Vui lòng thử lại.", "error");
+      throw e;
+    }
   }
 
   async function handleRemoveDirect(specGroupId: string) {
@@ -317,6 +350,7 @@ export function CategoriesPageClient({
   async function handleReorderDirectGroups(orderedIds: string[]) {
     if (!selectedCategoryId) return;
     await reorderSpecGroupsForCategory(selectedCategoryId, orderedIds);
+    await reloadSpecView();
   }
 
   async function handleToggleFilter(specGroupId: string, hienThiBoLoc: boolean) {
@@ -368,11 +402,22 @@ export function CategoriesPageClient({
       await reloadSpecView();
     } else {
       const created = await createSpecGroup(data);
-      setAllSpecGroups((prev) => [...prev, created]);
       showToast("Đã tạo nhóm thuộc tính.", "success");
-      // Optionally refresh allSpecGroups from server
       const refreshed = await getSpecGroups();
       setAllSpecGroups(refreshed);
+
+      // Auto-assign to the currently selected category
+      if (selectedCategoryId) {
+        try {
+          const allExisting = [...specView.directIncludes, ...specView.inheritedIncludes];
+          const nextOrder = allExisting.reduce((max, g) => Math.max(max, g.displayOrder), -1) + 1;
+          await assignSpecGroup(selectedCategoryId, created.id, "include", nextOrder);
+          showToast("Đã gán nhóm vào danh mục.", "success");
+          await reloadSpecView();
+        } catch {
+          showToast("Tạo nhóm thành công nhưng không thể gán vào danh mục tự động. Vui lòng thêm thủ công.", "error");
+        }
+      }
     }
   }
 
@@ -502,7 +547,7 @@ export function CategoriesPageClient({
         onClose={() => setCategoryModalOpen(false)}
         onSave={handleSaveCategory}
         initialData={editingCat ? toFormData(editingCat) : undefined}
-        parentOptions={parentOptions()}
+        parentCategories={getParentCategories()}
         isSaving={isSavingCategory}
         editingCategoryName={editingCat?.name}
       />

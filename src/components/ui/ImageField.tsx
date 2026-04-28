@@ -29,18 +29,20 @@ export interface ImageFieldValue {
   urlFallback: string | null;
   /** Resolved display URL — kept in sync automatically. */
   displayUrl: string | null;
+  /** Alt text — only meaningful for URL-pasted images. */
+  alt?: string | null;
 }
 
 export function emptyImageField(): ImageFieldValue {
-  return { assetId: null, urlFallback: null, displayUrl: null };
+  return { assetId: null, urlFallback: null, displayUrl: null, alt: null };
 }
 
-export function imageFieldFromUrl(url: string): ImageFieldValue {
-  return { assetId: null, urlFallback: url, displayUrl: url };
+export function imageFieldFromUrl(url: string, alt?: string | null): ImageFieldValue {
+  return { assetId: null, urlFallback: url, displayUrl: url, alt: alt ?? null };
 }
 
 export function imageFieldFromAsset(file: MediaFile): ImageFieldValue {
-  return { assetId: file.id, urlFallback: null, displayUrl: file.url };
+  return { assetId: file.id, urlFallback: null, displayUrl: file.url, alt: null };
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -101,6 +103,7 @@ export function ImageField({
   const [pickerOpen, setPickerOpen]   = useState(false);
   const [uploadOpen, setUploadOpen]   = useState(false);
   const [urlDraft,   setUrlDraft]     = useState(value.urlFallback ?? "");
+  const [altDraft,   setAltDraft]     = useState(value.alt ?? "");
   const [urlMode,    setUrlMode]      = useState(false);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
@@ -124,19 +127,21 @@ export function ImageField({
   function handleApplyUrl() {
     const trimmed = urlDraft.trim();
     if (!trimmed) return;
-    onChange({ assetId: null, urlFallback: trimmed, displayUrl: trimmed });
+    onChange({ assetId: null, urlFallback: trimmed, displayUrl: trimmed, alt: altDraft.trim() || null });
     setUrlMode(false);
   }
 
   function handleRemove() {
     onChange(emptyImageField());
     setUrlDraft("");
+    setAltDraft("");
     setUrlMode(false);
   }
 
   function openUrlMode() {
     setUrlMode(true);
     setUrlDraft(value.urlFallback ?? "");
+    setAltDraft(value.alt ?? "");
     setTimeout(() => urlInputRef.current?.focus(), 50);
   }
 
@@ -160,7 +165,7 @@ export function ImageField({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value.displayUrl}
-            alt="Xem trước ảnh"
+            alt={value.alt || "Xem trước ảnh"}
             className="w-full max-h-52 object-cover"
           />
 
@@ -279,38 +284,47 @@ export function ImageField({
 
       {/* ── URL paste input ──────────────────────────────────────────────── */}
       {urlMode && (
-        <div className="mt-2.5 flex items-center gap-2">
-          <div className="relative flex-1">
-            <LinkIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
-            <input
-              ref={urlInputRef}
-              type="url"
-              value={urlDraft}
-              onChange={(e) => setUrlDraft(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") { e.preventDefault(); handleApplyUrl(); }
-                if (e.key === "Escape") setUrlMode(false);
-              }}
-              placeholder="https://example.com/image.jpg"
-              className="w-full rounded-lg border border-secondary-200 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
-            />
+        <div className="mt-2.5 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <LinkIcon className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-secondary-400" />
+              <input
+                ref={urlInputRef}
+                type="url"
+                value={urlDraft}
+                onChange={(e) => setUrlDraft(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") { e.preventDefault(); handleApplyUrl(); }
+                  if (e.key === "Escape") setUrlMode(false);
+                }}
+                placeholder="https://example.com/image.jpg"
+                className="w-full rounded-lg border border-secondary-200 bg-white py-1.5 pl-8 pr-3 text-sm focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={handleApplyUrl}
+              disabled={!urlDraft.trim()}
+              className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-40"
+            >
+              <CheckIcon className="h-3.5 w-3.5" aria-hidden />
+              Áp dụng
+            </button>
+            <button
+              type="button"
+              onClick={() => setUrlMode(false)}
+              className="rounded-lg border border-secondary-200 bg-white px-3 py-1.5 text-xs font-medium text-secondary-600 transition-colors hover:bg-secondary-50"
+            >
+              Huỷ
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={handleApplyUrl}
-            disabled={!urlDraft.trim()}
-            className="inline-flex items-center gap-1 rounded-lg bg-primary-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-primary-700 disabled:opacity-40"
-          >
-            <CheckIcon className="h-3.5 w-3.5" aria-hidden />
-            Áp dụng
-          </button>
-          <button
-            type="button"
-            onClick={() => setUrlMode(false)}
-            className="rounded-lg border border-secondary-200 bg-white px-3 py-1.5 text-xs font-medium text-secondary-600 transition-colors hover:bg-secondary-50"
-          >
-            Huỷ
-          </button>
+          <input
+            type="text"
+            value={altDraft}
+            onChange={(e) => setAltDraft(e.target.value)}
+            placeholder="Mô tả ảnh (alt text) — hỗ trợ SEO và trình đọc màn hình"
+            className="w-full rounded-lg border border-secondary-200 bg-white py-1.5 px-3 text-sm text-secondary-700 placeholder:text-secondary-400 focus:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-500/15"
+          />
         </div>
       )}
 

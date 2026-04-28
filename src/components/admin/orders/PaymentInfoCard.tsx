@@ -11,7 +11,7 @@ import { Alert } from "@/src/components/ui/Alert";
 import { Skeleton } from "@/src/components/ui/Skeleton";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { TransactionStatusBadge } from "@/src/components/admin/orders/TransactionStatusBadge";
-import { getTransactionByOrderId } from "@/src/services/transaction.service";
+import { getTransactionByOrderCode } from "@/src/services/transaction.service";
 import type { Transaction, TransactionPaymentMethod } from "@/src/types/transaction.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -33,9 +33,8 @@ function formatDatetime(iso: string): string {
 const PAYMENT_METHOD_LABELS: Record<TransactionPaymentMethod, string> = {
   COD:         "Thanh toán khi nhận hàng",
   ChuyenKhoan: "Chuyển khoản ngân hàng",
-  VNPAY:       "VNPAY",
-  Momo:        "Ví MoMo",
-  ZaloPay:     "ZaloPay",
+  TheNganHang: "Thẻ ngân hàng",
+  ViDienTu:    "Ví điện tử",
   TraGop:      "Trả góp",
 };
 
@@ -66,8 +65,8 @@ function LoadingSkeleton() {
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface PaymentInfoCardProps {
-  /** don_hang_id — dùng để query giao_dich (quan hệ 1-1) */
-  donHangId: number;
+  /** maDonHang — dùng để query giao_dich qua GET /admin/orders/:orderCode/transaction */
+  orderCode: string;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -82,7 +81,7 @@ interface PaymentInfoCardProps {
  * <PaymentInfoCard donHangId={order.id} />
  * ```
  */
-export function PaymentInfoCard({ donHangId }: PaymentInfoCardProps) {
+export function PaymentInfoCard({ orderCode }: PaymentInfoCardProps) {
   const [transaction, setTransaction] = useState<Transaction | null | undefined>(
     undefined // undefined = đang load, null = không tìm thấy
   );
@@ -90,11 +89,11 @@ export function PaymentInfoCard({ donHangId }: PaymentInfoCardProps) {
 
   useEffect(() => {
     let cancelled = false;
-    getTransactionByOrderId(donHangId).then((tx) => {
+    getTransactionByOrderCode(orderCode).then((tx) => {
       if (!cancelled) setTransaction(tx);
     });
     return () => { cancelled = true; };
-  }, [donHangId]);
+  }, [orderCode]);
 
   // ── Copy mã GD ngoài ──────────────────────────────────────────────────────
 

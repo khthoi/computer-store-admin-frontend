@@ -77,6 +77,10 @@ const STATE_ERROR =
   "border-error-400 " +
   "focus:border-error-500 focus:ring-error-500/15";
 
+const STATE_READONLY =
+  "bg-secondary-100 border-secondary-200 text-secondary-500 cursor-default " +
+  "focus:ring-0 focus:border-secondary-200";
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 /**
@@ -114,6 +118,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
     id: idProp,
     className = "",
     required,
+    readOnly,
+    onMouseDown,
     ...rest
   },
   ref
@@ -160,12 +166,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
           ref={ref}
           id={id}
           required={required}
+          readOnly={readOnly}
           aria-invalid={hasError || undefined}
           aria-describedby={describedBy}
+          onMouseDown={
+            readOnly
+              ? (e) => { e.preventDefault(); onMouseDown?.(e); }
+              : onMouseDown
+          }
           className={[
             INPUT_BASE,
             SIZE[size],
-            hasError ? STATE_ERROR : STATE_NORMAL,
+            readOnly ? STATE_READONLY : hasError ? STATE_ERROR : STATE_NORMAL,
             prefixIcon ? SIZE_WITH_PREFIX[size] : "",
             suffixIcon ? SIZE_WITH_SUFFIX[size] : "",
             className,
@@ -216,6 +228,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(function Input(
  * size          "sm"|"md"|"lg"    "md"      Height + text size variant
  * fullWidth     boolean           false     Stretch wrapper to container width
  * id            string            auto      HTML id; auto-generated if omitted
+ * readOnly      boolean           false     Read-only: gray bg, no focus on click
  * disabled      boolean           false     Native disabled state
  * placeholder   string            —         Input placeholder text
  * value         string            —         Controlled value

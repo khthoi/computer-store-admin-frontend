@@ -1,4 +1,27 @@
-import type { OrderActivityEntry } from "@/src/types/order.types";
+import Link from "next/link";
+import type { OrderActivityEntry, OrderActivityStatus } from "@/src/types/order.types";
+
+// ─── Status display helpers ───────────────────────────────────────────────────
+
+const STATUS_LABELS: Record<OrderActivityStatus, string> = {
+  ChoXuLy:          "Chờ xử lý",
+  DaXacNhan:        "Đã xác nhận",
+  DangXuLy:         "Đang xử lý",
+  DangChuanBiHang:  "Đang chuẩn bị hàng",
+  ChuanBiBanGiao:   "Chuẩn bị bàn giao",
+  DangGiao:         "Đang giao",
+  DaGiao:           "Đã giao",
+};
+
+const STATUS_BADGE_CLASS: Record<OrderActivityStatus, string> = {
+  ChoXuLy:          "bg-amber-100 text-amber-700",
+  DaXacNhan:        "bg-blue-100 text-blue-700",
+  DangXuLy:         "bg-indigo-100 text-indigo-700",
+  DangChuanBiHang:  "bg-purple-100 text-purple-700",
+  ChuanBiBanGiao:   "bg-cyan-100 text-cyan-700",
+  DangGiao:         "bg-orange-100 text-orange-700",
+  DaGiao:           "bg-green-100 text-green-700",
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -33,13 +56,13 @@ export function OrderActivityLog({ entries }: OrderActivityLogProps) {
     <div className="rounded-2xl border border-secondary-100 bg-white shadow-sm">
       <div className="px-5 py-3 border-b border-secondary-100">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
-          Activity Log
+          Nhật ký hoạt động
         </h3>
       </div>
 
       {sorted.length === 0 ? (
         <div className="px-5 py-8 text-center text-sm text-secondary-400">
-          No activity yet.
+          Chưa có hoạt động nào.
         </div>
       ) : (
         <ol className="px-5 py-4 space-y-0">
@@ -72,15 +95,31 @@ export function OrderActivityLog({ entries }: OrderActivityLogProps) {
               {/* Content */}
               <div className="flex-1 min-w-0 pb-4">
                 <div className="flex flex-wrap items-baseline gap-1.5">
-                  <span className="text-sm font-medium text-secondary-800">
-                    {entry.actorName}
-                  </span>
+                  {entry.actorId ? (
+                    <Link
+                      href={`/employees/${entry.actorId}`}
+                      className="text-sm font-medium text-secondary-800 hover:text-primary-600 hover:underline"
+                    >
+                      {entry.actorName}
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-medium text-secondary-800">
+                      {entry.actorName}
+                    </span>
+                  )}
                   <span className="text-xs text-secondary-400">{entry.actorRole}</span>
                   <span className="ml-auto text-xs text-secondary-400 shrink-0">
                     {formatDate(entry.timestamp)}
                   </span>
                 </div>
                 <p className="mt-0.5 text-sm text-secondary-700">{entry.action}</p>
+                {entry.orderStatus && (
+                  <span
+                    className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${STATUS_BADGE_CLASS[entry.orderStatus]}`}
+                  >
+                    → {STATUS_LABELS[entry.orderStatus]}
+                  </span>
+                )}
                 {entry.detail && (
                   <p className="mt-0.5 text-xs text-secondary-500">{entry.detail}</p>
                 )}

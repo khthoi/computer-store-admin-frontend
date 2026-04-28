@@ -29,7 +29,6 @@ export function SpecGroupFormModal({
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [displayOrder, setDisplayOrder] = useState("0");
   const [saving, setSaving] = useState(false);
   const [nameError, setNameError] = useState("");
 
@@ -39,11 +38,9 @@ export function SpecGroupFormModal({
     if (editTarget) {
       setName(editTarget.name);
       setDescription(editTarget.description);
-      setDisplayOrder(String(editTarget.displayOrder));
     } else {
       setName("");
       setDescription("");
-      setDisplayOrder("0");
     }
     setNameError("");
   }, [isOpen, editTarget]);
@@ -58,7 +55,6 @@ export function SpecGroupFormModal({
       await onSubmit({
         name: name.trim(),
         description: description.trim(),
-        displayOrder: parseInt(displayOrder, 10) || 0,
       });
       onClose();
     } finally {
@@ -112,14 +108,6 @@ export function SpecGroupFormModal({
           maxCharCount={250}
         />
 
-        <Input
-          label="Thứ tự hiển thị"
-          type="number"
-          value={displayOrder}
-          onChange={(e) => setDisplayOrder(e.target.value)}
-          min={0}
-          helperText="Số nhỏ hơn hiển thị trước"
-        />
       </div>
     </Modal>
   );

@@ -4,6 +4,7 @@ import { useState, useCallback } from "react";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { Badge } from "@/src/components/ui/Badge";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { useToast } from "@/src/components/ui/Toast";
 import {
   DataTable,
@@ -57,7 +58,7 @@ export function BrandsPageClient({ initialData, initialTotal }: BrandsPageClient
   const [data, setData] = useState<BrandRow[]>(initialData as BrandRow[]);
   const [total, setTotal] = useState(initialTotal);
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [pageSize, setPageSize] = useState(10);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -182,15 +183,18 @@ export function BrandsPageClient({ initialData, initialTotal }: BrandsPageClient
       key: "description",
       header: "Mô tả",
       render: (_val, row) => (
-        <span className="line-clamp-2 text-sm text-secondary-600">
-          {(row.description as string) || "—"}
-        </span>
+        <Tooltip content={row.description as string} placement="left" multiline>
+          <span className="line-clamp-2 text-sm text-secondary-600 truncate max-w-lg block">
+            {(row.description as string) || "—"}
+          </span>
+        </Tooltip>
       ),
     },
     {
       key: "productCount",
       header: "Sản phẩm",
       align: "center",
+      width: "w-36",
       render: (_val, row) => (
         <span className="font-semibold text-secondary-700">{row.productCount as number}</span>
       ),
@@ -199,6 +203,7 @@ export function BrandsPageClient({ initialData, initialTotal }: BrandsPageClient
       key: "active",
       header: "Trạng thái",
       align: "center",
+      width: "w-36",
       render: (_val, row) =>
         row.active ? (
           <Badge variant="success" size="sm">Kích hoạt</Badge>
@@ -244,7 +249,7 @@ export function BrandsPageClient({ initialData, initialTotal }: BrandsPageClient
         keyField="id"
         searchQuery={searchQuery}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Tìm thương hiệu…"
+        searchPlaceholder="Tìm thương hiệu theo tên hoặc theo mô tả…"
         page={page}
         pageSize={pageSize}
         totalRows={total}

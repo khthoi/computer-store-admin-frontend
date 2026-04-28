@@ -69,6 +69,121 @@ Never paste raw `<svg>` code.
 All labels, placeholders, tooltips, error messages must be in Vietnamese.
 Use `formatVND()` from `@/src/lib/format.ts` for all monetary values.
 
+## RULE 13: Service = transport only — Component owns all UI defaults
+
+Services trong `src/services/*.service.ts` là **pure transport layer** — chúng chỉ được phép build query string, gọi `apiFetch`, và map response về typed interface. Mọi quyết định mang tính UI (page size, debounce delay) phải nằm ở component.
+
+```ts
+// ✗ SAI — limit = 10 là quyết định UI, không thuộc service
+export async function getList(params: Params = {}) {
+  const { page = 1, limit = 10 } = params;
+  qs.set("limit", String(limit));
+}
+
+// ✓ ĐÚNG — service chỉ forward, không có UI default
+export async function getList(params: Params = {}) {
+  const { page = 1, limit } = params;
+  qs.set("page", String(page));
+  if (limit) qs.set("limit", String(limit)); // chỉ gửi khi component cung cấp
+}
+```
+
+Component định nghĩa `PAGE_SIZE` — **single source of truth**:
+
+```ts
+const PAGE_SIZE = 25; // thay đổi ở đây → áp dụng toàn bộ component
+// ...
+await getList({ page, limit: PAGE_SIZE, status });
+```
+
+## RULE 14: No loading flash khi chuyển trang — dùng handler-based pattern
+
+Khi component có server-side pagination, `setLoading(true)` chỉ được gọi khi **filter / search / sort / pageSize** thay đổi — không phải khi chỉ đổi `page`.
+
+**❌ Anti-pattern (BUG): hai effect riêng biệt**
+
+```ts
+// KHÔNG dùng — pattern này có race condition!
+useEffect(() => { setPage(1); }, [search, statusFilter, sortKey, sortDir, pageSize]);
+useEffect(() => {
+  const isPageOnly = nonPageKey === prevNonPageKey.current;
+  // BUG: khi user ở page > 1 và sort, Effect A fire setPage(1) → Effect B chạy LẦN 2
+  // với prevNonPageKey đã cập nhật từ lần 1 → isPageOnly=true sai → không show loading
+}, [page, ...]);
+```
+
+**✅ Đúng: handler-based pattern + `nonPageChangedRef`**
+
+```ts
+// Ref flag — set bởi handlers, clear bởi fetch effect
+const nonPageChangedRef = useRef(false);
+
+// Mỗi handler thay đổi sort/filter/search/pageSize:
+const handleSortChange = useCallback((key, dir) => {
+  nonPageChangedRef.current = true; // đánh dấu trước khi setState
+  setSortKey(key);
+  setSortDir(dir);
+  setPage(1);           // ← cùng batch với setSortKey/setSortDir → 1 render duy nhất
+}, []);
+// Tương tự cho: handleStatusFilterChange, handleCategoryFilterChange,
+//               handleSearchChange, handlePageSizeChange
+
+// Fetch effect — duy nhất, không cần effect reset page riêng:
+useEffect(() => {
+  const isNonPageChange = nonPageChangedRef.current;
+  nonPageChangedRef.current = false; // clear ngay để run tiếp không bị nhiễm
+
+  // ...
+  if (isNonPageChange) setLoading(true); // ← chỉ show loading khi filter/sort/search đổi
+}, [page, pageSize, search, statusFilter, sortKey, sortDir]);
+```
+
+**Tại sao hoạt động:** Tất cả setState trong cùng 1 handler được React 18 batch → 1 render duy nhất → fetch effect chỉ chạy **1 lần** → `nonPageChangedRef` đọc đúng giá trị không bị nhiễm bởi run thứ 2.
+
+Áp dụng rule này cho **mọi DataTable có server-side pagination** trong project.
+
+## RULE 15: Sortable DataTable columns — contract với backend
+
+`DataTable` dùng **column `key`** làm giá trị `sortBy` gửi lên API. Key phải là chuỗi **tiếng Anh** khớp với alias mà backend `allowedSortBy` map sang.
+
+**Frontend — column definition:**
+```ts
+// key "name" → frontend gửi ?sortBy=name&sortOrder=asc lên API
+{ key: "name",       header: "Sản phẩm",  sortable: true }
+{ key: "updatedAt",  header: "Updated",   sortable: true }
+{ key: "totalStock", header: "Tồn kho",   sortable: true }
+```
+
+**Backend — search service phải có alias tương ứng:**
+```ts
+// src/modules/<feature>/<feature>-search.service.ts
+const allowedSortBy: Record<string, string> = {
+  // Backend-native keys (giữ để backward compat)
+  ngayTao:     'p.ngayTao',
+  ngayCapNhat: 'p.ngayCapNhat',
+  tenSanPham:  'p.tenSanPham',
+  // Frontend-facing aliases — phải khớp với column key ở DataTable
+  name:        'p.tenSanPham',
+  updatedAt:   'p.ngayCapNhat',
+  createdAt:   'p.ngayTao',
+};
+const orderCol = allowedSortBy[sortBy] ?? 'p.ngayCapNhat'; // default = updatedAt
+qb.orderBy(orderCol, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+```
+
+**Aggregate sort** (ví dụ `totalStock` = SUM của cột trong bảng join): dùng `addSelect` subquery thay vì column thẳng:
+```ts
+if (sortBy === 'totalStock') {
+  qb.addSelect(
+    '(SELECT COALESCE(SUM(_pv.so_luong_ton), 0) FROM phien_ban_san_pham _pv WHERE _pv.san_pham_id = p.id)',
+    'total_stock_calc',
+  );
+  qb.orderBy('total_stock_calc', sortOrder.toUpperCase() as 'ASC' | 'DESC');
+}
+```
+
+**Khi thêm sortable column mới:** cập nhật `allowedSortBy` ở backend cùng lúc — nếu chỉ thêm `sortable: true` ở frontend mà không thêm alias backend, sort sẽ âm thầm fallback về default mà không báo lỗi.
+
 ## Anti-patterns
 ```
 ✗ Import from "@computer-store/ui" — not installed

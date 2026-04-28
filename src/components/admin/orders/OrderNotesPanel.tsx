@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Avatar } from "@/src/components/ui/Avatar";
 import { Badge } from "@/src/components/ui/Badge";
 import { Textarea } from "@/src/components/ui/Textarea";
@@ -12,6 +13,7 @@ export interface InternalNote {
   id: string;
   authorName: string;
   authorRole: string;
+  authorId?: string;
   authorAvatarUrl?: string;
   text: string;
   createdAt: string;
@@ -71,13 +73,27 @@ export function OrderNotesPanel({
               {/* Content */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-1.5 mb-1">
-                  <span className="text-sm font-medium text-secondary-800">
-                    {note.authorName}
-                  </span>
+                  {note.authorId ? (
+                    <Link
+                      href={`/employees/${note.authorId}`}
+                      className="text-sm font-medium text-secondary-800 hover:text-primary-600 hover:underline"
+                    >
+                      {note.authorName}
+                    </Link>
+                  ) : (
+                    <span className="text-sm font-medium text-secondary-800">
+                      {note.authorName}
+                    </span>
+                  )}
                   <Badge variant="default" size="sm" className="text-xs">
                     {note.authorRole}
                   </Badge>
-                  <span className="text-xs text-secondary-400">{note.createdAt}</span>
+                  <span className="text-xs text-secondary-400">
+                    {new Date(note.createdAt).toLocaleString("vi-VN", {
+                      hour: "2-digit", minute: "2-digit", second: "2-digit",
+                      day: "2-digit", month: "2-digit", year: "numeric",
+                    })}
+                  </span>
                 </div>
                 <p className="text-sm text-secondary-700 whitespace-pre-wrap break-words">
                   {note.text}
@@ -96,6 +112,8 @@ export function OrderNotesPanel({
           value={noteText}
           onChange={(e) => setNoteText(e.target.value)}
           disabled={isAdding}
+          showCharCount
+          maxCharCount={250}
         />
         <div className="mt-2 flex justify-end">
           <Button

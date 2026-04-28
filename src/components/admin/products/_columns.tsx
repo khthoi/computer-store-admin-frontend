@@ -73,7 +73,7 @@ export function buildColumns(
     {
       key: "variants",
       header: "Giá cơ bản",
-      sortable: false,
+      sortable: true,
       align: "right",
       width: "w-36",
       render: (_value, row) => {

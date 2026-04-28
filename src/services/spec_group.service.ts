@@ -4,138 +4,110 @@ import type {
   SpecType,
   SpecTypeFormData,
 } from "@/src/types/spec_group.types";
-import {
-  MOCK_SPEC_GROUPS,
-  MOCK_SPEC_TYPES,
-} from "@/src/app/(dashboard)/categories/_spec_mock";
+import { apiFetch } from "@/src/services/api";
 
-// ─── Spec Group CRUD ──────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Fetch all spec groups, optionally filtered by name query.
- * Mock implementation — replace with GET /admin/spec-groups
- */
-export async function getSpecGroups(params: { q?: string } = {}): Promise<SpecGroup[]> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  const { q = "" } = params;
-  if (!q) return MOCK_SPEC_GROUPS.slice().sort((a, b) => a.displayOrder - b.displayOrder);
-  const lower = q.toLowerCase();
-  return MOCK_SPEC_GROUPS.filter((g) => g.name.toLowerCase().includes(lower));
-}
-
-/**
- * Fetch a single spec group by ID.
- * Mock implementation — replace with GET /admin/spec-groups/:id
- */
-export async function getSpecGroupById(id: string): Promise<SpecGroup | null> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  return MOCK_SPEC_GROUPS.find((g) => g.id === id) ?? null;
-}
-
-/**
- * Create a new spec group.
- * Mock implementation — replace with POST /admin/spec-groups
- */
-export async function createSpecGroup(data: SpecGroupFormData): Promise<SpecGroup> {
-  await new Promise<void>((r) => setTimeout(r, 600));
-  const now = new Date().toISOString();
+function specTypeFormToDto(groupId: string, data: SpecTypeFormData) {
   return {
-    id: `sg-${Date.now()}`,
-    name: data.name,
-    description: data.description,
-    displayOrder: data.displayOrder,
-    createdAt: now,
-    updatedAt: now,
-  };
-}
-
-/**
- * Update a spec group.
- * Mock implementation — replace with PUT /admin/spec-groups/:id
- */
-export async function updateSpecGroup(
-  id: string,
-  data: Partial<SpecGroupFormData>
-): Promise<SpecGroup> {
-  await new Promise<void>((r) => setTimeout(r, 600));
-  const existing = MOCK_SPEC_GROUPS.find((g) => g.id === id);
-  if (!existing) throw new Error(`SpecGroup ${id} not found`);
-  return { ...existing, ...data, updatedAt: new Date().toISOString() };
-}
-
-/**
- * Delete a spec group (cascades to category_spec_groups via FK).
- * Mock implementation — replace with DELETE /admin/spec-groups/:id
- */
-export async function deleteSpecGroup(_id: string): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 600));
-}
-
-// ─── Spec Type CRUD ───────────────────────────────────────────────────────────
-
-/**
- * Fetch all spec types for a group, sorted by displayOrder.
- * Mock implementation — replace with GET /admin/spec-groups/:groupId/types
- */
-export async function getSpecTypesByGroup(groupId: string): Promise<SpecType[]> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  return MOCK_SPEC_TYPES.filter((t) => t.groupId === groupId).sort(
-    (a, b) => a.displayOrder - b.displayOrder
-  );
-}
-
-/**
- * Add a spec type to a group.
- * Mock implementation — replace with POST /admin/spec-groups/:groupId/types
- */
-export async function addSpecType(groupId: string, data: SpecTypeFormData): Promise<SpecType> {
-  await new Promise<void>((r) => setTimeout(r, 400));
-  const now = new Date().toISOString();
-  return {
-    id: `st-${Date.now()}`,
-    groupId,
-    name: data.name,
-    description: data.description,
-    maKyThuat: data.maKyThuat,
-    displayOrder: data.displayOrder,
-    required: data.required,
+    nhomThongSoId: Number(groupId),
+    tenLoai: data.name,
+    moTa: data.description || undefined,
+    maKyThuat: data.maKyThuat || undefined,
+    thuTuHienThi: data.displayOrder,
+    batBuoc: data.required ? "BAT_BUOC" : "TUY_CHON",
     kieuDuLieu: data.kieuDuLieu,
     donVi: data.donVi || undefined,
     coTheLoc: data.coTheLoc,
     widgetLoc: data.widgetLoc || undefined,
     thuTuLoc: data.thuTuLoc,
-    createdAt: now,
-    updatedAt: now,
   };
 }
 
-/**
- * Update a spec type.
- * Mock implementation — replace with PUT /admin/spec-types/:id
- */
+function specTypeUpdateToDto(data: Partial<SpecTypeFormData>) {
+  const dto: Record<string, unknown> = {};
+  if (data.name !== undefined) dto.tenLoai = data.name;
+  if (data.description !== undefined) dto.moTa = data.description || undefined;
+  if (data.maKyThuat !== undefined) dto.maKyThuat = data.maKyThuat || undefined;
+  if (data.displayOrder !== undefined) dto.thuTuHienThi = data.displayOrder;
+  if (data.required !== undefined) dto.batBuoc = data.required ? "BAT_BUOC" : "TUY_CHON";
+  if (data.kieuDuLieu !== undefined) dto.kieuDuLieu = data.kieuDuLieu;
+  if (data.donVi !== undefined) dto.donVi = data.donVi || undefined;
+  if (data.coTheLoc !== undefined) dto.coTheLoc = data.coTheLoc;
+  if (data.widgetLoc !== undefined) dto.widgetLoc = data.widgetLoc || undefined;
+  if (data.thuTuLoc !== undefined) dto.thuTuLoc = data.thuTuLoc;
+  return dto;
+}
+
+// ─── Spec Group CRUD ──────────────────────────────────────────────────────────
+
+export async function getSpecGroups(params: { q?: string } = {}): Promise<SpecGroup[]> {
+  const groups = await apiFetch<SpecGroup[]>("/admin/specs/groups");
+  const { q = "" } = params;
+  if (!q) return groups;
+  const lower = q.toLowerCase();
+  return groups.filter((g) => g.name.toLowerCase().includes(lower));
+}
+
+export async function getSpecGroupById(id: string): Promise<SpecGroup | null> {
+  try {
+    return await apiFetch<SpecGroup>(`/admin/specs/groups/${id}`);
+  } catch {
+    return null;
+  }
+}
+
+export async function createSpecGroup(data: SpecGroupFormData): Promise<SpecGroup> {
+  return apiFetch<SpecGroup>("/admin/specs/groups", {
+    method: "POST",
+    body: JSON.stringify({ tenNhom: data.name }),
+  });
+}
+
+export async function updateSpecGroup(
+  id: string,
+  data: Partial<SpecGroupFormData>
+): Promise<SpecGroup> {
+  return apiFetch<SpecGroup>(`/admin/specs/groups/${id}`, {
+    method: "PUT",
+    body: JSON.stringify({ tenNhom: data.name }),
+  });
+}
+
+export async function deleteSpecGroup(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/specs/groups/${id}`, { method: "DELETE" });
+}
+
+// ─── Spec Type CRUD ───────────────────────────────────────────────────────────
+
+export async function getSpecTypesByGroup(groupId: string): Promise<SpecType[]> {
+  return apiFetch<SpecType[]>(`/admin/specs/types?groupId=${groupId}`);
+}
+
+export async function addSpecType(groupId: string, data: SpecTypeFormData): Promise<SpecType> {
+  return apiFetch<SpecType>("/admin/specs/types", {
+    method: "POST",
+    body: JSON.stringify(specTypeFormToDto(groupId, data)),
+  });
+}
+
 export async function updateSpecType(
   id: string,
   data: Partial<SpecTypeFormData>
 ): Promise<SpecType> {
-  await new Promise<void>((r) => setTimeout(r, 400));
-  const existing = MOCK_SPEC_TYPES.find((t) => t.id === id);
-  if (!existing) throw new Error(`SpecType ${id} not found`);
-  const normalized = { ...data, widgetLoc: data.widgetLoc || undefined };
-  return { ...existing, ...normalized, updatedAt: new Date().toISOString() };
+  return apiFetch<SpecType>(`/admin/specs/types/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(specTypeUpdateToDto(data)),
+  });
 }
 
-/**
- * Delete a spec type.
- * Mock implementation — replace with DELETE /admin/spec-types/:id
- */
-export async function deleteSpecType(_id: string): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 400));
+export async function deleteSpecType(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/specs/types/${id}`, { method: "DELETE" });
 }
 
-/**
- * Reorder spec types within a group.
- * Mock implementation — replace with PATCH /admin/spec-groups/:groupId/types/reorder
- */
-export async function reorderSpecTypes(_groupId: string, _orderedIds: string[]): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 300));
+export async function reorderSpecTypes(groupId: string, orderedIds: string[]): Promise<void> {
+  await apiFetch<void>("/admin/specs/types/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({ groupId: Number(groupId), orderedIds: orderedIds.map(Number) }),
+  });
 }

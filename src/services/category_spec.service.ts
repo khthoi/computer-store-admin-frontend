@@ -1,249 +1,116 @@
 import type {
   CategorySpecGroupAssignment,
-  EffectiveSpecGroup,
-  ExcludedSpecGroup,
   CategorySpecGroupsView,
 } from "@/src/types/spec_group.types";
-import {
-  MOCK_SPEC_GROUPS,
-  MOCK_SPEC_TYPES,
-  MOCK_CATEGORY_SPEC_ASSIGNMENTS,
-} from "@/src/app/(dashboard)/categories/_spec_mock";
-import { MOCK_CATEGORIES } from "@/src/app/(dashboard)/categories/_mock";
+import { apiFetch } from "@/src/services/api";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Assignment type mapping ──────────────────────────────────────────────────
 
-/**
- * Build the ancestor path for a category (inclusive), root first.
- * Returns [rootId, ..., parentId, categoryId].
- */
-function getAncestorPath(categoryId: string): string[] {
-  const path: string[] = [];
-  let currentId: string | null = categoryId;
-  while (currentId !== null) {
-    const cat = MOCK_CATEGORIES.find((c) => c.id === currentId);
-    if (!cat) break;
-    path.unshift(cat.id);
-    currentId = cat.parentId;
-  }
-  return path;
+function toHanhDong(assignmentType: "include" | "exclude" | "ghi_de_thu_tu"): string {
+  if (assignmentType === "exclude") return "loai_tru";
+  if (assignmentType === "ghi_de_thu_tu") return "ghi_de_thu_tu";
+  return "hien_thi";
 }
 
 // ─── Direct assignments ───────────────────────────────────────────────────────
 
-/**
- * Get the explicit assignment records for a single category (no inheritance).
- * Mock implementation — replace with SELECT * FROM category_spec_groups WHERE category_id = ?
- */
 export async function getDirectAssignments(
   categoryId: string
 ): Promise<CategorySpecGroupAssignment[]> {
-  await new Promise<void>((r) => setTimeout(r, 50));
-  return MOCK_CATEGORY_SPEC_ASSIGNMENTS.filter((a) => a.categoryId === categoryId);
+  return apiFetch<CategorySpecGroupAssignment[]>(
+    `/admin/specs/category-groups?categoryId=${categoryId}`
+  );
 }
 
 // ─── Inheritance resolver ─────────────────────────────────────────────────────
 
-/**
- * Resolve the fully inherited spec group view for a category.
- *
- * Algorithm (root → leaf, last write wins):
- *   - 'include' record → group is active at this node and descendants
- *   - 'exclude' record → group is suppressed at this node and descendants
- *
- * Returns three buckets for Panel 2:
- *   directIncludes   — include records directly on this category
- *   inheritedIncludes — include records from ancestors, not suppressed here
- *   directExcludes   — exclude records directly on this category
- */
 export async function getCategorySpecGroupsView(
   categoryId: string
 ): Promise<CategorySpecGroupsView> {
-  await new Promise<void>((r) => setTimeout(r, 60));
-
-  const path = getAncestorPath(categoryId);
-
-  // Map: specGroupId → last-seen assignment (root → leaf resolution)
-  const resolved = new Map<
-    string,
-    { assignmentType: "include" | "exclude" | "ghi_de_thu_tu"; sourceCategoryId: string; displayOrder: number }
-  >();
-
-  for (const catId of path) {
-    const assignments = MOCK_CATEGORY_SPEC_ASSIGNMENTS.filter((a) => a.categoryId === catId);
-    for (const a of assignments) {
-      resolved.set(a.specGroupId, {
-        assignmentType: a.assignmentType,
-        sourceCategoryId: catId,
-        displayOrder: a.displayOrder,
-      });
-    }
-  }
-
-  // Helper: build EffectiveSpecGroup from a specGroupId
-  function buildEffective(specGroupId: string, isInherited: boolean): EffectiveSpecGroup {
-    const entry = resolved.get(specGroupId)!;
-    const group = MOCK_SPEC_GROUPS.find((g) => g.id === specGroupId)!;
-    const sourceCat = MOCK_CATEGORIES.find((c) => c.id === entry.sourceCategoryId);
-    const specTypes = MOCK_SPEC_TYPES.filter((t) => t.groupId === specGroupId).sort(
-      (a, b) => a.displayOrder - b.displayOrder
-    );
-    const directAssignment = MOCK_CATEGORY_SPEC_ASSIGNMENTS.find(
-      (a) => a.categoryId === categoryId && a.specGroupId === specGroupId
-    );
-    return {
-      ...group,
-      // Override the group's global displayOrder with the resolved assignment order
-      // (i.e. the position this group holds within the source category's assignment list).
-      // Without this, pure-inherited groups fall back to their global sg-NNN sequence
-      // number (e.g. sg-008 → 8, sg-011 → 11), causing visible jumps like "1, 2, 8".
-      displayOrder: entry.displayOrder,
-      isInherited,
-      sourceCategoryId: entry.sourceCategoryId,
-      sourceCategoryName: sourceCat?.name ?? "—",
-      specTypes,
-      assignment: directAssignment
-        ? {
-            assignmentType: directAssignment.assignmentType,
-            displayOrder: directAssignment.displayOrder,
-            hienThiBoLoc: directAssignment.hienThiBoLoc,
-            thuTuBoLoc: directAssignment.thuTuBoLoc,
-          }
-        : undefined,
-    };
-  }
-
-  const directIncludes: EffectiveSpecGroup[] = [];
-  const inheritedIncludes: EffectiveSpecGroup[] = [];
-  const directExcludes: ExcludedSpecGroup[] = [];
-
-  for (const [specGroupId, entry] of resolved) {
-    if (entry.assignmentType === "include") {
-      const isInherited = entry.sourceCategoryId !== categoryId;
-      const effective = buildEffective(specGroupId, isInherited);
-      if (isInherited) {
-        inheritedIncludes.push(effective);
-      } else {
-        directIncludes.push(effective);
-      }
-    } else if (entry.assignmentType === "ghi_de_thu_tu" && entry.sourceCategoryId === categoryId) {
-      // Inherited group where this category has created a local override record.
-      // Treated as directInclude with isInherited=true so Panel 2 renders it as GhiDeThuTuRow.
-      directIncludes.push(buildEffective(specGroupId, true));
-    } else if (
-      entry.assignmentType === "exclude" &&
-      entry.sourceCategoryId === categoryId
-    ) {
-      // This category explicitly suppresses a group that was included by an ancestor.
-      // Find where the include originally came from (walk ancestors without this category).
-      const ancestorPath = path.filter((id) => id !== categoryId);
-      let originId: string | null = null;
-      for (const catId of [...ancestorPath].reverse()) {
-        const a = MOCK_CATEGORY_SPEC_ASSIGNMENTS.find(
-          (a) =>
-            a.categoryId === catId &&
-            a.specGroupId === specGroupId &&
-            a.assignmentType === "include"
-        );
-        if (a) {
-          originId = catId;
-          break;
-        }
-      }
-      const group = MOCK_SPEC_GROUPS.find((g) => g.id === specGroupId);
-      const originCat = MOCK_CATEGORIES.find((c) => c.id === originId);
-      if (group) {
-        directExcludes.push({
-          specGroupId,
-          specGroupName: group.name,
-          sourceCategoryId: originId ?? "",
-          sourceCategoryName: originCat?.name ?? "Không xác định",
-        });
-      }
-    }
-  }
-
-  // Sort each bucket by displayOrder
-  directIncludes.sort(
-    (a, b) => (resolved.get(a.id)?.displayOrder ?? 0) - (resolved.get(b.id)?.displayOrder ?? 0)
+  return apiFetch<CategorySpecGroupsView>(
+    `/admin/specs/category-groups/resolved?categoryId=${categoryId}`
   );
-  inheritedIncludes.sort(
-    (a, b) => (resolved.get(a.id)?.displayOrder ?? 0) - (resolved.get(b.id)?.displayOrder ?? 0)
-  );
-
-  return { directIncludes, inheritedIncludes, directExcludes };
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-/**
- * Assign (include) or suppress (exclude) a spec group for a category.
- * Upserts: replaces any existing record for (categoryId, specGroupId).
- * Mock implementation — replace with UPSERT INTO category_spec_groups
- */
 export async function assignSpecGroup(
-  _categoryId: string,
-  _specGroupId: string,
-  _assignmentType: "include" | "exclude",
-  _displayOrder?: number
+  categoryId: string,
+  specGroupId: string,
+  assignmentType: "include" | "exclude",
+  displayOrder?: number
 ): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 600));
+  await apiFetch<unknown>("/admin/specs/category-groups", {
+    method: "POST",
+    body: JSON.stringify({
+      danhMucId: Number(categoryId),
+      nhomThongSoId: Number(specGroupId),
+      hanhDong: toHanhDong(assignmentType),
+      ...(displayOrder !== undefined && { thuTuHienThi: displayOrder }),
+    }),
+  });
 }
 
-/**
- * Remove an explicit assignment record, restoring pure inheritance behavior.
- * Mock implementation — replace with DELETE FROM category_spec_groups WHERE ...
- */
 export async function removeSpecGroupAssignment(
-  _categoryId: string,
-  _specGroupId: string
+  categoryId: string,
+  specGroupId: string
 ): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 400));
+  await apiFetch<void>(
+    `/admin/specs/category-groups?categoryId=${categoryId}&groupId=${specGroupId}`,
+    { method: "DELETE" }
+  );
 }
 
-/**
- * Reorder the direct include assignments for a category.
- * Mock implementation — replace with bulk UPDATE display_order
- */
 export async function reorderSpecGroupsForCategory(
-  _categoryId: string,
-  _orderedSpecGroupIds: string[]
+  categoryId: string,
+  orderedSpecGroupIds: string[]
 ): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 300));
+  await apiFetch<void>("/admin/specs/category-groups/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({
+      categoryId: Number(categoryId),
+      orderedGroupIds: orderedSpecGroupIds.map(Number),
+    }),
+  });
 }
 
-/**
- * Toggle whether a spec group shows in the product filter sidebar for this category.
- * Requires an existing include or ghi_de_thu_tu assignment on this category.
- * Mock implementation — replace with UPDATE category_spec_groups SET hien_thi_bo_loc = ?
- */
 export async function toggleSpecGroupFilter(
-  _categoryId: string,
-  _specGroupId: string,
-  _hienThiBoLoc: boolean
+  categoryId: string,
+  specGroupId: string,
+  hienThiBoLoc: boolean
 ): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 300));
+  // Get direct assignments to find the link ID
+  const assignments = await getDirectAssignments(categoryId);
+  const link = assignments.find((a) => a.specGroupId === specGroupId);
+  if (!link) return;
+
+  await apiFetch<void>(`/admin/specs/category-groups/${link.id}`, {
+    method: "PATCH",
+    body: JSON.stringify({ hienThiBoLoc }),
+  });
 }
 
-/**
- * Create a ghi_de_thu_tu override record for an inherited spec group.
- * Allows this category to configure custom filter settings without removing the inheritance.
- * Mock implementation — replace with INSERT INTO category_spec_groups (assignment_type = 'ghi_de_thu_tu')
- */
 export async function createOverrideRecord(
-  _categoryId: string,
-  _specGroupId: string
+  categoryId: string,
+  specGroupId: string
 ): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 400));
+  await apiFetch<unknown>("/admin/specs/category-groups", {
+    method: "POST",
+    body: JSON.stringify({
+      danhMucId: Number(categoryId),
+      nhomThongSoId: Number(specGroupId),
+      hanhDong: "ghi_de_thu_tu",
+      thuTuHienThi: 0,
+    }),
+  });
 }
 
-/**
- * Remove the ghi_de_thu_tu override record, reverting the group to pure inheritance behavior.
- * Mock implementation — replace with DELETE FROM category_spec_groups WHERE type = 'ghi_de_thu_tu'
- */
 export async function cancelOverrideRecord(
-  _categoryId: string,
-  _specGroupId: string
+  categoryId: string,
+  specGroupId: string
 ): Promise<void> {
-  await new Promise<void>((r) => setTimeout(r, 400));
+  await apiFetch<void>(
+    `/admin/specs/category-groups?categoryId=${categoryId}&groupId=${specGroupId}`,
+    { method: "DELETE" }
+  );
 }

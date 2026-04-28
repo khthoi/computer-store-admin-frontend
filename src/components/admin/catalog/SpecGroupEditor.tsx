@@ -267,9 +267,10 @@ export function SpecGroupEditor({
   }, [sourceSpecTypes, isDirty]);
 
   function handleDragReorder(newOrder: SpecType[]) {
-    setDragOrder(newOrder);
+    const updated = newOrder.map((t, idx) => ({ ...t, displayOrder: idx }));
+    setDragOrder(updated);
     setIsDirty(true);
-    onSpecTypesChange?.(newOrder);
+    onSpecTypesChange?.(updated);
   }
 
   async function handleSaveOrder() {
@@ -284,6 +285,24 @@ export function SpecGroupEditor({
 
   async function handleUpdateSpecType(id: string, data: Partial<SpecTypeFormData>) {
     await onUpdateSpecType(id, data);
+    const next = dragOrder.map((t) =>
+      t.id !== id
+        ? t
+        : {
+            ...t,
+            name: data.name ?? t.name,
+            description: data.description ?? t.description,
+            maKyThuat: data.maKyThuat !== undefined ? (data.maKyThuat || undefined) : t.maKyThuat,
+            required: data.required ?? t.required,
+            kieuDuLieu: data.kieuDuLieu ?? t.kieuDuLieu,
+            donVi: data.donVi !== undefined ? (data.donVi || undefined) : t.donVi,
+            coTheLoc: data.coTheLoc ?? t.coTheLoc,
+            widgetLoc: data.widgetLoc !== undefined ? ((data.widgetLoc as FilterWidget) || undefined) : t.widgetLoc,
+            thuTuLoc: data.thuTuLoc ?? t.thuTuLoc,
+          }
+    );
+    setDragOrder(next);
+    onSpecTypesChange?.(next);
   }
 
   async function handleDeleteSpecType(id: string) {

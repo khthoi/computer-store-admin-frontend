@@ -14,7 +14,7 @@ export const metadata: Metadata = {
 // ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function BrandsPage() {
-  const { data, total } = await getBrands({ pageSize: 20 });
+  const { data, total } = await getBrands({ pageSize: 10 });
 
   return <BrandsPageClient initialData={data} initialTotal={total} />;
 }

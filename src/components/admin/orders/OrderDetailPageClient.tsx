@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -18,15 +18,21 @@ import { OrderShippingPanel } from "@/src/components/admin/orders/OrderShippingP
 import { OrderNotesPanel } from "@/src/components/admin/orders/OrderNotesPanel";
 import { OrderRefundModal } from "@/src/components/admin/orders/OrderRefundModal";
 import { OrderActivityLog } from "@/src/components/admin/orders/OrderActivityLog";
+import { OrderRefundHistoryCard } from "@/src/components/admin/orders/OrderRefundHistoryCard";
+import { OrderReturnRequestsCard } from "@/src/components/admin/orders/OrderReturnRequestsCard";
 import { PaymentInfoCard } from "@/src/components/admin/orders/PaymentInfoCard";
 import {
+  getOrderById,
   updateOrderStatus,
   updateOrderShipping,
   addOrderNote,
   processRefund,
   cancelOrder,
+  getOrderReturnRequests,
+  settleRefund,
+  rejectRefund,
 } from "@/src/services/order.service";
-import type { Order, OrderStatus } from "@/src/types/order.types";
+import type { Order, OrderStatus, OrderReturnRequest } from "@/src/types/order.types";
 import type { ShippingInfo } from "@/src/components/admin/orders/OrderShippingPanel";
 
 // ─── Cancel Dialog ────────────────────────────────────────────────────────────
@@ -150,22 +156,32 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
   const router = useRouter();
   const { showToast } = useToast();
 
-  const [order, setOrder]                       = useState<Order>(initialOrder);
-  const [isSavingStatus, setIsSavingStatus]     = useState(false);
-  const [isSavingShipping, setIsSavingShipping] = useState(false);
-  const [isAddingNote, setIsAddingNote]         = useState(false);
-  const [isRefunding, setIsRefunding]           = useState(false);
-  const [isCancelling, setIsCancelling]         = useState(false);
-  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
-  const [refundModalOpen, setRefundModalOpen]   = useState(false);
+  const [order, setOrder]                           = useState<Order>(initialOrder);
+  const [isSavingStatus, setIsSavingStatus]         = useState(false);
+  const [isSavingShipping, setIsSavingShipping]     = useState(false);
+  const [isAddingNote, setIsAddingNote]             = useState(false);
+  const [isRefunding, setIsRefunding]               = useState(false);
+  const [isCancelling, setIsCancelling]             = useState(false);
+  const [isSettling, setIsSettling]                 = useState(false);
+  const [isRejecting, setIsRejecting]               = useState(false);
+  const [cancelDialogOpen, setCancelDialogOpen]     = useState(false);
+  const [refundModalOpen, setRefundModalOpen]       = useState(false);
+  const [returnRequests, setReturnRequests]         = useState<OrderReturnRequest[]>([]);
+  const [activeReturnRequest, setActiveReturnRequest] = useState<OrderReturnRequest | null>(null);
+
+  useEffect(() => {
+    getOrderReturnRequests(order.id).then(setReturnRequests).catch(() => {});
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [order.id]);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
   async function handleStatusChange(newStatus: OrderStatus) {
     setIsSavingStatus(true);
     try {
-      const updated = await updateOrderStatus(order.id, { status: newStatus });
-      setOrder(updated);
+      await updateOrderStatus(order.id, { status: newStatus });
+      const refreshed = await getOrderById(order.id);
+      if (refreshed) setOrder(refreshed);
       showToast(`Order status updated to "${newStatus}".`, "success");
     } catch {
       showToast("Failed to update order status.", "error");
@@ -211,56 +227,82 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
   }
 
   async function handleRefund(payload: {
-    items: { productId: string; quantity: number }[];
+    items: { productId: string; variantId: string; quantity: number }[];
     method: "original" | "store_credit";
     totalAmount: number;
   }) {
+    if (!activeReturnRequest) return;
     setIsRefunding(true);
     try {
-      const refundItems = payload.items.map((item) => {
-        const li = order.lineItems.find((l) => l.productId === item.productId);
-        return {
-          productId: item.productId,
-          variantId: li?.variantId ?? "",
-          quantity:  item.quantity,
-        };
+      await processRefund(order.id, {
+        method:          payload.method,
+        amount:          payload.totalAmount,
+        items:           payload.items,
+        processedBy:     "Admin",
+        returnRequestId: activeReturnRequest.id,
       });
-      const newRefund = await processRefund(order.id, {
-        method:      payload.method,
-        amount:      payload.totalAmount,
-        items:       refundItems,
-        processedBy: "Admin",
-      });
-      setOrder((prev) => ({
-        ...prev,
-        paymentStatus: "refunded",
-        refunds:       [...prev.refunds, newRefund],
-        activityLog: [
-          ...prev.activityLog,
-          {
-            id:        `act-${Date.now()}`,
-            timestamp: newRefund.createdAt,
-            actorName: "Admin",
-            actorRole: "Admin",
-            action:    "Refund processed",
-            detail:    `${newRefund.amount.toLocaleString("vi-VN")}₫ via ${newRefund.method}`,
-          },
-        ],
-      }));
+      const [refreshed, updatedRequests] = await Promise.all([
+        getOrderById(order.id),
+        getOrderReturnRequests(order.id),
+      ]);
+      if (refreshed) setOrder(refreshed);
+      setReturnRequests(updatedRequests);
       setRefundModalOpen(false);
+      setActiveReturnRequest(null);
       showToast("Refund processed successfully.", "success");
-    } catch {
-      showToast("Failed to process refund.", "error");
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "";
+      showToast(msg || "Failed to process refund.", "error");
     } finally {
       setIsRefunding(false);
     }
   }
 
+  async function handleSettle(refundId: string, payload: { externalRef: string; bank?: string; settledAt?: string; note?: string }) {
+    setIsSettling(true);
+    try {
+      await settleRefund(order.id, refundId, payload);
+      const [refreshed, updatedRequests] = await Promise.all([
+        getOrderById(order.id),
+        getOrderReturnRequests(order.id),
+      ]);
+      if (refreshed) setOrder(refreshed);
+      setReturnRequests(updatedRequests);
+      showToast("Hoàn tiền đã được xác nhận.", "success");
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "";
+      showToast(msg || "Không thể xác nhận hoàn tiền.", "error");
+    } finally {
+      setIsSettling(false);
+    }
+  }
+
+  async function handleReject(refundId: string, payload: { reason: string }) {
+    setIsRejecting(true);
+    try {
+      await rejectRefund(order.id, refundId, payload);
+      const refreshed = await getOrderById(order.id);
+      if (refreshed) setOrder(refreshed);
+      showToast("Hoàn tiền đã được đánh dấu thất bại.", "success");
+    } catch (err: unknown) {
+      const msg = (err as Error)?.message ?? "";
+      showToast(msg || "Không thể từ chối hoàn tiền.", "error");
+    } finally {
+      setIsRejecting(false);
+    }
+  }
+
+  function openRefundModalForRequest(request: OrderReturnRequest) {
+    setActiveReturnRequest(request);
+    setRefundModalOpen(true);
+  }
+
   async function handleCancel(reason: string) {
     setIsCancelling(true);
     try {
-      const updated = await cancelOrder(order.id, reason);
-      setOrder(updated);
+      await cancelOrder(order.id, reason);
+      const refreshed = await getOrderById(order.id);
+      if (refreshed) setOrder(refreshed);
       setCancelDialogOpen(false);
       showToast("Order cancelled.", "success");
     } catch {
@@ -273,7 +315,27 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
   // ── Derived state ───────────────────────────────────────────────────────────
 
   const isCancellable = !["cancelled", "delivered", "returned"].includes(order.status);
-  const isRefundable  = order.paymentStatus === "paid" && order.status === "delivered";
+
+  // Only count settled refunds toward limits
+  const settledRefunds = order.refunds.filter((r) => r.status !== "rejected");
+
+  // Per-variant already-refunded quantity map (for modal + panel badges)
+  const refundedQtyByVariantId = settledRefunds.reduce<Record<string, number>>((acc, r) => {
+    r.items.forEach((item) => {
+      acc[item.variantId] = (acc[item.variantId] ?? 0) + item.quantity;
+    });
+    return acc;
+  }, {});
+
+  // Per-variant max refundable from the active return request
+  const requestMaxQtyByVariantId: Record<string, number> | undefined = activeReturnRequest
+    ? Object.fromEntries(
+        activeReturnRequest.items.map((i) => [
+          i.variantId,
+          Math.max(0, i.requestedQty - i.refundedQty),
+        ])
+      )
+    : undefined;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -313,12 +375,6 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
             Invoice
           </Link>
 
-          {isRefundable && (
-            <Button variant="secondary" onClick={() => setRefundModalOpen(true)}>
-              Process Refund
-            </Button>
-          )}
-
           {isCancellable && (
             <Button variant="danger" onClick={() => setCancelDialogOpen(true)}>
               <XCircleIcon className="h-4 w-4" aria-hidden="true" />
@@ -335,21 +391,22 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
         <div className="space-y-6">
           <OrderStatusStepper
             currentStatus={order.status}
-            statusHistory={order.statusHistory.map((h) => ({
-              status:    h.status,
-              timestamp: h.timestamp,
-              actor:     h.actorName,
-            }))}
+            activityLog={order.activityLog}
             onStatusChange={handleStatusChange}
             isSaving={isSavingStatus}
           />
-          <OrderDetailPanel order={order} />
+          <OrderDetailPanel order={order} refundedQtyByVariantId={refundedQtyByVariantId} />
           <OrderActivityLog entries={order.activityLog} />
         </div>
 
         {/* ── Right column ── */}
         <div className="space-y-4">
-          <PaymentInfoCard donHangId={Number(order.id)} />
+          <PaymentInfoCard orderCode={order.id} />
+
+          <OrderReturnRequestsCard
+            requests={returnRequests}
+            onProcessRefund={openRefundModalForRequest}
+          />
 
           <OrderShippingPanel
             shipping={order.shipping}
@@ -362,31 +419,15 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
             isAdding={isAddingNote}
           />
 
-          {order.refunds.length > 0 && (
-            <div className="rounded-2xl border border-secondary-100 bg-white p-4 shadow-sm">
-              <h3 className="mb-3 text-sm font-semibold text-secondary-900">Refund History</h3>
-              <div className="space-y-2">
-                {order.refunds.map((r) => (
-                  <div
-                    key={r.id}
-                    className="rounded-xl border border-secondary-100 bg-secondary-50 px-3 py-2.5 text-sm"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-secondary-800">
-                        {r.amount.toLocaleString("vi-VN")}₫
-                      </span>
-                      <span className="text-xs text-secondary-400">
-                        {new Date(r.createdAt).toLocaleDateString("vi-VN")}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-secondary-500">
-                      {r.method === "original" ? "Original method" : "Store credit"} · by {r.processedBy}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          <OrderRefundHistoryCard
+            refunds={order.refunds}
+            lineItems={order.lineItems}
+            grandTotal={order.grandTotal}
+            onSettle={handleSettle}
+            onReject={handleReject}
+            isSettling={isSettling}
+            isRejecting={isRejecting}
+          />
         </div>
       </div>
 
@@ -401,16 +442,21 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
 
       <OrderRefundModal
         isOpen={refundModalOpen}
-        onClose={() => setRefundModalOpen(false)}
+        onClose={() => { setRefundModalOpen(false); setActiveReturnRequest(null); }}
         onConfirm={handleRefund}
         lineItems={order.lineItems.map((li) => ({
-          productId: li.productId,
-          name:      `${li.productName} — ${li.variantName}`,
-          sku:       li.sku,
-          quantity:  li.quantity,
-          unitPrice: li.unitPrice,
+          productId:   li.productId,
+          variantId:   li.variantId,
+          name:        li.productName,
+          variantName: li.variantName,
+          sku:         li.sku,
+          quantity:    li.quantity,
+          unitPrice:   li.unitPrice,
         }))}
+        refundedQtyByVariantId={refundedQtyByVariantId}
         isConfirming={isRefunding}
+        returnRequestId={activeReturnRequest?.id}
+        requestMaxQtyByVariantId={requestMaxQtyByVariantId}
       />
     </div>
   );

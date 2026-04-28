@@ -168,6 +168,119 @@ export default function ProductsPage() {
 
 ---
 
+## Server-side Pagination Pattern
+
+Dùng khi DataTable cần fetch dữ liệu mới từ API mỗi khi đổi trang, filter, hoặc sort. Đây là pattern chuẩn cho mọi list page trong admin.
+
+### Phân tách trách nhiệm
+
+```
+Service (src/services/*.service.ts)
+  ├── Build URLSearchParams từ params được truyền vào
+  ├── Gọi apiFetch
+  ├── Map raw response → typed result
+  └── KHÔNG có default cho limit/pageSize — component quyết định
+
+Component (src/components/admin/*/...Table.tsx)
+  ├── Khai báo PAGE_SIZE (single source of truth)
+  ├── Sở hữu state: page, pageSize, search, filters, sort, loading, data
+  ├── Gọi service với limit: PAGE_SIZE mỗi khi state thay đổi
+  └── Kiểm soát khi nào setLoading(true) — không flash khi chỉ đổi trang
+```
+
+### Boilerplate đầy đủ
+
+```tsx
+// ── Constants ────────────────────────────────────────────────────────────────
+const PAGE_SIZE = 10; // chỉ định nghĩa ở đây — không để trong service
+
+// ── Refs ─────────────────────────────────────────────────────────────────────
+const fetchTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
+const isFirstRender  = useRef(true);
+const prevSearchRef  = useRef("");
+// Serialise tất cả params ngoài "page" — dùng để phát hiện page-only change
+const prevNonPageKey = useRef(
+  JSON.stringify({ search: "", statusFilter: [], sortKey: "updatedAt", sortDir: "desc", pageSize: PAGE_SIZE })
+);
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const [data,       setData]       = useState<T[]>(initialData);
+const [total,      setTotal]      = useState(initialTotal);
+const [loading,    setLoading]    = useState(false);
+const [page,       setPage]       = useState(1);
+const [pageSize,   setPageSize]   = useState(PAGE_SIZE);
+const [search,     setSearch]     = useState("");
+const [statusFilter, setStatusFilter] = useState<string[]>([]);
+const [sortKey,    setSortKey]    = useState("updatedAt");
+const [sortDir,    setSortDir]    = useState<SortDir>("desc");
+
+// ── Reset page khi filter/sort/pageSize thay đổi ──────────────────────────────
+useEffect(() => {
+  setPage(1);
+}, [search, statusFilter, sortKey, sortDir, pageSize]);
+
+// ── Fetch effect ──────────────────────────────────────────────────────────────
+useEffect(() => {
+  if (isFirstRender.current) { isFirstRender.current = false; return; }
+
+  const nonPageKey     = JSON.stringify({ search, statusFilter, sortKey, sortDir, pageSize });
+  const isPageOnly     = nonPageKey === prevNonPageKey.current;
+  prevNonPageKey.current = nonPageKey;
+
+  const isSearchChange = search !== prevSearchRef.current;
+  prevSearchRef.current = search;
+
+  if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+  fetchTimerRef.current = setTimeout(async () => {
+    if (!isPageOnly) setLoading(true);   // không flash khi chỉ đổi trang
+    try {
+      const result = await getResource({
+        page,
+        limit: pageSize,                 // component truyền xuống, service không tự đặt default
+        q: search || undefined,
+        status: statusFilter[0],
+        sortBy: sortKey,
+        sortOrder: sortDir,
+      });
+      setData(result.data);
+      setTotal(result.total);
+    } catch { /* giữ nguyên data cũ khi lỗi */ }
+    finally { setLoading(false); }
+  }, isSearchChange ? 300 : 0);         // debounce 300ms cho search, 0ms cho phần còn lại
+
+  return () => { if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current); };
+}, [page, pageSize, search, statusFilter, sortKey, sortDir]);
+
+// ── DataTable ─────────────────────────────────────────────────────────────────
+<DataTable
+  data={data}
+  columns={columns}
+  isLoading={loading}
+  page={page}
+  pageSize={pageSize}
+  totalRows={total}
+  pageSizeOptions={[10, 25, 50]}
+  onPageChange={setPage}
+  onPageSizeChange={setPageSize}
+  sortKey={sortKey}
+  sortDir={sortDir}
+  onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
+  searchQuery={search}
+  onSearchChange={setSearch}
+/>
+```
+
+### Quy tắc cốt lõi
+
+| | Đúng | Sai |
+|---|---|---|
+| `PAGE_SIZE` | Định nghĩa trong component | Để default trong service |
+| `setLoading(true)` | Chỉ khi filter/sort/search thay đổi | Mọi lần fetch kể cả chuyển trang |
+| `sortOrder` | Luôn uppercase trước khi truyền vào TypeORM | Truyền `"asc"`/`"desc"` thẳng vào `orderBy()` |
+| `limit` trong service | `if (limit) qs.set("limit", ...)` | `const { limit = 10 } = params` |
+
+---
+
 ## Settings Section Pattern
 
 1. Create `src/app/(dashboard)/settings/{section}/page.tsx`
