@@ -16,9 +16,9 @@ import type { InventoryItem } from "@/src/types/inventory.types";
 type Row = InventoryItem & Record<string, unknown>;
 
 const ALERT_OPTIONS = [
-  { value: "ok", label: "OK" },
-  { value: "low_stock", label: "Low Stock" },
-  { value: "out_of_stock_inv", label: "Out of Stock" },
+  { value: "ok", label: "Còn hàng" },
+  { value: "low_stock", label: "Sắp hết" },
+  { value: "out_of_stock_inv", label: "Hết hàng" },
 ];
 
 interface AlertConfigTableProps {

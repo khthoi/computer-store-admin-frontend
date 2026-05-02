@@ -30,6 +30,11 @@ export interface SelectOption {
   /** Display text in the list and trigger */
   label: string;
   /**
+   * Optional second row shown between label and description.
+   * Useful for a variant name or subtitle line.
+   */
+  subLabel?: string;
+  /**
    * Optional secondary text shown below the label in the dropdown list
    * (e.g. SKU, product ID). Rendered in font-mono, grey.
    */

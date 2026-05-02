@@ -230,29 +230,17 @@ export function ReviewModerationModal({
 
         {/* ── Reject reason — only when "Từ chối" is selected ───────────── */}
         {currentAction === "reject" && (
-          <div className="space-y-1.5">
-            <label className="block text-xs font-medium text-secondary-700">
-              Lý do từ chối <span className="text-red-500">*</span>
-            </label>
-            <Textarea
-              rows={3}
-              value={lyDo}
-              onChange={(e) => { setLyDo(e.target.value); setLyDoError(""); }}
-              showCharCount
-              maxCharCount={300}
-              placeholder="Nhập lý do từ chối (tối thiểu 10 ký tự)..."
-              className={[
-                "w-full resize-none rounded-xl px-3 py-2.5 text-sm text-secondary-800",
-                "border focus:outline-none focus:ring-2 focus:ring-primary-500/20",
-                lyDoError
-                  ? "border-red-400 focus:border-red-400"
-                  : "border-secondary-200 focus:border-primary-400",
-              ].join(" ")}
-            />
-            {lyDoError && (
-              <p className="text-xs text-red-500">{lyDoError}</p>
-            )}
-          </div>
+          <Textarea
+            label="Lý do từ chối"
+            rows={3}
+            value={lyDo}
+            onChange={(e) => { setLyDo(e.target.value); setLyDoError(""); }}
+            showCharCount
+            maxCharCount={300}
+            placeholder="Nhập lý do từ chối (tối thiểu 10 ký tự)..."
+            errorMessage={lyDoError || undefined}
+            required
+          />
         )}
       </div>
     </Modal>

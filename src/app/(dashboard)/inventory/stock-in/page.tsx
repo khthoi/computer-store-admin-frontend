@@ -6,7 +6,7 @@ import { getStockInList } from "@/src/services/inventory.service";
 import { StockInTable } from "@/src/components/admin/inventory/StockInTable";
 
 export default async function StockInPage() {
-  const records = await getStockInList();
+  const result = await getStockInList({ page: 1, limit: 10, sortBy: "createdAt", sortOrder: "DESC" });
   return (
     <div className="p-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
@@ -24,7 +24,7 @@ export default async function StockInPage() {
           Nhập hàng
         </Link>
       </div>
-      <StockInTable initialRecords={records} />
+      <StockInTable initialData={result.data} initialTotal={result.total} />
     </div>
   );
 }

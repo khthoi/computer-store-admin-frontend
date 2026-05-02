@@ -4,7 +4,9 @@ import { useState, useCallback } from "react";
 import { CloudArrowUpIcon, XMarkIcon, CheckCircleIcon, ExclamationCircleIcon, ChevronDownIcon, FolderIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/src/components/ui/Modal";
 import { Button } from "@/src/components/ui/Button";
+import { Input } from "@/src/components/ui/Input";
 import { Spinner } from "@/src/components/ui/Spinner";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { uploadMediaFile } from "@/src/services/content.service";
 import type { MediaFile } from "@/src/types/content.types";
 
@@ -18,7 +20,6 @@ interface UploadItem {
   preview?: string;
   result?: MediaFile;
   altText: string;
-  caption: string;
   metaExpanded: boolean;
 }
 
@@ -54,7 +55,6 @@ export function MediaUploadModal({ open, onClose, folderId, folderName, onUpload
         file,
         status: "pending",
         altText: "",
-        caption: "",
         metaExpanded: false,
       };
       if (file.type.startsWith("image/")) {
@@ -103,7 +103,6 @@ export function MediaUploadModal({ open, onClose, folderId, folderName, onUpload
         const result = await uploadMediaFile(item.file, {
           folderId,
           altText: item.altText.trim() || undefined,
-          caption: item.caption.trim() || undefined,
         });
         results.push(result);
         setItems((prev) => prev.map((i) => i.id === item.id ? { ...i, status: "success", result } : i));
@@ -200,58 +199,47 @@ export function MediaUploadModal({ open, onClose, folderId, folderName, onUpload
                   {/* Expand meta / status / remove */}
                   <div className="flex items-center gap-1 shrink-0">
                     {item.status === "pending" && (
-                      <button
-                        type="button"
-                        title={item.metaExpanded ? "Ẩn thông tin" : "Thêm alt text & caption"}
-                        onClick={() => updateItem(item.id, "metaExpanded", !item.metaExpanded)}
-                        className={[
-                          "rounded p-1 text-secondary-400 hover:text-secondary-600 transition-colors",
-                          item.metaExpanded ? "text-primary-500" : "",
-                        ].join(" ")}
-                      >
-                        <ChevronDownIcon className={`h-4 w-4 transition-transform ${item.metaExpanded ? "rotate-180" : ""}`} />
-                      </button>
+                      <Tooltip content={item.metaExpanded ? "Ẩn thông tin" : "Thêm alt text"} placement="top">
+                        <button
+                          type="button"
+                          onClick={() => updateItem(item.id, "metaExpanded", !item.metaExpanded)}
+                          className={[
+                            "rounded p-1 text-secondary-400 hover:text-secondary-600 transition-colors",
+                            item.metaExpanded ? "text-primary-500" : "",
+                          ].join(" ")}
+                        >
+                          <ChevronDownIcon className={`h-4 w-4 transition-transform ${item.metaExpanded ? "rotate-180" : ""}`} />
+                        </button>
+                      </Tooltip>
                     )}
                     {item.status === "uploading" && <Spinner size="sm" />}
                     {item.status === "success" && <CheckCircleIcon className="h-5 w-5 text-success-600" />}
                     {item.status === "error" && <ExclamationCircleIcon className="h-5 w-5 text-error-500" />}
                     {item.status === "pending" && (
-                      <button
-                        type="button"
-                        onClick={() => removeItem(item.id)}
-                        className="rounded p-1 text-secondary-400 hover:text-error-500 transition-colors"
-                      >
-                        <XMarkIcon className="h-4 w-4" />
-                      </button>
+                      <Tooltip content="Xóa" placement="top">
+                        <button
+                          type="button"
+                          onClick={() => removeItem(item.id)}
+                          className="rounded p-1 text-secondary-400 hover:text-error-500 transition-colors"
+                        >
+                          <XMarkIcon className="h-4 w-4" />
+                        </button>
+                      </Tooltip>
                     )}
                   </div>
                 </div>
 
                 {/* Expandable meta inputs */}
                 {item.status === "pending" && item.metaExpanded && (
-                  <div className="border-t border-secondary-100 bg-secondary-50 px-3 py-3 space-y-2">
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-secondary-600">
-                        Alt text <span className="text-secondary-400 font-normal">(SEO & accessibility)</span>
-                      </label>
-                      <input
-                        type="text"
-                        value={item.altText}
-                        onChange={(e) => updateItem(item.id, "altText", e.target.value)}
-                        placeholder="Mô tả ngắn gọn nội dung ảnh..."
-                        className="w-full rounded-lg border border-secondary-200 bg-white px-2.5 py-1.5 text-sm focus:border-primary-400 focus:outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="mb-1 block text-xs font-medium text-secondary-600">Caption</label>
-                      <input
-                        type="text"
-                        value={item.caption}
-                        onChange={(e) => updateItem(item.id, "caption", e.target.value)}
-                        placeholder="Chú thích hiển thị bên dưới ảnh..."
-                        className="w-full rounded-lg border border-secondary-200 bg-white px-2.5 py-1.5 text-sm focus:border-primary-400 focus:outline-none"
-                      />
-                    </div>
+                  <div className="border-t border-secondary-100 bg-secondary-50 px-3 py-3">
+                    <Input
+                      label="Alt text"
+                      size="sm"
+                      value={item.altText}
+                      onChange={(e) => updateItem(item.id, "altText", e.target.value)}
+                      placeholder="Mô tả ngắn gọn nội dung ảnh..."
+                      helperText="Dùng cho SEO & trình đọc màn hình"
+                    />
                   </div>
                 )}
 

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductById, getVariantById, getVariantSalesStats } from "@/src/services/product.service";
+import { getVariantStockLevel } from "@/src/services/inventory.service";
 import {
   VariantHeader,
   ProductSummaryCard,
@@ -40,10 +41,11 @@ export default async function VariantDetailPage({
 }) {
   const { id, variantId } = await params;
 
-  const [product, variant, salesStats] = await Promise.all([
+  const [product, variant, salesStats, stockLevel] = await Promise.all([
     getProductById(id),
     getVariantById(id, variantId),
     getVariantSalesStats(id, variantId),
+    getVariantStockLevel(variantId).catch(() => null),
   ]);
 
   if (!product || !variant) notFound();
@@ -57,7 +59,7 @@ export default async function VariantDetailPage({
         <div className="space-y-4">
           <ProductSummaryCard product={product} />
           <PricingStatusSection variant={variant} />
-          <VariantInfoSection variant={variant} />
+          <VariantInfoSection variant={variant} stockLevel={stockLevel} />
           <VariantSalesStatsCard stats={salesStats} />
         </div>
 

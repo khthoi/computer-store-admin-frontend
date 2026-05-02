@@ -132,6 +132,7 @@ export function Select({
       ? allFlat.filter(
           (o) =>
             o.label.toLowerCase().includes(query.toLowerCase()) ||
+            o.subLabel?.toLowerCase().includes(query.toLowerCase()) ||
             o.description?.toLowerCase().includes(query.toLowerCase())
         )
       : allFlat;
@@ -406,19 +407,31 @@ export function Select({
                     className="h-5 w-5 shrink-0 rounded-sm object-contain"
                   />
                 )}
-                <span
-                  className={
-                    !showSelectedInTrigger || selectedValues.length === 0
-                      ? "text-secondary-400"
-                      : ""
-                  }
-                >
-                  {!showSelectedInTrigger
-                    ? placeholder
-                    : multiple
-                      ? placeholder
-                      : triggerLabel}
-                </span>
+                {!showSelectedInTrigger || !selectedSingleOpt ? (
+                  <span className="truncate text-secondary-400">{placeholder}</span>
+                ) : multiple ? (
+                  <span className="truncate text-secondary-400">{placeholder}</span>
+                ) : (selectedSingleOpt.subLabel || selectedSingleOpt.description) ? (
+                  /* Stacked layout when subLabel or description present */
+                  <span className="flex min-w-0 flex-col leading-tight">
+                    <span className="truncate font-semibold text-secondary-900">
+                      {selectedSingleOpt.label}
+                    </span>
+                    {selectedSingleOpt.subLabel && (
+                      <span className="truncate text-xs text-secondary-600">
+                        {selectedSingleOpt.subLabel}
+                      </span>
+                    )}
+                    {selectedSingleOpt.description && (
+                      <span className="truncate font-mono text-xs text-secondary-400">
+                        {selectedSingleOpt.description}
+                      </span>
+                    )}
+                  </span>
+                ) : (
+                  /* Simple single-line for options without sub-info */
+                  <span className="truncate">{selectedSingleOpt.label}</span>
+                )}
               </>
             )}
           </span>

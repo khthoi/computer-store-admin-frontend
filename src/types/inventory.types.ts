@@ -6,50 +6,24 @@ export type StockMovementType =
   | "stock_in"
   | "stock_out"
   | "adjustment"
-  | "return"
-  | "transfer";
+  | "return";
 
 export type StockInStatus = "pending" | "received" | "partial" | "cancelled";
 
-export type StockOutStatus = "pending" | "packing" | "packed" | "cancelled";
-
-export type StockOutReason =
-  | "internal_use"
-  | "damage"
-  | "loss"
-  | "transfer"
-  | "promotional"
-  | "other";
-
 export type ReturnRequestStatus =
-  | "requested"
-  | "approved"
-  | "rejected"
-  | "received"
-  | "completed";
+  | "ChoDuyet"
+  | "DaDuyet"
+  | "TuChoi"
+  | "DangXuLy"
+  | "HoanThanh";
 
-export type ReturnReason =
-  | "defective"
-  | "wrong_item"
-  | "damaged_in_transit"
-  | "not_as_described"
-  | "customer_changed_mind"
-  | "other";
+export type ReturnRequestType = "DoiHang" | "TraHang" | "BaoHanh";
 
-export type ReturnResolution = "replacement" | "refund" | "store_credit";
+export type ReturnResolution = "GiaoHangMoi" | "HoanTien" | "BaoHanh";
 
 export type SupplierStatus = "active" | "inactive";
 
 export type StockAlertLevel = "ok" | "low_stock" | "out_of_stock_inv";
-
-// ── Warehouse ────────────────────────────────────────────────────────────────
-
-export interface Warehouse {
-  id: string;
-  name: string;
-  location: string;
-  isDefault: boolean;
-}
 
 // ── Supplier ─────────────────────────────────────────────────────────────────
 
@@ -61,11 +35,23 @@ export interface Supplier {
   phone: string;
   address: string;
   status: SupplierStatus;
+  leadTimeDays?: number;
   productCount: number;
   totalOrders: number;
   createdAt: string;
   updatedAt: string;
   notes?: string;
+}
+
+// ── Variant Stock Level ───────────────────────────────────────────────────────
+
+export interface VariantStockLevel {
+  quantityOnHand: number;
+  lowStockThreshold: number;
+  averageCostPrice: number;
+  reorderPoint: number;
+  alertLevel: StockAlertLevel;
+  updatedAt: string | null;
 }
 
 // ── Inventory Item ────────────────────────────────────────────────────────────
@@ -86,7 +72,6 @@ export interface InventoryItem {
   lowStockThreshold: number;
   costPrice: number;
   sellingPrice: number;
-  location?: string;
   alertLevel: StockAlertLevel;
   lastRestockedAt?: string;
   updatedAt: string;
@@ -109,6 +94,8 @@ export interface StockMovement {
   referenceType?: "stock_in" | "stock_out" | "order" | "return" | "manual";
   note?: string;
   performedBy: string;
+  performedById?: string;
+  performedByCode?: string;
   performedAt: string;
 }
 
@@ -123,7 +110,10 @@ export interface StockInLineItem {
   sku: string;
   quantityOrdered: number;
   quantityReceived: number;
+  quantityDamaged: number;
+  quantityShort: number;
   costPrice: number;
+  sellingPrice?: number;
   note?: string;
 }
 
@@ -132,8 +122,6 @@ export interface StockInRecord {
   receiptCode: string;
   supplierId: string;
   supplierName: string;
-  warehouseId: string;
-  warehouseName: string;
   status: StockInStatus;
   lineItems: StockInLineItem[];
   expectedDate: string;
@@ -141,8 +129,14 @@ export interface StockInRecord {
   totalCost: number;
   note?: string;
   createdBy: string;
+  createdById?: string;
+  createdByCode?: string;
   createdAt: string;
   updatedAt: string;
+  predecessorId?: string;
+  predecessorCode?: string;
+  successorId?: string;
+  successorCode?: string;
 }
 
 export interface StockInSummary {
@@ -150,51 +144,14 @@ export interface StockInSummary {
   receiptCode: string;
   supplierId: string;
   supplierName: string;
-  warehouseId: string;
-  warehouseName: string;
   status: StockInStatus;
   itemCount: number;
   totalCost: number;
   expectedDate: string;
   receivedDate?: string;
   createdBy: string;
-  createdAt: string;
-}
-
-// ── Stock Out ─────────────────────────────────────────────────────────────────
-
-export interface StockOutLineItem {
-  id: string;
-  productId: string;
-  variantId: string;
-  productName: string;
-  variantName: string;
-  sku: string;
-  quantity: number;
-  note?: string;
-}
-
-export interface StockOutRecord {
-  id: string;
-  reason: StockOutReason;
-  status: StockOutStatus;
-  lineItems: StockOutLineItem[];
-  scheduledDate?: string;
-  completedDate?: string;
-  note?: string;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-export interface StockOutSummary {
-  id: string;
-  reason: StockOutReason;
-  status: StockOutStatus;
-  itemCount: number;
-  scheduledDate?: string;
-  completedDate?: string;
-  createdBy: string;
+  createdById?: string;
+  createdByCode?: string;
   createdAt: string;
 }
 
@@ -202,48 +159,63 @@ export interface StockOutSummary {
 
 export interface ReturnLineItem {
   id: string;
-  productId: string;
+  productId?: string;
   variantId: string;
-  productName: string;
   variantName: string;
-  sku: string;
+  productName: string;
+  sku?: string;
+  thumbnailUrl?: string;
   quantity: number;
-  condition?: "good" | "damaged" | "unusable";
-  note?: string;
+  refundedQty: number;
+}
+
+export interface ReturnResolutionRecord {
+  id: string;
+  resolution: ReturnResolution;
+  status: "DangXuLy" | "HoanThanh" | "ThatBai";
+  soTienHoan?: number;
+  phuongThucHoan?: string;
+  maBaoHanhHang?: string;
+  ngayGuiHangBaoHanh?: string;
+  ngayNhanHangVe?: string;
+  ketQuaBaoHanh?: string;
+  createdAt: string;
 }
 
 export interface ReturnRequest {
   id: string;
   orderId: string;
+  orderCode?: string;
   customerId: string;
   customerName: string;
+  requestType: ReturnRequestType;
   status: ReturnRequestStatus;
-  reason: ReturnReason;
-  resolution: ReturnResolution;
+  reason: string;
+  description?: string;
+  resolution?: ReturnResolution;
+  resolutionRecord?: ReturnResolutionRecord;
   lineItems: ReturnLineItem[];
-  refundAmount: number;
+  inspectionResult?: string;
+  processedByName?: string;
+  processedById?: string;
   requestedAt: string;
-  approvedAt?: string;
-  receivedAt?: string;
-  completedAt?: string;
-  adminNote?: string;
-  customerNote?: string;
-  processedBy?: string;
   updatedAt: string;
 }
 
 export interface ReturnRequestSummary {
   id: string;
   orderId: string;
+  orderCode?: string;
   customerId: string;
-  customerName: string;
+  customerName?: string;
+  requestType: ReturnRequestType;
   status: ReturnRequestStatus;
-  reason: ReturnReason;
-  resolution: ReturnResolution;
+  reason: string;
+  resolution?: ReturnResolution;
   itemCount: number;
-  refundAmount: number;
   requestedAt: string;
-  processedBy?: string;
+  processedByName?: string;
+  processedById?: string;
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -256,4 +228,109 @@ export interface InventoryStats {
   pendingStockIn: number;
   pendingReturns: number;
   totalInventoryValue: number;
+}
+
+export interface TopMovingSku {
+  variantId: string;
+  sku: string;
+  productName: string;
+  variantName: string;
+  thumbnailUrl?: string;
+  totalSold: number;
+  turnoverRate: number;
+}
+
+export interface UrgentReorderItem {
+  variantId: string;
+  sku: string;
+  productName: string;
+  variantName: string;
+  quantityOnHand: number;
+  reorderPoint: number;
+  urgency: "khan_cap" | "can_som" | "binh_thuong";
+}
+
+export interface InventoryKpiDashboard {
+  basicStats: InventoryStats;
+  deadStockCount: number;
+  deadStockValue: number;
+  pendingImportValue: number;
+  turnoverRate: number;
+  fillRate: number;
+  topMovingSkus: TopMovingSku[];
+  urgentReorders: UrgentReorderItem[];
+}
+
+// ── Stock Batch ───────────────────────────────────────────────────────────────
+
+export interface StockBatch {
+  id: string;
+  maLo: string;
+  variantId: string;
+  importReceiptId: string;
+  receiptCode: string;
+  quantityImported: number;
+  quantityRemaining: number;
+  costPrice: number;
+  importedAt: string;
+  expiresAt?: string;
+  note?: string;
+  createdBy?: string;
+  createdByCode?: string;
+  // Enriched by getBatchesByVariant
+  productId?: string;
+  productName?: string;
+  variantName?: string;
+  sku?: string;
+  sellingPrice?: number;
+  thumbnailUrl?: string;
+  trangThai?: 'con_hang' | 'da_het';
+  /** Oldest batch with remaining stock — next to be deducted by FIFO */
+  isNextFifo?: boolean;
+}
+
+
+// ── Export Receipts ───────────────────────────────────────────────────────────
+
+export type LoaiPhieuXuat = "XuatHuy" | "XuatDieuChinh" | "XuatNoiBo" | "XuatBan";
+
+export interface ExportReceiptSummaryDto {
+  id: string;
+  receiptCode: string;
+  loaiPhieu: LoaiPhieuXuat;
+  loaiPhieuLabel: string;
+  createdById: string;
+  createdByCode: string;
+  createdBy: string;
+  lyDo: string;
+  itemCount: number;
+  totalQty: number;
+  tongGiaVon: number;
+  createdAt: string;
+}
+
+export interface BatchDeductionDto {
+  loId: string;
+  maLo: string;
+  soLuong: number;
+  giaVon: number;
+}
+
+export interface ExportReceiptLineItemDto {
+  id: string;
+  variantId: string;
+  productId: string;
+  productName: string;
+  variantName: string;
+  sku: string;
+  quantityExported: number;
+  costPrice: number;
+  totalCost: number;
+  batchesDeducted: BatchDeductionDto[];
+  note?: string;
+}
+
+export interface ExportReceiptDetailDto extends ExportReceiptSummaryDto {
+  ghiChu?: string;
+  lineItems: ExportReceiptLineItemDto[];
 }

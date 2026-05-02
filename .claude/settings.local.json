@@ -38,7 +38,18 @@
       "Bash(find /d -name \"*.docx\")",
       "Bash(pandoc \"D:/Online PC Store System/Documentation/System Design/Docs/Tài liệu đặc tả ERD - Hệ thống bán lẻ máy tính & linh kiện trực tuyến.docx\" -t markdown --wrap=none)",
       "Bash(PYTHONUTF8=1 python generate_backend_doc.py)",
-      "Bash(curl -s http://localhost:4000/api/categories)"
+      "Bash(curl -s http://localhost:4000/api/categories)",
+      "Bash(rm -f src/types/warehouse.types.ts src/lib/validators/warehouse.schema.ts src/services/warehouse.service.ts src/components/admin/inventory/WarehousesPageClient.tsx src/components/admin/inventory/WarehousesTable.tsx src/components/admin/inventory/WarehouseDetailClient.tsx src/components/admin/inventory/WarehouseFormModal.tsx src/components/admin/inventory/WarehouseStockLevelsTab.tsx src/components/admin/inventory/WarehouseStockHistoryTab.tsx src/components/admin/inventory/WarehouseImportReceiptsTab.tsx src/components/admin/inventory/WarehouseAdjustStockModal.tsx src/components/admin/inventory/WarehouseLocationPicker.tsx src/components/admin/inventory/EmployeeCombobox.tsx)",
+      "Bash(rm -rf \"src/app/\\(dashboard\\)/inventory/warehouses\")",
+      "Bash(Get-ChildItem -Path \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\inventory\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(ConvertTo-Json)",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\inventory\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName })",
+      "PowerShell(Get-ChildItem -Path \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\components\\\\admin\\\\inventory\" -Recurse -Force | Select-Object FullName | ForEach-Object { $_.FullName })",
+      "Bash(del *)",
+      "PowerShell(Remove-Item *)",
+      "Bash(pandoc *)",
+      "Bash(xargs cat *)"
     ]
   }
 }

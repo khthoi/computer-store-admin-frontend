@@ -77,6 +77,10 @@ export interface GetTransactionsParams {
   denNgay?: string;
   /** Search theo ma_giao_dich_ngoai hoặc ma_don_hang */
   q?: string;
+  /** Cột sort: ngayTao | soTien | tenKhachHang | thoiDiemThanhToan */
+  sortBy?: string;
+  /** Chiều sort */
+  sortDir?: "asc" | "desc";
 }
 
 export interface GetTransactionsResult {

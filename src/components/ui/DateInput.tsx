@@ -451,7 +451,7 @@ export function DateInput({
 
   const [open, setOpen] = useState(false);
   const [dropdownPos, setDropdownPos] = useState<{
-    top: number; left: number; width: number; flipUp: boolean;
+    top: number; left: number; width: number; flipUp: boolean; flipLeft: boolean;
   } | null>(null);
 
   // ── Time panel state (ephemeral — initialized when panel opens) ────────────
@@ -493,14 +493,17 @@ export function DateInput({
   const PANEL_H = 335;
 
   // ── Position: portal alignment ────────────────────────────────────────────
+  const PANEL_W = 288;
+
   const updatePosition = useCallback(() => {
     const el = containerRef.current ?? triggerRef.current;
     if (!el) return;
     const rect       = el.getBoundingClientRect();
     const spaceBelow = window.innerHeight - rect.bottom;
     const flipUp     = spaceBelow < PANEL_H && rect.top > spaceBelow;
-    setDropdownPos({ top: flipUp ? rect.top : rect.bottom + 4, left: rect.left, width: rect.width, flipUp });
-  }, [PANEL_H]);
+    const flipLeft   = rect.left + PANEL_W > window.innerWidth && rect.right >= PANEL_W;
+    setDropdownPos({ top: flipUp ? rect.top : rect.bottom + 4, left: rect.left, width: rect.width, flipUp, flipLeft });
+  }, [PANEL_H, PANEL_W]);
 
   useEffect(() => {
     if (!open) { setDropdownPos(null); return; }
@@ -645,7 +648,8 @@ export function DateInput({
             style={{
               top:    dropdownPos.flipUp ? undefined : `${dropdownPos.top}px`,
               bottom: dropdownPos.flipUp ? `${window.innerHeight - dropdownPos.top + 4}px` : undefined,
-              left:   `${dropdownPos.left}px`,
+              left:   dropdownPos.flipLeft ? undefined : `${dropdownPos.left}px`,
+              right:  dropdownPos.flipLeft ? `${window.innerWidth - dropdownPos.left - dropdownPos.width}px` : undefined,
               minWidth: "288px",
             }}
           >

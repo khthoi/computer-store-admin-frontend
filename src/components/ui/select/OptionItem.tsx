@@ -79,11 +79,11 @@ export function OptionItem({
         </span>
       )}
 
-      {/* Label + description */}
+      {/* Label + subLabel + description */}
       <span className="flex-1 min-w-0 pt-px">
         <span
           className={[
-            "block truncate",
+            "block truncate text-sm text-secondary-900",
             boldLabel ? "font-semibold" : "",
           ]
             .filter(Boolean)
@@ -91,6 +91,11 @@ export function OptionItem({
         >
           {option.label}
         </span>
+        {option.subLabel && (
+          <span className="block truncate text-sm text-secondary-500 mt-0.5">
+            {option.subLabel}
+          </span>
+        )}
         {option.description && (
           <span className="block truncate text-xs text-secondary-400 font-mono mt-0.5">
             {option.description}

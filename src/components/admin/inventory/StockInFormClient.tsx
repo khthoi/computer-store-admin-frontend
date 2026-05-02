@@ -1,17 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PlusIcon, TrashIcon, LockClosedIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, TrashIcon, LockClosedIcon, ClockIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Select, type SelectOption } from "@/src/components/ui/Select";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { DateInput } from "@/src/components/ui/DateInput";
+import { Skeleton } from "@/src/components/ui/Skeleton";
+import { Badge } from "@/src/components/ui/Badge";
 import { useToast } from "@/src/components/ui/Toast";
-import { createStockIn } from "@/src/services/inventory.service";
+import {
+  createStockIn,
+  getNextReceiptCode,
+  getBatchesByVariant,
+} from "@/src/services/inventory.service";
 import { formatVND } from "@/src/lib/format";
-import type { Supplier, Warehouse, InventoryItem } from "@/src/types/inventory.types";
+import type { Supplier, InventoryItem, StockBatch } from "@/src/types/inventory.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -27,57 +33,126 @@ interface LineItemDraft {
   quantityOrdered: number;
   costPrice: number;
   note?: string;
+  serialsText?: string;
+  batchInfo: StockBatch[] | null;
+  isFetchingBatches: boolean;
+}
+
+interface PrefillData {
+  variantId?: string;
+  qty?: number;
+  supplierId?: string;
+  note?: string;
+  lineNote?: string;
+  expectedDate?: string;
 }
 
 interface StockInFormClientProps {
   suppliers: Supplier[];
-  warehouses: Warehouse[];
   inventoryItems: InventoryItem[];
-  receiptCode: string;
+  prefill?: PrefillData;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function formatDate(iso?: string): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("vi-VN");
 }
 
 // ─── StockInFormClient ────────────────────────────────────────────────────────
 
 export function StockInFormClient({
   suppliers,
-  warehouses,
   inventoryItems,
-  receiptCode,
+  prefill,
 }: StockInFormClientProps) {
   const router = useRouter();
   const { showToast } = useToast();
 
-  const defaultWarehouse = warehouses.find((w) => w.isDefault) ?? warehouses[0];
+  // ── Feature A: receipt code preview ──
+  const [receiptCodeDisplay, setReceiptCodeDisplay] = useState<string>("");
+  const [isLoadingCode, setIsLoadingCode] = useState(true);
 
-  const [supplierId, setSupplierId] = useState("");
-  const [warehouseId, setWarehouseId] = useState(defaultWarehouse?.id ?? "");
-  const [expectedDate, setExpectedDate] = useState("");
-  const [note, setNote] = useState("");
-  const [lineItems, setLineItems] = useState<LineItemDraft[]>([]);
+  useEffect(() => {
+    getNextReceiptCode()
+      .then((code) => setReceiptCodeDisplay(code))
+      .catch(() => setReceiptCodeDisplay(""))
+      .finally(() => setIsLoadingCode(false));
+  }, []);
+
+  // Resolve prefill item once from props (stable reference)
+  const prefillItem = prefill?.variantId
+    ? inventoryItems.find((i) => i.variantId === prefill.variantId) ?? null
+    : null;
+
+  const [supplierId, setSupplierId] = useState(prefill?.supplierId ?? "");
+  const [expectedDate, setExpectedDate] = useState(prefill?.expectedDate ?? "");
+  const [note, setNote] = useState(prefill?.note ?? "");
+  const [lineItems, setLineItems] = useState<LineItemDraft[]>(() => {
+    if (!prefillItem) return [];
+    return [
+      {
+        draftId: `draft-prefill-${Date.now()}`,
+        inventoryItemId: prefillItem.id,
+        productId: prefillItem.productId,
+        variantId: prefillItem.variantId,
+        productName: prefillItem.productName,
+        variantName: prefillItem.variantName,
+        sku: prefillItem.sku,
+        quantityOnHand: prefillItem.quantityOnHand,
+        quantityOrdered: prefill?.qty ?? 1,
+        costPrice: prefillItem.costPrice,
+        note: prefill?.lineNote,
+        batchInfo: null,
+        isFetchingBatches: true,
+      },
+    ];
+  });
   const [isSaving, setIsSaving] = useState(false);
+
+  // Fetch batches for the pre-filled line item
+  useEffect(() => {
+    if (!prefillItem) return;
+    getBatchesByVariant(prefillItem.variantId)
+      .then((batches) => {
+        const active = batches.filter((b) => b.quantityRemaining > 0);
+        setLineItems((prev) =>
+          prev.map((l) =>
+            l.variantId === prefillItem.variantId
+              ? { ...l, batchInfo: active, isFetchingBatches: false }
+              : l
+          )
+        );
+      })
+      .catch(() => {
+        setLineItems((prev) =>
+          prev.map((l) =>
+            l.variantId === prefillItem.variantId
+              ? { ...l, batchInfo: [], isFetchingBatches: false }
+              : l
+          )
+        );
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const supplierOptions = suppliers
     .filter((s) => s.status === "active")
     .map((s) => ({ value: s.id, label: s.name }));
 
-  const warehouseOptions = warehouses.map((w) => ({
-    value: w.id,
-    label: w.name,
-  }));
-
   const selectedSupplier = suppliers.find((s) => s.id === supplierId);
-  const selectedWarehouse = warehouses.find((w) => w.id === warehouseId);
 
-  // IDs already added (for duplicate prevention)
   const addedInventoryIds = lineItems.map((l) => l.inventoryItemId).filter(Boolean);
 
-  // Build Select options for a given line item — disables items already picked in other rows
+  // ── Feature B: 3-row option display ──
   function buildProductOptions(currentSelectedId: string): SelectOption[] {
     const otherAddedIds = addedInventoryIds.filter((id) => id !== currentSelectedId);
     return inventoryItems.map((item) => ({
       value: item.id,
-      label: `${item.productName} — ${item.variantName}`,
-      description: item.sku,
+      label: item.productName,
+      subLabel: item.variantName,
+      description: `SKU: ${item.sku}`,
       badge:
         item.quantityOnHand === 0
           ? { text: `Kho: ${item.quantityOnHand}`, variant: "error" as const }
@@ -102,6 +177,8 @@ export function StockInFormClient({
         quantityOnHand: 0,
         quantityOrdered: 1,
         costPrice: 0,
+        batchInfo: null,
+        isFetchingBatches: false,
       },
     ]);
   }
@@ -110,27 +187,54 @@ export function StockInFormClient({
     setLineItems((prev) => prev.filter((l) => l.draftId !== draftId));
   }
 
+  // ── Feature C: fetch batches on variant select (with stale-fetch guard) ──
   function selectProduct(draftId: string, item: InventoryItem) {
+    const variantIdToFetch = item.variantId;
     setLineItems((prev) =>
       prev.map((l) =>
         l.draftId === draftId
           ? {
-            ...l,
-            inventoryItemId: item.id,
-            productId: item.productId,
-            variantId: item.variantId,
-            productName: item.productName,
-            variantName: item.variantName,
-            sku: item.sku,
-            quantityOnHand: item.quantityOnHand,
-            costPrice: item.costPrice,
-          }
+              ...l,
+              inventoryItemId: item.id,
+              productId: item.productId,
+              variantId: item.variantId,
+              productName: item.productName,
+              variantName: item.variantName,
+              sku: item.sku,
+              quantityOnHand: item.quantityOnHand,
+              costPrice: item.costPrice,
+              batchInfo: null,
+              isFetchingBatches: true,
+            }
           : l
       )
     );
+
+    getBatchesByVariant(variantIdToFetch)
+      .then((batches) => {
+        const activeBatches = batches.filter((b) => b.quantityRemaining > 0);
+        setLineItems((prev) =>
+          prev.map((l) => {
+            if (l.draftId !== draftId || l.variantId !== variantIdToFetch) return l;
+            return { ...l, batchInfo: activeBatches, isFetchingBatches: false };
+          })
+        );
+      })
+      .catch(() => {
+        setLineItems((prev) =>
+          prev.map((l) => {
+            if (l.draftId !== draftId || l.variantId !== variantIdToFetch) return l;
+            return { ...l, batchInfo: [], isFetchingBatches: false };
+          })
+        );
+      });
   }
 
-  function updateLine(draftId: string, field: "quantityOrdered" | "costPrice" | "note", value: number | string) {
+  function updateLine(
+    draftId: string,
+    field: "quantityOrdered" | "costPrice" | "note" | "serialsText",
+    value: number | string
+  ) {
     setLineItems((prev) =>
       prev.map((l) => (l.draftId === draftId ? { ...l, [field]: value } : l))
     );
@@ -140,21 +244,18 @@ export function StockInFormClient({
 
   const isValid =
     !!supplierId &&
-    !!warehouseId &&
     !!expectedDate &&
     lineItems.length > 0 &&
     lineItems.every((l) => l.inventoryItemId && l.quantityOrdered >= 1);
 
   async function handleSubmit() {
-    if (!isValid || !selectedSupplier || !selectedWarehouse) return;
+    if (!isValid || !selectedSupplier) return;
     setIsSaving(true);
     try {
       const record = await createStockIn({
-        receiptCode,
+        receiptCode: "",
         supplierId,
         supplierName: selectedSupplier.name,
-        warehouseId,
-        warehouseName: selectedWarehouse.name,
         expectedDate,
         note: note.trim() || undefined,
         lineItems: lineItems.map((l, idx) => ({
@@ -170,10 +271,10 @@ export function StockInFormClient({
           note: l.note?.trim() || undefined,
         })),
       });
-      showToast(`Stock-in ${record.id} created.`, "success");
+      showToast(`Tạo phiếu nhập ${record.id} thành công.`, "success");
       router.push(`/inventory/stock-in/${record.id}`);
     } catch {
-      showToast("Failed to create stock-in.", "error");
+      showToast("Tạo phiếu nhập thất bại.", "error");
     } finally {
       setIsSaving(false);
     }
@@ -185,20 +286,26 @@ export function StockInFormClient({
       <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-5">
         <h2 className="text-sm font-semibold text-secondary-900">Chi tiết phiếu nhập</h2>
 
-        {/* Row 1: Receipt code | Supplier | Warehouse */}
-        <div className="grid gap-4 sm:grid-cols-3">
-          {/* Receipt Code — read-only */}
+        {/* Row 1: Receipt code | Supplier */}
+        <div className="grid gap-4 sm:grid-cols-2">
+          {/* Receipt Code — read-only, fetched on mount (Feature A) */}
           <div>
             <label className="mb-1 block text-sm font-medium text-secondary-700">
               Mã phiếu nhập
             </label>
-            <div className="flex items-center gap-2 rounded-lg border border-secondary-200 bg-secondary-50 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border border-secondary-200 bg-secondary-50 px-3 py-2 min-h-[38px]">
               <LockClosedIcon className="w-3.5 h-3.5 shrink-0 text-secondary-400" aria-hidden="true" />
-              <span className="flex-1 font-mono text-sm text-secondary-600 select-all">
-                {receiptCode}
-              </span>
+              {isLoadingCode ? (
+                <Skeleton className="h-4 w-36 rounded animate-pulse bg-secondary-200" />
+              ) : (
+                <span className="flex-1 font-mono text-sm text-secondary-400 select-all">
+                  {receiptCodeDisplay || "Mã sẽ được cấp khi tạo phiếu"}
+                </span>
+              )}
             </div>
-            <p className="mt-1 text-xs text-secondary-400">Tự động tạo · read-only</p>
+            <p className="mt-1 text-xs text-secondary-400">
+              {isLoadingCode ? "Đang tạo mã..." : "Tự động tạo · read-only"}
+            </p>
           </div>
 
           {/* Supplier */}
@@ -208,14 +315,6 @@ export function StockInFormClient({
             value={supplierId}
             onChange={(v) => setSupplierId(v as string)}
             placeholder="Select supplier…"
-          />
-
-          {/* Warehouse */}
-          <Select
-            label="Kho hàng"
-            options={warehouseOptions}
-            value={warehouseId}
-            onChange={(v) => setWarehouseId(v as string)}
           />
         </div>
 
@@ -250,7 +349,7 @@ export function StockInFormClient({
         {/* Card header */}
         <div className="flex items-center justify-between border-b border-secondary-100 px-6 py-4">
           <h2 className="text-sm font-semibold text-secondary-900">
-            Line Items
+            Danh sách mặt hàng
             {lineItems.length > 0 && (
               <span className="ml-2 rounded-full bg-secondary-100 px-2 py-0.5 text-xs font-semibold text-secondary-600">
                 {lineItems.length}
@@ -264,15 +363,15 @@ export function StockInFormClient({
             className="rounded-lg"
           >
             <PlusIcon className="w-4 h-4" />
-            Add Item
+            Thêm mặt hàng
           </Button>
         </div>
 
         {/* Item cards */}
         {lineItems.length === 0 ? (
           <div className="px-6 py-12 text-center">
-            <p className="text-sm text-secondary-400">No items yet.</p>
-            <p className="mt-1 text-xs text-secondary-300">Click "Add Item" to begin building your order.</p>
+            <p className="text-sm text-secondary-400">Chưa có mặt hàng nào.</p>
+            <p className="mt-1 text-xs text-secondary-300">Bấm "Thêm mặt hàng" để bắt đầu.</p>
           </div>
         ) : (
           <div className="divide-y divide-secondary-100">
@@ -310,20 +409,106 @@ export function StockInFormClient({
                     </Button>
                   </div>
 
+                  {/* Feature C: Lô hàng hiện có — hiện ngay sau khi chọn variant */}
+                  {li.inventoryItemId && (
+                    <div className="mt-2 pt-2 border-t border-secondary-100">
+                      {li.isFetchingBatches ? (
+                        <div className="space-y-2 py-1">
+                          <Skeleton className="h-4 w-32 rounded animate-pulse bg-secondary-200" />
+                          <Skeleton className="h-8 w-full rounded animate-pulse bg-secondary-200" />
+                          <Skeleton className="h-8 w-full rounded animate-pulse bg-secondary-200" />
+                        </div>
+                      ) : li.batchInfo !== null && li.batchInfo.length === 0 ? (
+                        <div className="flex flex-col items-center py-4 gap-2">
+                          <ArchiveBoxIcon className="w-7 h-7 text-secondary-300" />
+                          <p className="text-sm text-secondary-400 italic">Chưa có lô hàng nào còn hàng</p>
+                        </div>
+                      ) : li.batchInfo && li.batchInfo.length > 0 ? (
+                        <div className="bg-white rounded-lg border border-secondary-100 p-3">
+                          {/* Section header */}
+                          <div className="flex items-center gap-2 mb-2">
+                            <span className="text-xs font-medium text-secondary-500">Lô hàng hiện có</span>
+                            <Badge variant="default" size="sm">{li.batchInfo.length} lô</Badge>
+                          </div>
+                          {/* Table header */}
+                          <div className="grid grid-cols-5 gap-2 pb-1.5 mb-1 border-b border-secondary-100">
+                            <span className="text-xs font-medium text-secondary-400 uppercase tracking-wide">Mã lô</span>
+                            <span className="text-xs font-medium text-secondary-400 uppercase tracking-wide">Ngày nhập</span>
+                            <span className="text-xs font-medium text-secondary-400 uppercase tracking-wide text-center">Còn lại</span>
+                            <span className="text-xs font-medium text-secondary-400 uppercase tracking-wide text-right">Giá nhập</span>
+                            <span className="text-xs font-medium text-secondary-400 uppercase tracking-wide text-right">Nhập ban đầu</span>
+                          </div>
+                          {/* Table rows */}
+                          {li.batchInfo.map((batch) => {
+                            const isLow =
+                              batch.quantityImported > 0 &&
+                              batch.quantityRemaining / batch.quantityImported <= 0.2;
+                            return (
+                              <div
+                                key={batch.id}
+                                className="grid grid-cols-5 gap-2 py-1.5 rounded hover:bg-secondary-50"
+                              >
+                                <div className="flex flex-col gap-0.5 min-w-0">
+                                  <span className="font-mono text-xs text-secondary-700 truncate">
+                                    {batch.maLo}
+                                  </span>
+                                  {batch.isNextFifo && (
+                                    <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 border border-amber-200 text-xs px-1.5 py-0.5 rounded-full w-fit whitespace-nowrap">
+                                      <ClockIcon className="w-3 h-3 shrink-0" />
+                                      FIFO – Tiêu trước
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-secondary-600 self-start pt-0.5">
+                                  {formatDate(batch.importedAt)}
+                                </span>
+                                <span
+                                  className={[
+                                    "text-sm font-medium text-center self-start",
+                                    isLow ? "text-orange-600" : "text-secondary-700",
+                                  ].join(" ")}
+                                >
+                                  {batch.quantityRemaining} sp
+                                </span>
+                                <span className="text-sm text-secondary-700 text-right self-start">
+                                  {formatVND(batch.costPrice)}
+                                </span>
+                                <span className="text-sm text-secondary-500 text-right self-start">
+                                  {batch.quantityImported} sp
+                                </span>
+                              </div>
+                            );
+                          })}
+                          {/* Footer */}
+                          <div className="pt-2 mt-1 border-t border-secondary-100">
+                            <span className="text-sm font-medium text-secondary-700">
+                              Tổng còn lại:{" "}
+                              {li.batchInfo.reduce((s, b) => s + b.quantityRemaining, 0)} sản phẩm
+                            </span>
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+
                   {/* Row 2: Qty | Cost | Note — only shown once a product is selected */}
                   {li.inventoryItemId && (
                     <div className="grid grid-cols-3 gap-3">
                       {/* Quantity */}
                       <div>
                         <label className="mb-1 block text-xs font-medium text-secondary-600">
-                          Quantity
+                          Số lượng
                         </label>
                         <input
                           type="number"
                           min={1}
                           value={li.quantityOrdered}
                           onChange={(e) =>
-                            updateLine(li.draftId, "quantityOrdered", Math.max(1, parseInt(e.target.value, 10) || 1))
+                            updateLine(
+                              li.draftId,
+                              "quantityOrdered",
+                              Math.max(1, parseInt(e.target.value, 10) || 1)
+                            )
                           }
                           className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                         />
@@ -335,14 +520,18 @@ export function StockInFormClient({
                       {/* Cost Price */}
                       <div>
                         <label className="mb-1 block text-xs font-medium text-secondary-600">
-                          Cost Price (₫)
+                          Đơn giá nhập (₫)
                         </label>
                         <input
                           type="number"
                           min={0}
                           value={li.costPrice || ""}
                           onChange={(e) =>
-                            updateLine(li.draftId, "costPrice", parseInt(e.target.value, 10) || 0)
+                            updateLine(
+                              li.draftId,
+                              "costPrice",
+                              parseInt(e.target.value, 10) || 0
+                            )
                           }
                           className="w-full rounded-lg border border-secondary-300 bg-white px-3 py-2 text-sm text-secondary-900 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
                         />
@@ -354,7 +543,7 @@ export function StockInFormClient({
                       {/* Note */}
                       <div className="col-span-3">
                         <label className="mb-1 block text-xs font-medium text-secondary-600">
-                          Note
+                          Ghi chú
                         </label>
                         <Textarea
                           value={li.note ?? ""}
@@ -378,10 +567,10 @@ export function StockInFormClient({
         {lineItems.length > 0 && (
           <div className="flex items-center justify-between border-t border-secondary-100 px-6 py-4">
             <span className="text-sm text-secondary-500">
-              {lineItems.filter((l) => l.inventoryItemId).length} of {lineItems.length} item{lineItems.length !== 1 ? "s" : ""} selected
+              {lineItems.filter((l) => l.inventoryItemId).length} / {lineItems.length} mặt hàng đã chọn
             </span>
             <div className="text-sm">
-              <span className="text-secondary-500">Total Cost: </span>
+              <span className="text-secondary-500">Tổng chi phí: </span>
               <span className="text-lg font-bold text-secondary-900">{formatVND(totalCost)}</span>
             </div>
           </div>
@@ -395,7 +584,7 @@ export function StockInFormClient({
           onClick={() => router.push("/inventory/stock-in")}
           className="rounded-xl"
         >
-          Cancel
+          Huỷ
         </Button>
         <Button
           variant="primary"
@@ -404,7 +593,7 @@ export function StockInFormClient({
           isLoading={isSaving}
           className="rounded-xl"
         >
-          Create Stock-In
+          Tạo phiếu nhập
         </Button>
       </div>
     </div>

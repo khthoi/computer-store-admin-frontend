@@ -118,6 +118,7 @@ export interface OrderReturnRequest {
   createdAt: string;
   updatedAt: string;
   processedByName?: string;
+  processedById?: string;
   items: ReturnRequestItem[];
 }
 

@@ -1,18 +1,38 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { getSuppliers, getWarehouses, getInventoryItems, generateReceiptCode } from "@/src/services/inventory.service";
+import { getSuppliers, getInventoryItems } from "@/src/services/inventory.service";
 import { StockInFormClient } from "@/src/components/admin/inventory/StockInFormClient";
 import { Button } from "@/src/components/ui/Button";
 
-export default async function NewStockInPage() {
-  const [suppliers, warehouses, inventoryItems] = await Promise.all([
-    getSuppliers(),
-    getWarehouses(),
+interface Props {
+  searchParams: Promise<{
+    variantId?: string;
+    qty?: string;
+    supplierId?: string;
+    note?: string;
+    lineNote?: string;
+    expectedDate?: string;
+  }>;
+}
+
+export default async function NewStockInPage({ searchParams }: Props) {
+  const [suppliersPage, inventoryItemsPage, params] = await Promise.all([
+    getSuppliers({ limit: 200 }),
     getInventoryItems(),
+    searchParams,
   ]);
-  const receiptCode = generateReceiptCode();
+  const suppliers = suppliersPage.data;
+  const inventoryItems = inventoryItemsPage?.data ?? [];
+
+  const prefill = {
+    variantId: params.variantId,
+    qty: params.qty ? parseInt(params.qty, 10) : undefined,
+    supplierId: params.supplierId,
+    note: params.note,
+    lineNote: params.lineNote,
+    expectedDate: params.expectedDate,
+  };
 
   return (
     <div className="p-6 space-y-4">
@@ -34,9 +54,8 @@ export default async function NewStockInPage() {
       </div>
       <StockInFormClient
         suppliers={suppliers}
-        warehouses={warehouses}
         inventoryItems={inventoryItems}
-        receiptCode={receiptCode}
+        prefill={prefill}
       />
     </div>
   );

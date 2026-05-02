@@ -122,7 +122,7 @@ export function ColumnConfigurator({
         onClick={() => setOpen((prev) => !prev)}
         className={[
           "flex h-9 w-9 items-center justify-center rounded-lg border transition-colors",
-          "focus:outline-none focus:ring-2 focus:ring-primary-500",
+          "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
           open
             ? "border-primary-400 bg-primary-50 text-primary-600"
             : "border-secondary-200 bg-white text-secondary-500 hover:border-secondary-300 hover:bg-secondary-50 hover:text-secondary-700",

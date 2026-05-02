@@ -1,16 +1,16 @@
 "use client";
 
-import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, ChevronUpIcon, ArrowTopRightOnSquareIcon } from "@heroicons/react/24/outline";
 import { useState } from "react";
+import Link from "next/link";
 import { Badge } from "@/src/components/ui/Badge";
-import { Button } from "@/src/components/ui/Button";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import type { OrderReturnRequest, ReturnRequestStatus, ReturnRequestType } from "@/src/types/order.types";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface OrderReturnRequestsCardProps {
   requests: OrderReturnRequest[];
-  onProcessRefund: (request: OrderReturnRequest) => void;
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ function formatDate(iso: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function OrderReturnRequestsCard({ requests, onProcessRefund }: OrderReturnRequestsCardProps) {
+export function OrderReturnRequestsCard({ requests }: OrderReturnRequestsCardProps) {
   const [expanded, setExpanded] = useState<Set<number>>(new Set());
 
   if (requests.length === 0) return null;
@@ -64,10 +64,6 @@ export function OrderReturnRequestsCard({ requests, onProcessRefund }: OrderRetu
         {requests.map((req) => {
           const statusCfg  = STATUS_CONFIG[req.status] ?? STATUS_CONFIG.ChoDuyet;
           const isExpanded = expanded.has(req.id);
-          const canRefund  =
-            (req.status === "DaDuyet" || req.status === "DangXuLy") &&
-            req.resolution === "HoanTien" &&
-            req.items.some((i) => i.refundedQty < i.requestedQty);
 
           return (
             <div key={req.id} className="px-4 py-3 space-y-2">
@@ -94,7 +90,9 @@ export function OrderReturnRequestsCard({ requests, onProcessRefund }: OrderRetu
 
               {/* Reason + date */}
               <div className="flex items-center justify-between text-xs text-secondary-500">
-                <span className="truncate max-w-[180px]">{req.reason}</span>
+                <Tooltip content={req.reason} placement="left" multiline maxWidth="400px">
+                  <span className="truncate max-w-[180px] cursor-default">{req.reason}</span>
+                </Tooltip>
                 <span>{formatDate(req.createdAt)}</span>
               </div>
 
@@ -146,23 +144,30 @@ export function OrderReturnRequestsCard({ requests, onProcessRefund }: OrderRetu
 
                   {req.processedByName && (
                     <p className="text-xs text-secondary-400">
-                      Xử lý bởi <span className="font-medium text-secondary-600">{req.processedByName}</span>
+                      Xử lý bởi{" "}
+                      {req.processedById ? (
+                        <Link
+                          href={`/employees/${req.processedById}`}
+                          className="font-medium text-secondary-600 hover:text-primary-600 hover:underline"
+                        >
+                          {req.processedByName}
+                        </Link>
+                      ) : (
+                        <span className="font-medium text-secondary-600">{req.processedByName}</span>
+                      )}
                     </p>
                   )}
+
+                  <Link
+                    href={`/orders/returns/${req.id}`}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                  >
+                    Xem chi tiết phiếu
+                    <ArrowTopRightOnSquareIcon className="w-3 h-3" aria-hidden="true" />
+                  </Link>
                 </div>
               )}
 
-              {/* Action */}
-              {canRefund && (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={() => onProcessRefund(req)}
-                  className="w-full"
-                >
-                  Xử lý hoàn tiền từ yêu cầu này
-                </Button>
-              )}
             </div>
           );
         })}

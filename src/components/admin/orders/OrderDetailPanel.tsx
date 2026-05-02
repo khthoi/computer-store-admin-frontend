@@ -96,10 +96,10 @@ export function OrderDetailPanel({ order, refundedQtyByVariantId = {} }: OrderDe
         </div>
 
         {order.customerNote && (
-          <div className="mt-3 rounded-xl border border-warning-200 bg-warning-50 px-3 py-2 text-sm text-warning-800">
-            <span className="font-semibold">Note: </span>
+          <p className="mt-3 text-sm text-secondary-600">
+            <span className="font-semibold text-secondary-800">Note: </span>
             {order.customerNote}
-          </div>
+          </p>
         )}
       </div>
 

@@ -19,6 +19,7 @@ import {
 import {
   cloneElement,
   isValidElement,
+  useEffect,
   useRef,
   useState,
   type ReactElement,
@@ -79,6 +80,13 @@ export interface TooltipProps {
    */
   anchorToContent?: boolean;
   /**
+   * When true, clicking the tooltip panel copies `content` (as plain text)
+   * to the clipboard. A ✓ indicator is shown for ~3.5 s then resets.
+   * Rapid re-clicks restart the timer so the user can copy multiple times.
+   * @default false
+   */
+  copy?: boolean;
+  /**
    * Trigger element. Must be a single React element so Floating UI can
    * attach its ref directly to the real DOM node (native HTML elements and
    * `forwardRef` components both work).
@@ -112,10 +120,25 @@ export function Tooltip({
   multiline = false,
   disabled = false,
   anchorToContent = false,
+  copy = false,
   children,
 }: TooltipProps) {
   const [open, setOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const arrowRef = useRef<HTMLDivElement>(null);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => { if (copyTimerRef.current) clearTimeout(copyTimerRef.current); };
+  }, []);
+
+  function handleCopy() {
+    const text = typeof content === "string" ? content : String(content ?? "");
+    navigator.clipboard.writeText(text).catch(() => {});
+    if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+    setCopied(true);
+    copyTimerRef.current = setTimeout(() => setCopied(false), 1500);
+  }
 
   const {
     refs,
@@ -192,12 +215,17 @@ export function Tooltip({
     // empty space after truncated text) triggers the tooltip. The inner span
     // carries only the positioning ref so Floating UI anchors to the text
     // bounding box rather than the full-width container.
-    trigger = cloneElement(childEl, { ...getReferenceProps() }, innerAnchor);
+    trigger = cloneElement(
+      childEl,
+      { ...getReferenceProps(), ...(copy ? { onClick: handleCopy } : {}) },
+      innerAnchor,
+    );
   } else {
     trigger = isValidElement(children)
       ? cloneElement(children as ReactElement<Record<string, unknown>>, {
           ref: refs.setReference,
           ...getReferenceProps(),
+          ...(copy ? { onClick: handleCopy } : {}),
         })
       : children;
   }
@@ -224,7 +252,21 @@ export function Tooltip({
                   : "whitespace-nowrap leading-none",
               ].join(" ")}
             >
-              {content}
+              {copy ? (
+                <span className="flex items-center gap-1.5">
+                  {copied ? (
+                    <>
+                      <span aria-hidden="true">✓</span>
+                      <span>Đã sao chép</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{content}</span>
+                      <span aria-hidden="true" className="opacity-60 text-[10px]">⎘</span>
+                    </>
+                  )}
+                </span>
+              ) : content}
             </div>
           </div>
         )}

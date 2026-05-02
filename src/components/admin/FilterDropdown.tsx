@@ -74,7 +74,7 @@ export function FilterDropdown({
 }: FilterDropdownProps) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [position, setPosition] = useState<{ top: number; left: number; width: number } | null>(null);
+  const [position, setPosition] = useState<{ top: number; left?: number; right?: number; width: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const searchRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -95,12 +95,24 @@ export function FilterDropdown({
     const updatePosition = () => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (rect) {
-        // For fixed positioning, use viewport coordinates directly (no scroll offset needed)
-        setPosition({
-          top: rect.bottom + 6, // mt-1.5 = 6px gap
-          left: rect.left,
-          width: rect.width,
-        });
+        const dropdownWidth = Math.max(rect.width, 200);
+        const viewportWidth = window.innerWidth;
+        const MARGIN = 8;
+        const wouldOverflowRight = rect.left + dropdownWidth > viewportWidth - MARGIN;
+
+        if (wouldOverflowRight) {
+          setPosition({
+            top: rect.bottom + 6,
+            right: viewportWidth - rect.right,
+            width: dropdownWidth,
+          });
+        } else {
+          setPosition({
+            top: rect.bottom + 6,
+            left: rect.left,
+            width: dropdownWidth,
+          });
+        }
       }
     };
 
@@ -214,8 +226,10 @@ export function FilterDropdown({
             className="fixed z-[9999] min-w-[200px] rounded-xl border border-secondary-200 bg-white shadow-lg"
             style={{
               top: `${position.top}px`,
-              left: `${position.left}px`,
-              width: `${Math.max(position.width, 200)}px`,
+              ...(position.right !== undefined
+                ? { right: `${position.right}px` }
+                : { left: `${position.left}px` }),
+              width: `${position.width}px`,
             }}
           >
             {/* Search */}

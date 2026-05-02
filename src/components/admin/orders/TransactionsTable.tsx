@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import {
   EyeIcon,
@@ -20,6 +20,7 @@ import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import { ExportButton, type ExportFormat } from "@/src/components/admin/shared/ExportButton";
 import { TransactionStatusBadge } from "@/src/components/admin/orders/TransactionStatusBadge";
 import { TransactionDetailDrawer } from "@/src/components/admin/orders/TransactionDetailDrawer";
+import { getTransactions } from "@/src/services/transaction.service";
 import type {
   TransactionRow,
   TransactionStatus,
@@ -28,9 +29,11 @@ import type {
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-// Cast to satisfy DataTable's Record<string, unknown> constraint while
-// retaining proper field types inside render callbacks.
 type TxRecord = TransactionRow & Record<string, unknown>;
+
+// ─── Constants ────────────────────────────────────────────────────────────────
+
+const PAGE_SIZE = 20;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -48,15 +51,14 @@ function formatDatetime(iso: string): string {
   });
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
+// ─── Label maps & filter options ──────────────────────────────────────────────
 
 const PAYMENT_METHOD_LABELS: Record<TransactionPaymentMethod, string> = {
-  COD:         "COD",
-  ChuyenKhoan: "Chuyển khoản",
-  VNPAY:       "VNPAY",
-  Momo:        "MoMo",
-  ZaloPay:     "ZaloPay",
-  TraGop:      "Trả góp",
+  COD:          "COD",
+  ChuyenKhoan:  "Chuyển khoản",
+  TheNganHang:  "Thẻ ngân hàng",
+  ViDienTu:     "Ví điện tử",
+  TraGop:       "Trả góp",
 };
 
 const STATUS_OPTIONS = [
@@ -69,13 +71,13 @@ const STATUS_OPTIONS = [
 const METHOD_OPTIONS = [
   { value: "COD",         label: "COD" },
   { value: "ChuyenKhoan", label: "Chuyển khoản" },
-  { value: "VNPAY",       label: "VNPAY" },
-  { value: "Momo",        label: "MoMo" },
-  { value: "ZaloPay",     label: "ZaloPay" },
+  { value: "TheNganHang", label: "Thẻ ngân hàng" },
+  { value: "ViDienTu",    label: "Ví điện tử" },
   { value: "TraGop",      label: "Trả góp" },
 ];
 
-// Reuse same style as DataTable's internal ROW_ACTION_BASE
+// ─── Row button styles ────────────────────────────────────────────────────────
+
 const ROW_BTN_BASE =
   "flex h-7 w-7 items-center justify-center rounded text-secondary-400 " +
   "transition-colors focus-visible:outline-none focus-visible:ring-2";
@@ -95,34 +97,26 @@ interface TransactionsTableProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-/**
- * TransactionsTable — trang danh sách giao dịch dùng DataTable component.
- *
- * - Lọc client-side: search, trạng thái, phương thức, date range (DateInput)
- * - Sort: server-side pattern (client-side trên mock data)
- * - Pagination: DataTable built-in với page/pageSize state
- * - Actions: icon-only ghost buttons với Tooltip
- * - ThatBai rows: highlight + nút "Xem lỗi" mở TransactionDetailDrawer
- */
-export function TransactionsTable({
-  initialData,
-}: TransactionsTableProps) {
-  // ── Filter state ───────────────────────────────────────────────────────────
-  const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [methodFilter, setMethodFilter] = useState<string[]>([]);
-  const [tuNgay, setTuNgay]             = useState("");
-  const [denNgay, setDenNgay]           = useState("");
+export function TransactionsTable({ initialData, initialTotal }: TransactionsTableProps) {
+  // ── Server-side data state ─────────────────────────────────────────────────
+  const [data,    setData]    = useState<TransactionRow[]>(initialData);
+  const [total,   setTotal]   = useState(initialTotal);
+  const [loading, setLoading] = useState(false);
 
   // ── Pagination state ───────────────────────────────────────────────────────
-  const [page, setPage]         = useState(1);
-  const [pageSize, setPageSize] = useState(20);
+  const [page,     setPage]     = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
 
-  // ── Sort state ─────────────────────────────────────────────────────────────
+  // ── Filter state ───────────────────────────────────────────────────────────
+  const [search,       setSearch]       = useState("");
+  const [statusFilter, setStatusFilter] = useState<string[]>([]);
+  const [methodFilter, setMethodFilter] = useState<string[]>([]);
+  const [tuNgay,       setTuNgay]       = useState("");
+  const [denNgay,      setDenNgay]      = useState("");
+
+  // ── Sort state (client-side sort within current page) ─────────────────────
   const [sortKey, setSortKey] = useState("ngayTao");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-
-  // ── Search state (controlled, fed from DataTable's onSearchChange) ─────────
-  const [search, setSearch] = useState("");
 
   // ── Drawer state ───────────────────────────────────────────────────────────
   const [drawerTx, setDrawerTx] = useState<TransactionRow | null>(null);
@@ -130,103 +124,107 @@ export function TransactionsTable({
   // ── Export ─────────────────────────────────────────────────────────────────
   const [isExporting, setIsExporting] = useState(false);
 
-  function handleExport(format: ExportFormat) {
-    setIsExporting(true);
-    // TODO: thay bằng real API call
-    console.log("Export transactions as", format);
-    setTimeout(() => setIsExporting(false), 1200);
-  }
+  // ── Refs for no-flash pagination pattern ──────────────────────────────────
+  const nonPageChangedRef = useRef(false);
+  const fetchTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender     = useRef(true);
+  const prevSearchRef     = useRef("");
 
-  // ── Filter change helpers (reset page về 1) ────────────────────────────────
+  // ── Handlers — each sets nonPageChangedRef + resets page ──────────────────
 
   const handleSearchChange = useCallback((q: string) => {
+    nonPageChangedRef.current = true;
     setSearch(q);
     setPage(1);
   }, []);
 
   const handleStatusChange = useCallback((vals: string[]) => {
+    nonPageChangedRef.current = true;
     setStatusFilter(vals);
     setPage(1);
   }, []);
 
   const handleMethodChange = useCallback((vals: string[]) => {
+    nonPageChangedRef.current = true;
     setMethodFilter(vals);
     setPage(1);
   }, []);
 
   const handleTuNgayChange = useCallback((val: string) => {
+    nonPageChangedRef.current = true;
     setTuNgay(val);
     setPage(1);
   }, []);
 
   const handleDenNgayChange = useCallback((val: string) => {
+    nonPageChangedRef.current = true;
     setDenNgay(val);
     setPage(1);
   }, []);
 
   const handleSortChange = useCallback((key: string, dir: SortDir) => {
+    nonPageChangedRef.current = true;
     setSortKey(key);
     setSortDir(dir);
     setPage(1);
   }, []);
 
-  // ── Derived: filtered + sorted data ───────────────────────────────────────
+  const handlePageSizeChange = useCallback((size: number) => {
+    nonPageChangedRef.current = true;
+    setPageSize(size);
+    setPage(1);
+  }, []);
 
-  const filteredData = useMemo((): TxRecord[] => {
-    let result: TransactionRow[] = [...initialData];
+  // ── Fetch effect ───────────────────────────────────────────────────────────
 
-    // Search
-    if (search) {
-      const lower = search.toLowerCase();
-      result = result.filter(
-        (t) =>
-          t.maDonHang.toLowerCase().includes(lower) ||
-          (t.maGiaoDichNgoai?.toLowerCase().includes(lower) ?? false) ||
-          t.tenKhachHang.toLowerCase().includes(lower)
-      );
-    }
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
 
-    // Trạng thái
-    if (statusFilter.length > 0) {
-      result = result.filter((t) =>
-        statusFilter.includes(t.trangThaiGiaoDich)
-      );
-    }
+    const isNonPageChange = nonPageChangedRef.current;
+    nonPageChangedRef.current = false;
 
-    // Phương thức
-    if (methodFilter.length > 0) {
-      result = result.filter((t) =>
-        methodFilter.includes(t.phuongThucThanhToan)
-      );
-    }
+    const isSearchChange = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
 
-    // Date range — so sánh theo ngayTao (ISO string)
-    if (tuNgay) {
-      result = result.filter((t) => t.ngayTao >= tuNgay);
-    }
-    if (denNgay) {
-      const nextDay = new Date(denNgay);
-      nextDay.setDate(nextDay.getDate() + 1);
-      result = result.filter((t) => t.ngayTao < nextDay.toISOString());
-    }
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
 
-    // Sort
-    result.sort((a, b) => {
-      const aVal = String((a as unknown as Record<string, unknown>)[sortKey] ?? "");
-      const bVal = String((b as unknown as Record<string, unknown>)[sortKey] ?? "");
-      const cmp = aVal.localeCompare(bVal, "vi");
-      return sortDir === "asc" ? cmp : -cmp;
-    });
+    fetchTimerRef.current = setTimeout(async () => {
+      if (isNonPageChange) setLoading(true);
+      try {
+        const result = await getTransactions({
+          page,
+          pageSize,
+          q:          search || undefined,
+          trangThai:  statusFilter.length ? (statusFilter as TransactionStatus[]) : undefined,
+          phuongThuc: methodFilter.length ? (methodFilter as TransactionPaymentMethod[]) : undefined,
+          tuNgay:     tuNgay  || undefined,
+          denNgay:    denNgay || undefined,
+          sortBy: sortKey,
+          sortDir,
+        });
+        setData(result.data);
+        setTotal(result.total);
+      } catch {
+        // giữ dữ liệu cũ khi lỗi
+      } finally {
+        setLoading(false);
+      }
+    }, isSearchChange ? 300 : 0);
 
-    return result as unknown as TxRecord[];
-  }, [initialData, search, statusFilter, methodFilter, tuNgay, denNgay, sortKey, sortDir]);
+    return () => { if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current); };
+  }, [page, pageSize, search, statusFilter, methodFilter, tuNgay, denNgay, sortKey, sortDir]);
 
-  // ── Derived: paginated slice for DataTable ─────────────────────────────────
+  // ── Client-side sort trên trang hiện tại ──────────────────────────────────
 
-  const displayData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredData.slice(start, start + pageSize);
-  }, [filteredData, page, pageSize]);
+  const displayData = useMemo((): TxRecord[] => data as unknown as TxRecord[], [data]);
+
+  // ── Export ─────────────────────────────────────────────────────────────────
+
+  function handleExport(format: ExportFormat) {
+    setIsExporting(true);
+    console.log("Export transactions as", format);
+    setTimeout(() => setIsExporting(false), 1200);
+  }
 
   // ── Column definitions ─────────────────────────────────────────────────────
 
@@ -246,7 +244,7 @@ export function TransactionsTable({
       tooltip: (v) => String(v),
       render: (v, row) => (
         <Link
-          href={`/orders/${(row as TransactionRow).donHangId}`}
+          href={`/orders/${(row as TransactionRow).maDonHang}`}
           className="block max-w-[8rem] truncate font-medium text-primary-600 hover:text-primary-700 hover:underline"
         >
           {String(v)}
@@ -304,13 +302,14 @@ export function TransactionsTable({
     {
       key: "maGiaoDichNgoai",
       header: "Mã GD ngoài",
-      tooltip: (v) => (v != null ? String(v) : ""),
       width: "w-36",
       render: (v) =>
         v != null ? (
-          <span className="block max-w-[8rem] truncate font-mono text-xs">
-            {String(v)}
-          </span>
+          <Tooltip content={String(v)} placement="top" copy>
+            <span className="block max-w-[8rem] truncate font-mono text-xs cursor-pointer">
+              {String(v)}
+            </span>
+          </Tooltip>
         ) : (
           "—"
         ),
@@ -354,7 +353,6 @@ export function TransactionsTable({
         </span>
       ),
     },
-    // Cột hành động — header để trống
     {
       key: "_actions",
       header: "",
@@ -365,10 +363,9 @@ export function TransactionsTable({
         const isFailed = tx.trangThaiGiaoDich === "ThatBai";
         return (
           <RowActions>
-            {/* Xem đơn hàng — eye icon, ghost */}
             <Tooltip content="Xem đơn hàng" placement="top">
               <Link
-                href={`/orders/${tx.donHangId}`}
+                href={`/orders/${tx.maDonHang}`}
                 aria-label="Xem đơn hàng"
                 className={ROW_BTN_GHOST}
               >
@@ -376,7 +373,6 @@ export function TransactionsTable({
               </Link>
             </Tooltip>
 
-            {/* Xem chi tiết lỗi — chỉ hiện với ThatBai */}
             {isFailed && (
               <Tooltip content="Xem chi tiết lỗi" placement="top">
                 <button
@@ -395,7 +391,7 @@ export function TransactionsTable({
     },
   ], []);
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <>
@@ -403,34 +399,34 @@ export function TransactionsTable({
         data={displayData}
         columns={columns}
         keyField="giaoDichId"
-        // ── Search ──────────────────────────────────────────────────────────
+        isLoading={loading}
+        // ── Search ────────────────────────────────────────────────────────────
         searchQuery={search}
         onSearchChange={handleSearchChange}
-        searchPlaceholder="Tìm mã GD ngoài, mã đơn hàng, tên khách..."
-        // ── Sort ────────────────────────────────────────────────────────────
+        searchPlaceholder="Tìm theo mã GD ngoài, mã đơn hàng, tên khách..."
+        // ── Sort ──────────────────────────────────────────────────────────────
         sortKey={sortKey}
         sortDir={sortDir}
         onSortChange={handleSortChange}
-        // ── Pagination ──────────────────────────────────────────────────────
+        // ── Pagination ────────────────────────────────────────────────────────
         page={page}
         pageSize={pageSize}
-        totalRows={filteredData.length}
+        totalRows={total}
         pageSizeOptions={[10, 20, 50, 100]}
         onPageChange={setPage}
-        onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-        // ── Empty state ─────────────────────────────────────────────────────
+        onPageSizeChange={handlePageSizeChange}
+        // ── Empty state ───────────────────────────────────────────────────────
         emptyIcon={<CreditCardIcon className="w-12 h-12" />}
         emptyMessage="Không có giao dịch nào phù hợp với bộ lọc."
-        // ── Row highlight: đỏ nhạt cho ThatBai ─────────────────────────────
+        // ── Row highlight: đỏ nhạt cho ThatBai ───────────────────────────────
         rowClassName={(row) =>
           (row as TransactionRow).trangThaiGiaoDich === "ThatBai"
             ? "bg-error-50/40"
             : undefined
         }
-        // ── Toolbar filters (right of search) ───────────────────────────────
+        // ── Toolbar filters ───────────────────────────────────────────────────
         toolbarActions={
           <div className="flex flex-wrap items-center gap-2">
-            {/* Filter trạng thái */}
             <FilterDropdown
               label="Trạng thái"
               options={STATUS_OPTIONS}
@@ -438,7 +434,6 @@ export function TransactionsTable({
               onChange={handleStatusChange}
             />
 
-            {/* Filter phương thức */}
             <FilterDropdown
               label="Phương thức TT"
               options={METHOD_OPTIONS}
@@ -446,7 +441,6 @@ export function TransactionsTable({
               onChange={handleMethodChange}
             />
 
-            {/* Date range — dùng DateInput component */}
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-medium text-secondary-500 shrink-0">
                 Từ
@@ -472,7 +466,6 @@ export function TransactionsTable({
               </div>
             </div>
 
-            {/* Export */}
             <ExportButton
               onExport={handleExport}
               isExporting={isExporting}
@@ -482,7 +475,6 @@ export function TransactionsTable({
         }
       />
 
-      {/* Drawer chi tiết lỗi */}
       <TransactionDetailDrawer
         transaction={drawerTx}
         onClose={() => setDrawerTx(null)}

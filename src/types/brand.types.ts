@@ -9,6 +9,7 @@ export interface ThuongHieu {
   description: string;
   websiteUrl: string;
   logoUrl?: string;
+  logoAlt?: string;
   active: boolean;
   productCount: number;
   createdAt: string; // ISO date string

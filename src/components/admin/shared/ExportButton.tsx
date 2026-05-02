@@ -91,7 +91,7 @@ export function ExportButton({
           className={[
             "inline-flex items-center gap-2 bg-primary-600 px-3 py-2 text-sm font-medium text-white",
             "transition-colors hover:bg-primary-700 active:bg-primary-800",
-            "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset",
             "disabled:cursor-not-allowed",
           ].join(" ")}
         >
@@ -116,7 +116,7 @@ export function ExportButton({
           className={[
             "flex items-center bg-primary-600 px-2 py-2 text-white",
             "transition-colors hover:bg-primary-700 active:bg-primary-800",
-            "focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset",
+            "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset",
             "disabled:cursor-not-allowed",
           ].join(" ")}
         >
@@ -129,7 +129,7 @@ export function ExportButton({
 
       {/* Dropdown panel */}
       {open && !isExporting && (
-        <div className="absolute top-full right-0 z-50 mt-1.5 w-48 rounded-xl border border-secondary-200 bg-white shadow-xl">
+        <div className="absolute top-full right-0 z-50 mt-1.5 w-48 overflow-hidden rounded-xl border border-secondary-200 bg-white shadow-xl">
           {/* Scope header */}
           {scope && (
             <div className="border-b border-secondary-100 px-3 py-2">
@@ -140,7 +140,7 @@ export function ExportButton({
           )}
 
           {/* Format list */}
-          <ul className="py-1" role="menu">
+          <ul role="menu">
             {FORMATS.map((fmt) => (
               <li key={fmt.key} role="presentation">
                 <button

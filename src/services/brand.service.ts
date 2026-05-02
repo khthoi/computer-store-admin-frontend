@@ -11,6 +11,7 @@ export interface BrandFormData {
   countryOfOrigin: string;
   active: boolean;
   logoUrl?: string;
+  logoAlt?: string;
 }
 
 export interface GetBrandsParams {
@@ -70,6 +71,7 @@ export async function createBrand(data: BrandFormData): Promise<ThuongHieu> {
       ...(data.description ? { moTa: data.description } : {}),
       trangThai: data.active ? "HienThi" : "An",
       ...(data.logoUrl ? { logo: data.logoUrl } : {}),
+      ...(data.logoAlt ? { logoAlt: data.logoAlt } : {}),
       ...(data.websiteUrl ? { websiteUrl: data.websiteUrl } : {}),
     }),
   });
@@ -87,6 +89,7 @@ export async function updateBrand(
       ...(data.description !== undefined ? { moTa: data.description } : {}),
       ...(data.active !== undefined ? { trangThai: data.active ? "HienThi" : "An" } : {}),
       ...(data.logoUrl !== undefined ? { logo: data.logoUrl } : {}),
+      ...(data.logoAlt !== undefined ? { logoAlt: data.logoAlt || null } : {}),
       ...(data.websiteUrl !== undefined ? { websiteUrl: data.websiteUrl || undefined } : {}),
     }),
   });

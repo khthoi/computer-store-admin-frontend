@@ -20,6 +20,7 @@ export interface BrandFormData {
   countryOfOrigin: string;
   active: boolean;
   logoUrl?: string;
+  logoAlt?: string;
 }
 
 interface BrandFormModalProps {
@@ -107,7 +108,7 @@ export function BrandFormModal({
   const [customCountry, setCustomCountry] = useState(initialCountry.custom);
   const [active, setActive] = useState(initialData?.active ?? true);
   const [logoImage, setLogoImage] = useState<ImageFieldValue>(
-    initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl) : emptyImageField()
+    initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl, initialData.logoAlt) : emptyImageField()
   );
 
   // Sync form when initialData changes
@@ -121,7 +122,7 @@ export function BrandFormModal({
       setCountryCode(parsed.code);
       setCustomCountry(parsed.custom);
       setActive(initialData?.active ?? true);
-      setLogoImage(initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl) : emptyImageField());
+      setLogoImage(initialData?.logoUrl ? imageFieldFromUrl(initialData.logoUrl, initialData.logoAlt) : emptyImageField());
     }
   }, [isOpen, initialData]);
 
@@ -138,6 +139,7 @@ export function BrandFormModal({
       countryOfOrigin: countryCode === "OTHER" ? customCountry.trim() : countryCode,
       active,
       logoUrl: logoImage.displayUrl ?? undefined,
+      logoAlt: logoImage.alt ?? undefined,
     });
   }
 

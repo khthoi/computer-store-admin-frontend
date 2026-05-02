@@ -1,10 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { getSuppliers } from "@/src/services/inventory.service";
 import { SuppliersTable } from "@/src/components/admin/inventory/SuppliersTable";
 
-export default async function SuppliersPage() {
-  const suppliers = await getSuppliers();
+export default function SuppliersPage() {
   return (
     <div className="p-6 space-y-4">
       <div>
@@ -13,7 +11,7 @@ export default async function SuppliersPage() {
           Quản lý nhà cung cấp sản phẩm và thông tin liên hệ.
         </p>
       </div>
-      <SuppliersTable initialSuppliers={suppliers} />
+      <SuppliersTable />
     </div>
   );
 }

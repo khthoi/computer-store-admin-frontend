@@ -17,11 +17,13 @@ export const metadata: Metadata = {
   description: "Quản lý và đối soát toàn bộ giao dịch thanh toán.",
 };
 
+const PAGE_SIZE = 20;
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function TransactionsPage() {
   const [{ data, total }, stats] = await Promise.all([
-    getTransactions({ pageSize: 50 }),
+    getTransactions({ page: 1, pageSize: PAGE_SIZE }),
     getTransactionStats(),
   ]);
 
@@ -31,10 +33,7 @@ export default async function TransactionsPage() {
       description={`${total} giao dịch · Đối soát theo trạng thái và ngày`}
     >
       <div className="space-y-6">
-        {/* KPI cards */}
         <TransactionStatCards stats={stats} />
-
-        {/* DataTable */}
         <TransactionsTable initialData={data} initialTotal={total} />
       </div>
     </AdminPageWrapper>

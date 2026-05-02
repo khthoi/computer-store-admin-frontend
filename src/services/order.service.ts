@@ -1,4 +1,4 @@
-import type { Order, OrderStatus, OrderSummary, OrderInternalNote, OrderRefundRecord, OrderReturnRequest } from "@/src/types/order.types";
+import type { Order, OrderStatus, OrderSummary, OrderInternalNote, OrderReturnRequest } from "@/src/types/order.types";
 import { apiFetch } from "@/src/services/api";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -86,26 +86,6 @@ export interface AddOrderNotePayload {
   authorRole: string;
 }
 
-export interface ProcessRefundPayload {
-  method: OrderRefundRecord["method"];
-  amount: number;
-  items: { productId: string; variantId: string; quantity: number }[];
-  processedBy: string;
-  note?: string;
-  returnRequestId: number;
-}
-
-export interface SettleRefundPayload {
-  externalRef: string;
-  bank?: string;
-  settledAt?: string;
-  note?: string;
-}
-
-export interface RejectRefundPayload {
-  reason: string;
-}
-
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
 /**
@@ -158,26 +138,6 @@ export async function addOrderNote(
 }
 
 /**
- * Process a refund for an order.
- * POST /admin/orders/:id/refunds — returns the created OrderRefundRecord.
- */
-export async function processRefund(
-  id: string,
-  payload: ProcessRefundPayload
-): Promise<OrderRefundRecord> {
-  return apiFetch<OrderRefundRecord>(`/admin/orders/${id}/refunds`, {
-    method: "POST",
-    body: JSON.stringify({
-      method:          payload.method,
-      amount:          payload.amount,
-      items:           payload.items,
-      processedBy:     payload.processedBy,
-      yeuCauDoiTraId:  payload.returnRequestId,
-    }),
-  });
-}
-
-/**
  * Cancel an order by updating its status to "cancelled".
  */
 export async function cancelOrder(
@@ -195,32 +155,3 @@ export async function getOrderReturnRequests(id: string): Promise<OrderReturnReq
   return apiFetch<OrderReturnRequest[]>(`/admin/orders/${id}/return-requests`);
 }
 
-/**
- * Confirm a pending refund was successfully processed externally (Track A).
- * PATCH /admin/orders/:id/refunds/:refundId/settle
- */
-export async function settleRefund(
-  orderId: string,
-  refundId: string,
-  payload: SettleRefundPayload,
-): Promise<OrderRefundRecord> {
-  return apiFetch<OrderRefundRecord>(`/admin/orders/${orderId}/refunds/${refundId}/settle`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
-}
-
-/**
- * Mark a pending refund as failed/rejected (Track A).
- * PATCH /admin/orders/:id/refunds/:refundId/reject
- */
-export async function rejectRefund(
-  orderId: string,
-  refundId: string,
-  payload: RejectRefundPayload,
-): Promise<OrderRefundRecord> {
-  return apiFetch<OrderRefundRecord>(`/admin/orders/${orderId}/refunds/${refundId}/reject`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
-}

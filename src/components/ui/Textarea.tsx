@@ -5,6 +5,7 @@ import {
   useCallback,
   useId,
   useRef,
+  useState,
   type ChangeEvent,
   type TextareaHTMLAttributes,
 } from "react";
@@ -134,12 +135,16 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
     // Priority for the counter's max: maxCharCount > maxCount > maxLength
     const displayLimit = maxCharCount ?? maxCount ?? maxLength;
 
-    // For controlled inputs, derive current length from value prop
-    const currentLength = value !== undefined ? String(value).length : undefined;
+    // For uncontrolled inputs (e.g. react-hook-form register), track length in state
+    const [uncontrolledLength, setUncontrolledLength] = useState<number>(() =>
+      typeof defaultValue === "string" ? defaultValue.length : 0
+    );
+
+    // Controlled: derive from value prop; uncontrolled: use tracked state
+    const currentLength = value !== undefined ? String(value).length : uncontrolledLength;
 
     const isAtLimit =
       displayLimit !== undefined &&
-      currentLength !== undefined &&
       currentLength >= displayLimit;
 
     const describedBy = [
@@ -170,9 +175,15 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
           innerRef.current.style.height = "auto";
           innerRef.current.style.height = `${innerRef.current.scrollHeight}px`;
         }
+
+        // Keep uncontrolled length in sync
+        if (value === undefined) {
+          setUncontrolledLength(newValue.length);
+        }
+
         onChange?.(e);
       },
-      [autoResize, maxCharCount, onChange]
+      [autoResize, maxCharCount, onChange, value]
     );
 
     // ── Merge forwarded ref + inner ref ───────────────────────────────────────
@@ -230,30 +241,32 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaProps>(
         />
 
         {/* Bottom row: error/helper on the left, char count on the right */}
-        <div className="mt-1 flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            {hasError && (
-              <p id={errorId} role="alert" className="text-xs text-error-600">
-                {errorMessage}
-              </p>
-            )}
-            {!hasError && helperText && (
-              <p id={helperId} className="text-xs text-secondary-500">
-                {helperText}
+        {(hasError || helperText || (showCharCount && displayLimit !== undefined)) && (
+          <div className="mt-1 flex flex-row flex-nowrap items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              {hasError && (
+                <p id={errorId} role="alert" className="text-xs text-error-600">
+                  {errorMessage}
+                </p>
+              )}
+              {!hasError && helperText && (
+                <p id={helperId} className="text-xs text-secondary-500">
+                  {helperText}
+                </p>
+              )}
+            </div>
+
+            {showCharCount && displayLimit !== undefined && (
+              <p
+                aria-live="polite"
+                aria-atomic="true"
+                className={`shrink-0 tabular-nums text-xs ${counterClass}`}
+              >
+                {currentLength} / {displayLimit}
               </p>
             )}
           </div>
-
-          {showCharCount && displayLimit !== undefined && (
-            <p
-              aria-live="polite"
-              aria-atomic="true"
-              className={`shrink-0 tabular-nums text-xs ${counterClass}`}
-            >
-              {currentLength ?? 0} / {displayLimit}
-            </p>
-          )}
-        </div>
+        )}
       </div>
     );
   }

@@ -1,39 +1,12 @@
 import type {
-  Warehouse,
   Supplier,
   InventoryItem,
   StockMovement,
   StockInRecord,
   StockInSummary,
-  StockOutRecord,
-  StockOutSummary,
   ReturnRequest,
   ReturnRequestSummary,
-  StockOutReason,
 } from "@/src/types/inventory.types";
-
-// ─── Warehouses ───────────────────────────────────────────────────────────────
-
-export const MOCK_WAREHOUSES: Warehouse[] = [
-  {
-    id: "WH-001",
-    name: "Main Warehouse – HCM",
-    location: "123 Nguyen Van Linh, District 7, Ho Chi Minh City",
-    isDefault: true,
-  },
-  {
-    id: "WH-002",
-    name: "North Branch – HN",
-    location: "456 Tran Duy Hung, Cau Giay, Hanoi",
-    isDefault: false,
-  },
-  {
-    id: "WH-003",
-    name: "South Branch – DN",
-    location: "789 Nguyen Van Linh, Thanh Khe, Da Nang",
-    isDefault: false,
-  },
-];
 
 // ─── Suppliers ────────────────────────────────────────────────────────────────
 
@@ -421,8 +394,6 @@ export const MOCK_STOCK_IN_RECORDS: StockInRecord[] = [
     receiptCode: "SI-20260310-0001",
     supplierId: "SUP-001",
     supplierName: "Intel Vietnam Distribution",
-    warehouseId: "WH-001",
-    warehouseName: "Main Warehouse – HCM",
     status: "received",
     lineItems: [
       {
@@ -450,8 +421,6 @@ export const MOCK_STOCK_IN_RECORDS: StockInRecord[] = [
     receiptCode: "SI-20260316-0001",
     supplierId: "SUP-002",
     supplierName: "Samsung Electronics VN",
-    warehouseId: "WH-001",
-    warehouseName: "Main Warehouse – HCM",
     status: "received",
     lineItems: [
       {
@@ -478,8 +447,6 @@ export const MOCK_STOCK_IN_RECORDS: StockInRecord[] = [
     receiptCode: "SI-20260322-0001",
     supplierId: "SUP-004",
     supplierName: "Kingston Tech Partner",
-    warehouseId: "WH-002",
-    warehouseName: "North Branch – HN",
     status: "received",
     lineItems: [
       {
@@ -506,8 +473,6 @@ export const MOCK_STOCK_IN_RECORDS: StockInRecord[] = [
     receiptCode: "SI-20260328-0001",
     supplierId: "SUP-003",
     supplierName: "ASUS ROG Distribution",
-    warehouseId: "WH-001",
-    warehouseName: "Main Warehouse – HCM",
     status: "pending",
     lineItems: [
       {
@@ -545,8 +510,6 @@ export const MOCK_STOCK_IN_RECORDS: StockInRecord[] = [
     receiptCode: "SI-20260326-0001",
     supplierId: "SUP-002",
     supplierName: "Samsung Electronics VN",
-    warehouseId: "WH-003",
-    warehouseName: "South Branch – DN",
     status: "partial",
     lineItems: [
       {
@@ -575,124 +538,11 @@ export const MOCK_STOCK_IN_SUMMARIES: StockInSummary[] = MOCK_STOCK_IN_RECORDS.m
   receiptCode: r.receiptCode,
   supplierId: r.supplierId,
   supplierName: r.supplierName,
-  warehouseId: r.warehouseId,
-  warehouseName: r.warehouseName,
   status: r.status,
   itemCount: r.lineItems.length,
   totalCost: r.totalCost,
   expectedDate: r.expectedDate,
   receivedDate: r.receivedDate,
-  createdBy: r.createdBy,
-  createdAt: r.createdAt,
-}));
-
-// ─── Stock Out Records ────────────────────────────────────────────────────────
-
-export const MOCK_STOCK_OUT_RECORDS: StockOutRecord[] = [
-  {
-    id: "SO-0001",
-    reason: "damage" as StockOutReason,
-    status: "packed",
-    lineItems: [
-      {
-        id: "SO-0001-L1",
-        productId: "PRD-002",
-        variantId: "VAR-002",
-        productName: "AMD Ryzen 9 7950X",
-        variantName: "Default",
-        sku: "CPU-R9-7950X",
-        quantity: 3,
-        note: "Bent pins — not saleable",
-      },
-      {
-        id: "SO-0001-L2",
-        productId: "PRD-004",
-        variantId: "VAR-004",
-        productName: "ASUS ROG Strix B650-E",
-        variantName: "ATX",
-        sku: "MB-ROG-B650E",
-        quantity: 2,
-        note: "Motherboards failed post-delivery inspection",
-      }
-    ],
-    completedDate: "2026-03-20",
-    note: "Write-off — damaged during storage",
-    createdBy: "Warehouse Staff",
-    createdAt: "2026-03-20T12:00:00Z",
-    updatedAt: "2026-03-20T14:00:00Z",
-  },
-  {
-    id: "SO-0002",
-    reason: "promotional" as StockOutReason,
-    status: "packed",
-    lineItems: [
-      {
-        id: "SO-0002-L1",
-        productId: "PRD-006",
-        variantId: "VAR-006",
-        productName: "Corsair RM1000x PSU",
-        variantName: "1000W 80+ Gold",
-        sku: "PSU-COR-RM1000X",
-        quantity: 7,
-        note: "Showroom display",
-      },
-    ],
-    scheduledDate: "2026-03-26",
-    completedDate: "2026-03-26",
-    createdBy: "Warehouse Staff",
-    createdAt: "2026-03-25T15:00:00Z",
-    updatedAt: "2026-03-26T09:00:00Z",
-  },
-  {
-    id: "SO-0003",
-    reason: "other" as StockOutReason,
-    status: "packing",
-    lineItems: [
-      {
-        id: "SO-0003-L1",
-        productId: "PRD-001",
-        variantId: "VAR-001",
-        productName: "Intel Core i9-14900K",
-        variantName: "Default",
-        sku: "CPU-I9-14900K",
-        quantity: 1,
-      },
-    ],
-    scheduledDate: "2026-04-02",
-    createdBy: "Admin",
-    createdAt: "2026-03-30T10:00:00Z",
-    updatedAt: "2026-03-30T10:00:00Z",
-  },
-  {
-    id: "SO-0004",
-    reason: "internal_use" as StockOutReason,
-    status: "pending",
-    lineItems: [
-      {
-        id: "SO-0004-L1",
-        productId: "PRD-005",
-        variantId: "VAR-005",
-        productName: "Kingston Fury Beast DDR5 32GB",
-        variantName: "32GB Kit",
-        sku: "RAM-KF-BEAST-32G",
-        quantity: 2,
-        note: "Testing new build configuration",
-      },
-    ],
-    scheduledDate: "2026-04-05",
-    createdBy: "Admin",
-    createdAt: "2026-03-31T09:00:00Z",
-    updatedAt: "2026-03-31T09:00:00Z",
-  },
-];
-
-export const MOCK_STOCK_OUT_SUMMARIES: StockOutSummary[] = MOCK_STOCK_OUT_RECORDS.map((r) => ({
-  id: r.id,
-  reason: r.reason,
-  status: r.status,
-  itemCount: r.lineItems.length,
-  scheduledDate: r.scheduledDate,
-  completedDate: r.completedDate,
   createdBy: r.createdBy,
   createdAt: r.createdAt,
 }));

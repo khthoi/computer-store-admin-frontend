@@ -25,6 +25,10 @@ const TYPE_OPTIONS = [
   { value: "gallery", label: "Gallery" },
 ];
 
+const GALLERY_ONLY_OPTIONS = [
+  { value: "gallery", label: "Gallery" },
+];
+
 const TYPE_BADGE: Record<MediaType, React.ReactNode> = {
   main:    <Badge variant="primary" size="sm">Main</Badge>,
   gallery: <Badge variant="default" size="sm">Gallery</Badge>,
@@ -58,7 +62,8 @@ interface MediaManagerProps {
 }
 
 export function MediaManager({ variantId, media, onChange }: MediaManagerProps) {
-  const sorted = [...media].sort((a, b) => a.order - b.order);
+  const sorted  = [...media].sort((a, b) => a.order - b.order);
+  const hasMain = media.some((m) => m.type === "main");
 
   const [libraryOpen,     setLibraryOpen]     = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
@@ -152,7 +157,12 @@ export function MediaManager({ variantId, media, onChange }: MediaManagerProps) 
           {sorted.map((item) => (
             <div
               key={item.id}
-              className="group relative aspect-square overflow-hidden rounded-lg border border-secondary-200 bg-secondary-50"
+              className={[
+                "group relative aspect-square overflow-hidden rounded-lg border bg-secondary-50",
+                item.type === "main"
+                  ? "border-2 border-primary-400"
+                  : "border border-secondary-200",
+              ].join(" ")}
             >
               {item.url ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -170,7 +180,10 @@ export function MediaManager({ variantId, media, onChange }: MediaManagerProps) 
                 ].join(" ")}
                 title={item.assetId ? "Từ thư viện" : "URL trực tiếp"}
               />
-              <span className="absolute bottom-0.5 left-0.5 rounded bg-black/50 px-1 py-0.5 font-mono text-[8px] text-white">
+              <span className={[
+                "absolute bottom-0.5 left-0.5 rounded px-1 py-0.5 font-mono text-[8px] text-white",
+                item.type === "main" ? "bg-primary-600" : "bg-black/50",
+              ].join(" ")}>
                 {item.type}
               </span>
             </div>
@@ -205,6 +218,7 @@ export function MediaManager({ variantId, media, onChange }: MediaManagerProps) 
                   item={item}
                   isFirst={index === 0}
                   isLast={index === sorted.length - 1}
+                  hasMain={hasMain}
                   onMoveUp={() => handleMoveUp(item.id)}
                   onMoveDown={() => handleMoveDown(item.id)}
                   onRemove={() => setConfirmDeleteId(item.id)}
@@ -248,6 +262,7 @@ interface MediaItemRowProps {
   item: VariantMedia;
   isFirst: boolean;
   isLast: boolean;
+  hasMain: boolean;
   onMoveUp: () => void;
   onMoveDown: () => void;
   onRemove: () => void;
@@ -258,15 +273,27 @@ function MediaItemRow({
   item,
   isFirst,
   isLast,
+  hasMain,
   onMoveUp,
   onMoveDown,
   onRemove,
   onEdit,
 }: MediaItemRowProps) {
+  const isMain          = item.type === "main";
+  const selectOptions   = hasMain && !isMain ? GALLERY_ONLY_OPTIONS : TYPE_OPTIONS;
+
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-secondary-200 bg-white p-3 shadow-sm">
+    <div className={[
+      "flex items-start gap-3 rounded-xl border p-3 shadow-sm",
+      isMain
+        ? "border-primary-400 bg-primary-50"
+        : "border-secondary-200 bg-white",
+    ].join(" ")}>
       {/* Thumbnail */}
-      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-secondary-200 bg-secondary-50">
+      <div className={[
+        "relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border bg-secondary-50",
+        isMain ? "border-primary-400" : "border-secondary-200",
+      ].join(" ")}>
         {item.url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={item.url} alt={item.altText ?? ""} className="h-full w-full object-cover" />
@@ -275,7 +302,10 @@ function MediaItemRow({
             <PhotoIcon className="h-6 w-6 text-secondary-300" aria-hidden />
           </div>
         )}
-        <span className="absolute left-0.5 top-0.5 rounded bg-black/60 px-1 py-0.5 font-mono text-[9px] font-semibold text-white">
+        <span className={[
+          "absolute left-0.5 top-0.5 rounded px-1 py-0.5 font-mono text-[9px] font-semibold text-white",
+          isMain ? "bg-primary-600" : "bg-black/60",
+        ].join(" ")}>
           #{item.order}
         </span>
       </div>
@@ -297,7 +327,7 @@ function MediaItemRow({
           <div className="w-32 shrink-0">
             <Select
               label="Loại"
-              options={TYPE_OPTIONS}
+              options={selectOptions}
               value={item.type}
               onChange={(v) => onEdit({ ...item, type: v as MediaType })}
               size="sm"
@@ -305,20 +335,18 @@ function MediaItemRow({
           </div>
         </div>
 
-        {/* Row 2: Caption */}
-        <Input
-          label="Caption"
-          value={item.caption ?? ""}
-          onChange={(e) => onEdit({ ...item, caption: e.target.value || undefined })}
-          placeholder="Chú thích hiển thị bên dưới ảnh trên storefront…"
-          helperText="Không bắt buộc — hiển thị bên dưới ảnh"
-          size="sm"
-        />
-
-        {/* Row 3: Badges */}
+        {/* Row 2: Badges */}
         <div className="flex items-center gap-2">
           {TYPE_BADGE[item.type]}
           <SourceBadge assetId={item.assetId} />
+          {isMain && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-primary-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+              Main Media
+            </span>
+          )}
+          {hasMain && !isMain && (
+            <span className="text-[10px] text-secondary-400 italic">Chỉ được chọn Gallery</span>
+          )}
         </div>
       </div>
 

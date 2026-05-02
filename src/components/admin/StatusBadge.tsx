@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ComponentType } from "react";
 import {
   CheckCircleIcon,
   XCircleIcon,
@@ -66,6 +66,7 @@ export type AdminStatus =
   | "packing"
   | "packed"
   | "partial"
+  | "ok"
   | "low_stock"
   | "out_of_stock_inv"
   | "replacement"
@@ -93,67 +94,70 @@ export interface StatusBadgeProps {
 
 // ─── Config ───────────────────────────────────────────────────────────────────
 
+type IconComponent = ComponentType<{ className?: string; "aria-hidden"?: boolean | "true" }>;
+
 const CONFIG: Record<
   AdminStatus,
-  { label: string; wrapper: string; icon: ReactNode }
+  { label: string; wrapper: string; icon: IconComponent }
 > = {
-  active:       { label: "Active",        wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
-  inactive:     { label: "Inactive",      wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <XCircleIcon aria-hidden="true" /> },
-  pending:      { label: "Pending",       wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ClockIcon aria-hidden="true" /> },
-  suspended:    { label: "Suspended",     wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
-  draft:        { label: "Draft",         wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <DocumentIcon aria-hidden="true" /> },
-  published:    { label: "Published",     wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <GlobeAltIcon aria-hidden="true" /> },
-  archived:     { label: "Archived",      wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <ArchiveBoxIcon aria-hidden="true" /> },
-  approved:     { label: "Approved",      wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckBadgeIcon aria-hidden="true" /> },
-  rejected:     { label: "Rejected",      wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <XCircleIcon aria-hidden="true" /> },
-  review:       { label: "In Review",     wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <MagnifyingGlassCircleIcon aria-hidden="true" /> },
-  online:       { label: "Online",        wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
-  offline:      { label: "Offline",       wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <XCircleIcon aria-hidden="true" /> },
-  banned:       { label: "Banned",        wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
-  has_active_orders: { label: "Has Active Orders", wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
+  active:       { label: "Active",        wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckCircleIcon },
+  inactive:     { label: "Inactive",      wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: XCircleIcon },
+  pending:      { label: "Pending",       wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: ClockIcon },
+  suspended:    { label: "Suspended",     wrapper: "bg-error-50 text-error-700 border-error-200",               icon: NoSymbolIcon },
+  draft:        { label: "Draft",         wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: DocumentIcon },
+  published:    { label: "Published",     wrapper: "bg-success-50 text-success-700 border-success-200",         icon: GlobeAltIcon },
+  archived:     { label: "Archived",      wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: ArchiveBoxIcon },
+  approved:     { label: "Approved",      wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckBadgeIcon },
+  rejected:     { label: "Rejected",      wrapper: "bg-error-50 text-error-700 border-error-200",               icon: XCircleIcon },
+  review:       { label: "In Review",     wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: MagnifyingGlassCircleIcon },
+  online:       { label: "Online",        wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckCircleIcon },
+  offline:      { label: "Offline",       wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: XCircleIcon },
+  banned:       { label: "Banned",        wrapper: "bg-error-50 text-error-700 border-error-200",               icon: NoSymbolIcon },
+  has_active_orders: { label: "Has Active Orders", wrapper: "bg-warning-50 text-warning-700 border-warning-200", icon: ExclamationCircleIcon },
   // ── Variant detail statuses ──
-  visible:      { label: "Visible",       wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <EyeIcon aria-hidden="true" /> },
-  hidden:       { label: "Hidden",        wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <EyeSlashIcon aria-hidden="true" /> },
-  out_of_stock: { label: "Out of Stock",  wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
+  visible:      { label: "Visible",       wrapper: "bg-success-50 text-success-700 border-success-200",         icon: EyeIcon },
+  hidden:       { label: "Hidden",        wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: EyeSlashIcon },
+  out_of_stock: { label: "Out of Stock",  wrapper: "bg-error-50 text-error-700 border-error-200",               icon: NoSymbolIcon },
   // ── Order statuses ──
-  confirmed:    { label: "Confirmed",     wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <CheckBadgeIcon aria-hidden="true" /> },
-  processing:   { label: "Processing",    wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <MagnifyingGlassCircleIcon aria-hidden="true" /> },
-  shipped:      { label: "Shipped",       wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <TruckIcon aria-hidden="true" /> },
-  delivered:    { label: "Delivered",     wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
-  cancelled:    { label: "Cancelled",     wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <XCircleIcon aria-hidden="true" /> },
-  returned:     { label: "Returned",      wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <ArrowUturnLeftIcon aria-hidden="true" /> },
+  confirmed:    { label: "Confirmed",     wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: CheckBadgeIcon },
+  processing:   { label: "Processing",    wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: MagnifyingGlassCircleIcon },
+  shipped:      { label: "Shipped",       wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: TruckIcon },
+  delivered:    { label: "Delivered",     wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckCircleIcon },
+  cancelled:    { label: "Cancelled",     wrapper: "bg-error-50 text-error-700 border-error-200",               icon: XCircleIcon },
+  returned:     { label: "Returned",      wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: ArrowUturnLeftIcon },
   // ── Payment statuses ──
-  paid:                { label: "Paid",               wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <BanknotesIcon aria-hidden="true" /> },
-  unpaid:              { label: "Unpaid",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
-  refunded:            { label: "Refunded",           wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <ArrowUturnLeftIcon aria-hidden="true" /> },
-  partially_refunded:  { label: "Partial Refund",     wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <CreditCardIcon aria-hidden="true" /> },
+  paid:                { label: "Paid",             wrapper: "bg-success-50 text-success-700 border-success-200",         icon: BanknotesIcon },
+  unpaid:              { label: "Unpaid",           wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: ExclamationCircleIcon },
+  refunded:            { label: "Refunded",         wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: ArrowUturnLeftIcon },
+  partially_refunded:  { label: "Partial Refund",   wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: CreditCardIcon },
   // ── Inventory / Return statuses ──
-  requested:           { label: "Requested",          wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ClockIcon aria-hidden="true" /> },
-  received:            { label: "Received",           wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <ArrowDownTrayIcon aria-hidden="true" /> },
-  completed:           { label: "Completed",          wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <CheckCircleIcon aria-hidden="true" /> },
-  packing:             { label: "Packing",            wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <CubeIcon aria-hidden="true" /> },
-  packed:              { label: "Packed",             wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ArrowUpTrayIcon aria-hidden="true" /> },
-  partial:             { label: "Partial",            wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
-  low_stock:           { label: "Low Stock",          wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationTriangleIcon aria-hidden="true" /> },
-  out_of_stock_inv:    { label: "Out of Stock",       wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <NoSymbolIcon aria-hidden="true" /> },
-  replacement:         { label: "Replacement",        wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ArrowPathIcon aria-hidden="true" /> },
-  store_credit:        { label: "Store Credit",       wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: <CreditCardIcon aria-hidden="true" /> },
+  requested:           { label: "Requested",        wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: ClockIcon },
+  received:            { label: "Received",         wrapper: "bg-success-50 text-success-700 border-success-200",         icon: ArrowDownTrayIcon },
+  completed:           { label: "Completed",        wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckCircleIcon },
+  packing:             { label: "Packing",          wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: CubeIcon },
+  packed:              { label: "Packed",           wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: ArrowUpTrayIcon },
+  partial:             { label: "Partial",          wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: ExclamationCircleIcon },
+  ok:                  { label: "Còn hàng",         wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckCircleIcon },
+  low_stock:           { label: "Sắp hết",          wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: ExclamationTriangleIcon },
+  out_of_stock_inv:    { label: "Hết hàng",         wrapper: "bg-error-50 text-error-700 border-error-200",               icon: NoSymbolIcon },
+  replacement:         { label: "Replacement",      wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: ArrowPathIcon },
+  store_credit:        { label: "Store Credit",     wrapper: "bg-secondary-100 text-secondary-600 border-secondary-200",  icon: CreditCardIcon },
   // ── Promotion statuses ──
-  scheduled:           { label: "Scheduled",          wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <ClockIcon aria-hidden="true" /> },
-  ended:               { label: "Ended",              wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <ArchiveBoxIcon aria-hidden="true" /> },
-  expired:             { label: "Expired",            wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: <XCircleIcon aria-hidden="true" /> },
-  paused:              { label: "Paused",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <ExclamationCircleIcon aria-hidden="true" /> },
+  scheduled:           { label: "Scheduled",        wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: ClockIcon },
+  ended:               { label: "Ended",            wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: ArchiveBoxIcon },
+  expired:             { label: "Expired",          wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",  icon: XCircleIcon },
+  paused:              { label: "Paused",           wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: ExclamationCircleIcon },
   // ── Loyalty transaction types ──
-  earn:                { label: "Earn",               wrapper: "bg-success-50 text-success-700 border-success-200",         icon: <SparklesIcon aria-hidden="true" /> },
-  redeem:              { label: "Redeem",             wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: <GiftIcon aria-hidden="true" /> },
-  expire:              { label: "Expire",             wrapper: "bg-error-50 text-error-700 border-error-200",               icon: <MinusCircleIcon aria-hidden="true" /> },
-  adjust:              { label: "Adjust",             wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: <AdjustmentsHorizontalIcon aria-hidden="true" /> },
+  earn:                { label: "Earn",             wrapper: "bg-success-50 text-success-700 border-success-200",         icon: SparklesIcon },
+  redeem:              { label: "Redeem",           wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: GiftIcon },
+  expire:              { label: "Expire",           wrapper: "bg-error-50 text-error-700 border-error-200",               icon: MinusCircleIcon },
+  adjust:              { label: "Adjust",           wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: AdjustmentsHorizontalIcon },
 };
 
 const FALLBACK_CONFIG = {
   label: "Unknown",
   wrapper: "bg-secondary-100 text-secondary-500 border-secondary-200",
-  icon: <ClockIcon aria-hidden="true" />,
+  icon: ClockIcon,
 } as const;
 
 const SIZE: Record<"sm" | "md" | "lg", { badge: string; icon: string }> = {
@@ -179,7 +183,7 @@ export function StatusBadge({
   iconless = false,
   className = "",
 }: StatusBadgeProps) {
-  const { label, wrapper, icon } = (CONFIG as Record<string, typeof FALLBACK_CONFIG>)[status] ?? FALLBACK_CONFIG;
+  const { label, wrapper, icon: Icon } = (CONFIG as Record<string, typeof FALLBACK_CONFIG>)[status] ?? FALLBACK_CONFIG;
   const { badge, icon: iconSize } = SIZE[size];
 
   return (
@@ -194,11 +198,9 @@ export function StatusBadge({
         .join(" ")}
     >
       {!iconless && (
-        <span className={iconSize} aria-hidden="true">
-          {icon}
-        </span>
+        <Icon className={`shrink-0 ${iconSize}`} aria-hidden="true" />
       )}
-      {label}
+      <span className="leading-none">{label}</span>
     </span>
   );
 }

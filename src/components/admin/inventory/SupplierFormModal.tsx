@@ -35,6 +35,7 @@ export function SupplierFormModal({
   const [phone, setPhone]             = useState(initialData?.phone ?? "");
   const [address, setAddress]         = useState(initialData?.address ?? "");
   const [status, setStatus]           = useState<"active" | "inactive">(initialData?.status ?? "active");
+  const [leadTimeDays, setLeadTimeDays] = useState(String(initialData?.leadTimeDays ?? 7));
   const [notes, setNotes]             = useState(initialData?.notes ?? "");
 
   useEffect(() => {
@@ -45,11 +46,14 @@ export function SupplierFormModal({
       setPhone(initialData?.phone ?? "");
       setAddress(initialData?.address ?? "");
       setStatus(initialData?.status ?? "active");
+      setLeadTimeDays(String(initialData?.leadTimeDays ?? 7));
       setNotes(initialData?.notes ?? "");
     }
   }, [isOpen, initialData]);
 
-  const isValid = name.trim() && contactName.trim() && email.trim() && phone.trim();
+  const leadTimeParsed = parseInt(leadTimeDays, 10);
+  const leadTimeValid = !isNaN(leadTimeParsed) && leadTimeParsed >= 1 && leadTimeParsed <= 365;
+  const isValid = name.trim() && contactName.trim() && email.trim() && phone.trim() && leadTimeValid;
 
   async function handleSubmit() {
     if (!isValid) return;
@@ -60,6 +64,7 @@ export function SupplierFormModal({
       phone: phone.trim(),
       address: address.trim(),
       status,
+      leadTimeDays: leadTimeParsed,
       notes: notes.trim() || undefined,
     });
   }
@@ -157,6 +162,21 @@ export function SupplierFormModal({
             value={status}
             onChange={(v) => setStatus(v as "active" | "inactive")}
           />
+          <div>
+            <Input
+              label="Lead time (ngày)"
+              type="number"
+              value={leadTimeDays}
+              onChange={(e) => setLeadTimeDays(e.target.value)}
+              placeholder="VD: 7"
+              min={1}
+              max={365}
+              errorMessage={leadTimeDays !== "" && !leadTimeValid ? "Nhập số ngày từ 1 đến 365" : undefined}
+            />
+            <p className="mt-1 text-xs text-secondary-400">
+              Thời gian giao hàng dự kiến từ khi đặt đến khi nhận hàng.
+            </p>
+          </div>
         </div>
         <div>
           <Textarea

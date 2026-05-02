@@ -16,9 +16,7 @@ import { OrderDetailPanel } from "@/src/components/admin/orders/OrderDetailPanel
 import { OrderStatusStepper } from "@/src/components/admin/orders/OrderStatusStepper";
 import { OrderShippingPanel } from "@/src/components/admin/orders/OrderShippingPanel";
 import { OrderNotesPanel } from "@/src/components/admin/orders/OrderNotesPanel";
-import { OrderRefundModal } from "@/src/components/admin/orders/OrderRefundModal";
 import { OrderActivityLog } from "@/src/components/admin/orders/OrderActivityLog";
-import { OrderRefundHistoryCard } from "@/src/components/admin/orders/OrderRefundHistoryCard";
 import { OrderReturnRequestsCard } from "@/src/components/admin/orders/OrderReturnRequestsCard";
 import { PaymentInfoCard } from "@/src/components/admin/orders/PaymentInfoCard";
 import {
@@ -26,11 +24,8 @@ import {
   updateOrderStatus,
   updateOrderShipping,
   addOrderNote,
-  processRefund,
   cancelOrder,
   getOrderReturnRequests,
-  settleRefund,
-  rejectRefund,
 } from "@/src/services/order.service";
 import type { Order, OrderStatus, OrderReturnRequest } from "@/src/types/order.types";
 import type { ShippingInfo } from "@/src/components/admin/orders/OrderShippingPanel";
@@ -160,14 +155,9 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
   const [isSavingStatus, setIsSavingStatus]         = useState(false);
   const [isSavingShipping, setIsSavingShipping]     = useState(false);
   const [isAddingNote, setIsAddingNote]             = useState(false);
-  const [isRefunding, setIsRefunding]               = useState(false);
   const [isCancelling, setIsCancelling]             = useState(false);
-  const [isSettling, setIsSettling]                 = useState(false);
-  const [isRejecting, setIsRejecting]               = useState(false);
   const [cancelDialogOpen, setCancelDialogOpen]     = useState(false);
-  const [refundModalOpen, setRefundModalOpen]       = useState(false);
   const [returnRequests, setReturnRequests]         = useState<OrderReturnRequest[]>([]);
-  const [activeReturnRequest, setActiveReturnRequest] = useState<OrderReturnRequest | null>(null);
 
   useEffect(() => {
     getOrderReturnRequests(order.id).then(setReturnRequests).catch(() => {});
@@ -226,77 +216,6 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
     }
   }
 
-  async function handleRefund(payload: {
-    items: { productId: string; variantId: string; quantity: number }[];
-    method: "original" | "store_credit";
-    totalAmount: number;
-  }) {
-    if (!activeReturnRequest) return;
-    setIsRefunding(true);
-    try {
-      await processRefund(order.id, {
-        method:          payload.method,
-        amount:          payload.totalAmount,
-        items:           payload.items,
-        processedBy:     "Admin",
-        returnRequestId: activeReturnRequest.id,
-      });
-      const [refreshed, updatedRequests] = await Promise.all([
-        getOrderById(order.id),
-        getOrderReturnRequests(order.id),
-      ]);
-      if (refreshed) setOrder(refreshed);
-      setReturnRequests(updatedRequests);
-      setRefundModalOpen(false);
-      setActiveReturnRequest(null);
-      showToast("Refund processed successfully.", "success");
-    } catch (err: unknown) {
-      const msg = (err as Error)?.message ?? "";
-      showToast(msg || "Failed to process refund.", "error");
-    } finally {
-      setIsRefunding(false);
-    }
-  }
-
-  async function handleSettle(refundId: string, payload: { externalRef: string; bank?: string; settledAt?: string; note?: string }) {
-    setIsSettling(true);
-    try {
-      await settleRefund(order.id, refundId, payload);
-      const [refreshed, updatedRequests] = await Promise.all([
-        getOrderById(order.id),
-        getOrderReturnRequests(order.id),
-      ]);
-      if (refreshed) setOrder(refreshed);
-      setReturnRequests(updatedRequests);
-      showToast("Hoàn tiền đã được xác nhận.", "success");
-    } catch (err: unknown) {
-      const msg = (err as Error)?.message ?? "";
-      showToast(msg || "Không thể xác nhận hoàn tiền.", "error");
-    } finally {
-      setIsSettling(false);
-    }
-  }
-
-  async function handleReject(refundId: string, payload: { reason: string }) {
-    setIsRejecting(true);
-    try {
-      await rejectRefund(order.id, refundId, payload);
-      const refreshed = await getOrderById(order.id);
-      if (refreshed) setOrder(refreshed);
-      showToast("Hoàn tiền đã được đánh dấu thất bại.", "success");
-    } catch (err: unknown) {
-      const msg = (err as Error)?.message ?? "";
-      showToast(msg || "Không thể từ chối hoàn tiền.", "error");
-    } finally {
-      setIsRejecting(false);
-    }
-  }
-
-  function openRefundModalForRequest(request: OrderReturnRequest) {
-    setActiveReturnRequest(request);
-    setRefundModalOpen(true);
-  }
-
   async function handleCancel(reason: string) {
     setIsCancelling(true);
     try {
@@ -315,27 +234,6 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
   // ── Derived state ───────────────────────────────────────────────────────────
 
   const isCancellable = !["cancelled", "delivered", "returned"].includes(order.status);
-
-  // Only count settled refunds toward limits
-  const settledRefunds = order.refunds.filter((r) => r.status !== "rejected");
-
-  // Per-variant already-refunded quantity map (for modal + panel badges)
-  const refundedQtyByVariantId = settledRefunds.reduce<Record<string, number>>((acc, r) => {
-    r.items.forEach((item) => {
-      acc[item.variantId] = (acc[item.variantId] ?? 0) + item.quantity;
-    });
-    return acc;
-  }, {});
-
-  // Per-variant max refundable from the active return request
-  const requestMaxQtyByVariantId: Record<string, number> | undefined = activeReturnRequest
-    ? Object.fromEntries(
-        activeReturnRequest.items.map((i) => [
-          i.variantId,
-          Math.max(0, i.requestedQty - i.refundedQty),
-        ])
-      )
-    : undefined;
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
@@ -395,7 +293,7 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
             onStatusChange={handleStatusChange}
             isSaving={isSavingStatus}
           />
-          <OrderDetailPanel order={order} refundedQtyByVariantId={refundedQtyByVariantId} />
+          <OrderDetailPanel order={order} />
           <OrderActivityLog entries={order.activityLog} />
         </div>
 
@@ -403,10 +301,7 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
         <div className="space-y-4">
           <PaymentInfoCard orderCode={order.id} />
 
-          <OrderReturnRequestsCard
-            requests={returnRequests}
-            onProcessRefund={openRefundModalForRequest}
-          />
+          <OrderReturnRequestsCard requests={returnRequests} />
 
           <OrderShippingPanel
             shipping={order.shipping}
@@ -419,15 +314,6 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
             isAdding={isAddingNote}
           />
 
-          <OrderRefundHistoryCard
-            refunds={order.refunds}
-            lineItems={order.lineItems}
-            grandTotal={order.grandTotal}
-            onSettle={handleSettle}
-            onReject={handleReject}
-            isSettling={isSettling}
-            isRejecting={isRejecting}
-          />
         </div>
       </div>
 
@@ -440,24 +326,6 @@ export function OrderDetailPageClient({ order: initialOrder }: OrderDetailPageCl
         isConfirming={isCancelling}
       />
 
-      <OrderRefundModal
-        isOpen={refundModalOpen}
-        onClose={() => { setRefundModalOpen(false); setActiveReturnRequest(null); }}
-        onConfirm={handleRefund}
-        lineItems={order.lineItems.map((li) => ({
-          productId:   li.productId,
-          variantId:   li.variantId,
-          name:        li.productName,
-          variantName: li.variantName,
-          sku:         li.sku,
-          quantity:    li.quantity,
-          unitPrice:   li.unitPrice,
-        }))}
-        refundedQtyByVariantId={refundedQtyByVariantId}
-        isConfirming={isRefunding}
-        returnRequestId={activeReturnRequest?.id}
-        requestMaxQtyByVariantId={requestMaxQtyByVariantId}
-      />
     </div>
   );
 }

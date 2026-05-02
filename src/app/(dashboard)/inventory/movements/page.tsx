@@ -1,10 +1,8 @@
 export const dynamic = "force-dynamic";
 
-import { getStockMovements } from "@/src/services/inventory.service";
 import { MovementsTable } from "@/src/components/admin/inventory/MovementsTable";
 
-export default async function MovementsPage() {
-  const movements = await getStockMovements();
+export default function MovementsPage() {
   return (
     <div className="p-6 space-y-4">
       <div>
@@ -13,7 +11,7 @@ export default async function MovementsPage() {
           Xem lại các hoạt động nhập và xuất kho gần đây để theo dõi lượng tồn kho theo thời gian.
         </p>
       </div>
-      <MovementsTable initialMovements={movements} />
+      <MovementsTable />
     </div>
   );
 }

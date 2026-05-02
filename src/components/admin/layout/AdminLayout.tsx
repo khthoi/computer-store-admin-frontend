@@ -21,6 +21,7 @@ import {
   UserGroupIcon,
   BuildingStorefrontIcon,
   ArrowUpTrayIcon,
+  ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
   CreditCardIcon,
   TruckIcon,
@@ -175,7 +176,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "inventory",
     label: "Kho hàng",
     icon: <ArchiveBoxIcon className="w-5 h-5" />,
-    requiredRoles: ["admin", "warehouse"],
+    requiredRoles: ["admin"],
     children: [
       {
         value: "inventory-overview",
@@ -185,7 +186,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
       },
       {
         value: "inventory-items",
-        label: "Kho hàng",
+        label: "Hàng hoá trong kho",
         href: "/inventory/items",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
       },
@@ -196,10 +197,10 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: <ArrowUpTrayIcon className="w-4 h-4" />,
       },
       {
-        value: "inventory-stock-out",
-        label: "Xuất kho",
-        href: "/inventory/stock-out",
-        icon: <ArrowPathIcon className="w-4 h-4" />,
+        value: "inventory-exports",
+        label: "Phiếu xuất kho",
+        href: "/inventory/exports",
+        icon: <ArrowDownTrayIcon className="w-4 h-4" />,
       },
       {
         value: "inventory-low-stock",

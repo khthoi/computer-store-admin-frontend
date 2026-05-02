@@ -71,7 +71,7 @@ export function buildColumns(
     },
     // col 5 — Base price (price of the default variant, fallback to first)
     {
-      key: "variants",
+      key: "basePrice",
       header: "Giá cơ bản",
       sortable: true,
       align: "right",

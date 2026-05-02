@@ -1,31 +1,19 @@
 import {
-  MOCK_SUPPLIERS,
-  MOCK_WAREHOUSES,
-  MOCK_INVENTORY_ITEMS,
   MOCK_STOCK_MOVEMENTS,
-  MOCK_STOCK_IN_RECORDS,
-  MOCK_STOCK_IN_SUMMARIES,
-  MOCK_STOCK_OUT_RECORDS,
-  MOCK_STOCK_OUT_SUMMARIES,
-  MOCK_RETURN_REQUESTS,
-  MOCK_RETURN_SUMMARIES,
 } from "@/src/app/(dashboard)/inventory/_mock";
+import { apiFetch } from "@/src/services/api";
 import type {
-  Warehouse,
   Supplier,
   InventoryItem,
   StockMovement,
   StockInRecord,
   StockInSummary,
-  StockOutRecord,
-  StockOutSummary,
-  ReturnRequest,
-  ReturnRequestSummary,
+  StockInLineItem,
   InventoryStats,
   StockInStatus,
-  StockOutStatus,
-  StockOutReason,
-  ReturnRequestStatus,
+  InventoryKpiDashboard,
+  StockBatch,
+  VariantStockLevel,
 } from "@/src/types/inventory.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -34,73 +22,142 @@ function delay(ms = 400): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function mapReceiptStatus(beStatus: string): StockInStatus {
+  const map: Record<string, StockInStatus> = {
+    ChoDuyet:    "pending",
+    DaDuyet:     "received",
+    TiepNhanMot: "partial",
+    TuChoi:      "cancelled",
+  };
+  return map[beStatus] ?? "pending";
+}
+
+const KNOWN_STATUSES = new Set(["pending", "received", "partial", "cancelled"]);
+
+function mapRawToSummary(raw: any): StockInSummary {
+  const rawStatus = raw.status ?? raw.trangThai ?? "";
+  return {
+    id: String(raw.id),
+    receiptCode: raw.receiptCode ?? raw.maPhieuNhap ?? "",
+    supplierId: String(raw.supplierId ?? raw.nhaCungCapId ?? ""),
+    supplierName: raw.supplierName ?? "",
+    status: KNOWN_STATUSES.has(rawStatus) ? (rawStatus as StockInStatus) : mapReceiptStatus(rawStatus),
+    itemCount: raw.itemCount ?? (raw.items?.length ?? raw.lineItems?.length ?? 0),
+    totalCost: raw.totalCost ?? 0,
+    expectedDate: raw.expectedDate ?? raw.ngayDuKien ?? raw.ngayNhap ?? "",
+    receivedDate: raw.receivedDate ?? raw.ngayDuyet ?? undefined,
+    createdBy: raw.createdBy ?? "",
+    createdById: raw.createdById != null ? String(raw.createdById) : undefined,
+    createdByCode: raw.createdByCode ?? undefined,
+    createdAt: raw.createdAt ?? raw.ngayNhap ?? "",
+  };
+}
+
+function mapRawToRecord(raw: any): StockInRecord {
+  const lineItems: StockInLineItem[] = (raw.lineItems ?? raw.items ?? []).map((i: any) => ({
+    id: String(i.id),
+    productId: String(i.productId ?? ""),
+    variantId: String(i.variantId ?? i.phienBanId ?? ""),
+    productName: i.productName ?? "",
+    variantName: i.variantName ?? "",
+    sku: i.sku ?? "",
+    quantityOrdered: i.quantityOrdered ?? i.soLuongDuKien ?? 0,
+    quantityReceived: i.quantityReceived ?? i.soLuongThucNhap ?? 0,
+    quantityDamaged: i.quantityDamaged ?? 0,
+    quantityShort: i.quantityShort ?? 0,
+    costPrice: Number(i.costPrice ?? i.donGiaNhap ?? 0),
+    sellingPrice: i.sellingPrice != null ? Number(i.sellingPrice) : undefined,
+    note: i.note ?? i.ghiChu ?? undefined,
+  }));
+  const summary = mapRawToSummary(raw);
+  return {
+    ...summary,
+    createdById: raw.createdById != null ? String(raw.createdById) : undefined,
+    createdByCode: raw.createdByCode ?? undefined,
+    lineItems,
+    totalCost: raw.totalCost ?? lineItems.reduce((s, i) => s + i.costPrice * i.quantityOrdered, 0),
+    note: raw.note ?? raw.ghiChu ?? undefined,
+    updatedAt: raw.updatedAt ?? raw.createdAt ?? raw.ngayNhap ?? "",
+    predecessorId: raw.predecessorId != null ? String(raw.predecessorId) : undefined,
+    predecessorCode: raw.predecessorCode ?? undefined,
+    successorId: raw.successorId != null ? String(raw.successorId) : undefined,
+    successorCode: raw.successorCode ?? undefined,
+  };
+}
+
 // ─── Inventory Overview ───────────────────────────────────────────────────────
 
 export async function getInventoryStats(): Promise<InventoryStats> {
-  await delay();
-  const items = MOCK_INVENTORY_ITEMS;
-  return {
-    totalSkus: items.length,
-    totalUnits: items.reduce((s, i) => s + i.quantityOnHand, 0),
-    lowStockCount: items.filter((i) => i.alertLevel === "low_stock").length,
-    outOfStockCount: items.filter((i) => i.alertLevel === "out_of_stock_inv").length,
-    pendingStockIn: MOCK_STOCK_IN_RECORDS.filter((r) =>
-      r.status === "pending" || r.status === "partial"
-    ).length,
-    pendingReturns: MOCK_RETURN_REQUESTS.filter((r) =>
-      r.status === "requested" || r.status === "approved" || r.status === "received"
-    ).length,
-    totalInventoryValue: items.reduce(
-      (s, i) => s + i.costPrice * i.quantityOnHand,
-      0
-    ),
-  };
+  return apiFetch<InventoryStats>("/admin/inventory/summary");
 }
 
-export async function getInventoryItems(): Promise<InventoryItem[]> {
-  await delay();
-  return [...MOCK_INVENTORY_ITEMS];
+// ─── Inventory Items (server-side paginated) ──────────────────────────────────
+
+export interface InventoryItemParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  alertLevel?: string;
+  supplierId?: string;
+  categoryId?: string;
+  sortKey?: string;
+  sortDir?: "asc" | "desc";
+  lowStockOnly?: boolean;
+}
+
+export interface InventoryItemPage {
+  data: InventoryItem[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getInventoryItems(
+  params: InventoryItemParams = {}
+): Promise<InventoryItemPage> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.q) qs.set("q", params.q);
+  if (params.alertLevel) qs.set("alertLevel", params.alertLevel);
+  if (params.supplierId) qs.set("supplierId", params.supplierId);
+  if (params.categoryId) qs.set("categoryId", params.categoryId);
+  if (params.sortKey) qs.set("sortKey", params.sortKey);
+  if (params.sortDir) qs.set("sortDir", params.sortDir);
+  if (params.lowStockOnly) qs.set("lowStockOnly", "true");
+  return apiFetch<InventoryItemPage>(`/admin/inventory?${qs}`);
+}
+
+export async function getInventorySummary(): Promise<InventoryStats> {
+  return apiFetch<InventoryStats>("/admin/inventory/summary");
 }
 
 export async function adjustStock(
-  itemId: string,
+  variantId: string,
   delta: number,
+  loaiGiaoDich: string,
   note: string
-): Promise<InventoryItem> {
-  await delay();
-  const item = MOCK_INVENTORY_ITEMS.find((i) => i.id === itemId);
-  if (!item) throw new Error(`Inventory item ${itemId} not found`);
+): Promise<void> {
+  await apiFetch<void>("/admin/inventory/adjust", {
+    method: "POST",
+    body: JSON.stringify({
+      phienBanId: Number(variantId),
+      soLuong: delta,
+      loaiGiaoDich,
+      ghiChu: note,
+    }),
+  });
+}
 
-  const before = item.quantityOnHand;
-  item.quantityOnHand = Math.max(0, before + delta);
-  item.quantityAvailable = Math.max(0, item.quantityOnHand - item.quantityReserved);
-  item.alertLevel =
-    item.quantityOnHand === 0
-      ? "out_of_stock_inv"
-      : item.quantityOnHand <= item.lowStockThreshold
-      ? "low_stock"
-      : "ok";
-  item.updatedAt = new Date().toISOString();
-
-  const movement: StockMovement = {
-    id: `MOV-${String(MOCK_STOCK_MOVEMENTS.length + 1).padStart(3, "0")}`,
-    type: "adjustment",
-    productId: item.productId,
-    variantId: item.variantId,
-    productName: item.productName,
-    variantName: item.variantName,
-    sku: item.sku,
-    quantityBefore: before,
-    quantityChange: delta,
-    quantityAfter: item.quantityOnHand,
-    referenceType: "manual",
-    note,
-    performedBy: "Admin",
-    performedAt: new Date().toISOString(),
-  };
-  MOCK_STOCK_MOVEMENTS.unshift(movement);
-
-  return { ...item };
+export async function updateThresholds(
+  variantId: string,
+  dto: { lowStockThreshold: number; reorderPoint: number }
+): Promise<void> {
+  await apiFetch<void>(`/admin/inventory/${variantId}/thresholds`, {
+    method: "PATCH",
+    body: JSON.stringify(dto),
+  });
 }
 
 // ─── Stock Movements ──────────────────────────────────────────────────────────
@@ -112,324 +169,257 @@ export async function getStockMovements(): Promise<StockMovement[]> {
   );
 }
 
-// ─── Warehouses ───────────────────────────────────────────────────────────────
-
-export async function getWarehouses(): Promise<Warehouse[]> {
-  await delay();
-  return [...MOCK_WAREHOUSES];
-}
-
-// ─── Receipt Code ─────────────────────────────────────────────────────────────
-
-export function generateReceiptCode(): string {
-  const now = new Date();
-  const datePart = now.toISOString().slice(0, 10).replace(/-/g, "");
-  const dayRecords = MOCK_STOCK_IN_RECORDS.filter((r) =>
-    r.receiptCode.includes(datePart)
-  ).length;
-  const seq = String(dayRecords + 1).padStart(4, "0");
-  return `SI-${datePart}-${seq}`;
-}
-
 // ─── Suppliers ────────────────────────────────────────────────────────────────
 
-export async function getSuppliers(): Promise<Supplier[]> {
-  await delay();
-  return [...MOCK_SUPPLIERS];
+export interface SupplierListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortDir?: "asc" | "desc";
 }
 
-export async function getSupplierById(id: string): Promise<Supplier | null> {
-  await delay();
-  return MOCK_SUPPLIERS.find((s) => s.id === id) ?? null;
+export interface SupplierListPage {
+  data: Supplier[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getSuppliers(params: SupplierListParams = {}): Promise<SupplierListPage> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.search) qs.set("search", params.search);
+  if (params.status) qs.set("status", params.status);
+  if (params.sortBy) qs.set("sortBy", params.sortBy);
+  if (params.sortDir) qs.set("sortDir", params.sortDir);
+  return apiFetch<SupplierListPage>(`/admin/suppliers?${qs}`);
+}
+
+export async function getSupplierById(id: string): Promise<Supplier> {
+  return apiFetch<Supplier>(`/admin/suppliers/${id}`);
 }
 
 export async function createSupplier(
   payload: Omit<Supplier, "id" | "productCount" | "totalOrders" | "createdAt" | "updatedAt">
 ): Promise<Supplier> {
-  await delay();
-  const next = `SUP-${String(MOCK_SUPPLIERS.length + 1).padStart(3, "0")}`;
-  const now = new Date().toISOString();
-  const supplier: Supplier = {
-    ...payload,
-    id: next,
-    productCount: 0,
-    totalOrders: 0,
-    createdAt: now,
-    updatedAt: now,
-  };
-  MOCK_SUPPLIERS.push(supplier);
-  return { ...supplier };
+  return apiFetch<Supplier>("/admin/suppliers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function updateSupplier(
   id: string,
   payload: Partial<Omit<Supplier, "id" | "createdAt">>
 ): Promise<Supplier> {
-  await delay();
-  const idx = MOCK_SUPPLIERS.findIndex((s) => s.id === id);
-  if (idx === -1) throw new Error(`Supplier ${id} not found`);
-  Object.assign(MOCK_SUPPLIERS[idx], payload, { updatedAt: new Date().toISOString() });
-  return { ...MOCK_SUPPLIERS[idx] };
+  return apiFetch<Supplier>(`/admin/suppliers/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 // ─── Stock In ─────────────────────────────────────────────────────────────────
 
-export async function getStockInList(): Promise<StockInSummary[]> {
-  await delay();
-  return [...MOCK_STOCK_IN_SUMMARIES].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export interface StockInListParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "ASC" | "DESC";
+}
+
+export interface StockInListPage {
+  data: StockInSummary[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getStockInList(params: StockInListParams = {}): Promise<StockInListPage> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.search) qs.set("search", params.search);
+  if (params.status) qs.set("status", params.status);
+  if (params.sortBy) qs.set("sortBy", params.sortBy);
+  if (params.sortOrder) qs.set("sortOrder", params.sortOrder);
+  const result = await apiFetch<any>(`/admin/inventory/import?${qs}`);
+  const items: any[] = Array.isArray(result) ? result : (result?.data ?? []);
+  return {
+    data: items.map(mapRawToSummary),
+    total: result?.total ?? items.length,
+    page: result?.page ?? params.page ?? 1,
+    limit: result?.limit ?? params.limit ?? items.length,
+    totalPages: result?.totalPages ?? 1,
+  };
 }
 
 export async function getStockInById(id: string): Promise<StockInRecord | null> {
-  await delay();
-  return MOCK_STOCK_IN_RECORDS.find((r) => r.id === id) ?? null;
+  const raw = await apiFetch<any>(`/admin/inventory/import/${id}`);
+  return raw ? mapRawToRecord(raw) : null;
 }
 
 export async function createStockIn(
-  payload: Pick<StockInRecord, "receiptCode" | "supplierId" | "supplierName" | "warehouseId" | "warehouseName" | "expectedDate" | "note" | "lineItems">
+  payload: Pick<StockInRecord, "receiptCode" | "supplierId" | "supplierName" | "expectedDate" | "note" | "lineItems">
 ): Promise<StockInRecord> {
-  await delay();
-  const next = `SI-${String(MOCK_STOCK_IN_RECORDS.length + 1).padStart(4, "0")}`;
-  const now = new Date().toISOString();
-  const totalCost = payload.lineItems.reduce(
-    (s, l) => s + l.costPrice * l.quantityOrdered,
-    0
-  );
-  const record: StockInRecord = {
-    id: next,
-    ...payload,
-    status: "pending",
-    totalCost,
-    createdBy: "Admin",
-    createdAt: now,
-    updatedAt: now,
-  };
-  MOCK_STOCK_IN_RECORDS.push(record);
-  const summary: StockInSummary = {
-    id: record.id,
-    receiptCode: record.receiptCode,
-    supplierId: record.supplierId,
-    supplierName: record.supplierName,
-    warehouseId: record.warehouseId,
-    warehouseName: record.warehouseName,
-    status: record.status,
-    itemCount: record.lineItems.length,
-    totalCost: record.totalCost,
-    expectedDate: record.expectedDate,
-    createdBy: record.createdBy,
-    createdAt: record.createdAt,
-  };
-  MOCK_STOCK_IN_SUMMARIES.push(summary);
-  return { ...record };
+  const raw = await apiFetch<any>("/admin/inventory/import", {
+    method: "POST",
+    body: JSON.stringify({
+      nhaCungCapId: Number(payload.supplierId),
+      ngayDuKien: payload.expectedDate,
+      ghiChu: payload.note,
+      items: payload.lineItems.map((l) => ({
+        phienBanId: Number(l.variantId),
+        soLuongDuKien: l.quantityOrdered,
+        donGiaNhap: l.costPrice,
+        ghiChu: l.note,
+      })),
+    }),
+  });
+  return mapRawToRecord(raw);
 }
 
 export async function updateStockInStatus(
   id: string,
   status: StockInStatus,
-  receivedDate?: string
 ): Promise<StockInRecord> {
-  await delay();
-  const record = MOCK_STOCK_IN_RECORDS.find((r) => r.id === id);
-  if (!record) throw new Error(`Stock-in record ${id} not found`);
-  record.status = status;
-  if (receivedDate) record.receivedDate = receivedDate;
-  record.updatedAt = new Date().toISOString();
-  // sync summary
-  const s = MOCK_STOCK_IN_SUMMARIES.find((s) => s.id === id);
-  if (s) { s.status = status; if (receivedDate) s.receivedDate = receivedDate; }
-  return { ...record };
+  const raw = await apiFetch<any>(`/admin/inventory/import/${id}/reject`, {
+    method: "PUT",
+  });
+  return mapRawToRecord(raw);
 }
 
 export async function receiveStockIn(
   id: string,
-  receivedQuantities: Record<string, number>
+  receivedQtys: Record<string, number>,
+  lineItems: StockInLineItem[],
+  notes?: Record<string, string>,
+  damaged?: Record<string, number>,
 ): Promise<StockInRecord> {
-  await delay();
-  const record = MOCK_STOCK_IN_RECORDS.find((r) => r.id === id);
-  if (!record) throw new Error(`Stock-in record ${id} not found`);
-
-  let allFulfilled = true;
-  for (const li of record.lineItems) {
-    const qty = receivedQuantities[li.id] ?? 0;
-    li.quantityReceived = qty;
-    if (qty < li.quantityOrdered) allFulfilled = false;
-
-    // Update inventory
-    const invItem = MOCK_INVENTORY_ITEMS.find((i) => i.variantId === li.variantId);
-    if (invItem && qty > 0) {
-      invItem.quantityOnHand += qty;
-      invItem.quantityAvailable = invItem.quantityOnHand - invItem.quantityReserved;
-      invItem.alertLevel =
-        invItem.quantityOnHand === 0
-          ? "out_of_stock_inv"
-          : invItem.quantityOnHand <= invItem.lowStockThreshold
-          ? "low_stock"
-          : "ok";
-      invItem.lastRestockedAt = new Date().toISOString();
-      invItem.updatedAt = new Date().toISOString();
-    }
-  }
-
-  record.status = allFulfilled ? "received" : "partial";
-  record.receivedDate = new Date().toISOString().split("T")[0];
-  record.updatedAt = new Date().toISOString();
-
-  const s = MOCK_STOCK_IN_SUMMARIES.find((s) => s.id === id);
-  if (s) { s.status = record.status; s.receivedDate = record.receivedDate; }
-
-  return { ...record };
+  const raw = await apiFetch<any>(`/admin/inventory/import/${id}/approve`, {
+    method: "PUT",
+    body: JSON.stringify({
+      items: lineItems.map((li) => ({
+        phienBanId: Number(li.variantId),
+        soLuongThucNhap: receivedQtys[li.id] ?? 0,
+        soLuongHuHong: damaged?.[li.id] ?? 0,
+        ...(notes?.[li.id] !== undefined ? { ghiChu: notes[li.id] } : {}),
+      })),
+    }),
+  });
+  return mapRawToRecord(raw);
 }
 
-// ─── Stock Out ────────────────────────────────────────────────────────────────
-
-export async function getStockOutList(): Promise<StockOutSummary[]> {
-  await delay();
-  return [...MOCK_STOCK_OUT_SUMMARIES].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+export async function completeStockIn(id: string): Promise<StockInRecord> {
+  const raw = await apiFetch<any>(`/admin/inventory/import/${id}/complete`, {
+    method: "PUT",
+  });
+  return mapRawToRecord(raw);
 }
 
-export async function getStockOutById(id: string): Promise<StockOutRecord | null> {
-  await delay();
-  return MOCK_STOCK_OUT_RECORDS.find((r) => r.id === id) ?? null;
+export async function resolvePartialReceipt(id: string): Promise<StockInRecord> {
+  const raw = await apiFetch<any>(`/admin/inventory/import/${id}/resolve`, {
+    method: "PUT",
+  });
+  return mapRawToRecord(raw);
 }
 
-export async function createStockOut(
-  payload: { reason: StockOutReason; note?: string; scheduledDate?: string; lineItems: StockOutRecord["lineItems"] }
-): Promise<StockOutRecord> {
-  await delay();
-  const next = `SO-${String(MOCK_STOCK_OUT_RECORDS.length + 1).padStart(4, "0")}`;
-  const now = new Date().toISOString();
-  const record: StockOutRecord = {
-    id: next,
-    ...payload,
-    status: "pending",
-    createdBy: "Admin",
-    createdAt: now,
-    updatedAt: now,
-  };
-  MOCK_STOCK_OUT_RECORDS.push(record);
-  const summary: StockOutSummary = {
-    id: record.id,
-    reason: record.reason,
-    status: record.status,
-    itemCount: record.lineItems.length,
-    scheduledDate: record.scheduledDate,
-    createdBy: record.createdBy,
-    createdAt: record.createdAt,
-  };
-  MOCK_STOCK_OUT_SUMMARIES.push(summary);
-  return { ...record };
+export async function getLowStockItems(
+  params: InventoryItemParams = {}
+): Promise<InventoryItemPage> {
+  // When no specific alertLevel is requested, restrict to risk items only
+  const effectiveParams = params.alertLevel
+    ? params
+    : { ...params, lowStockOnly: true };
+  return getInventoryItems(effectiveParams);
 }
 
-export async function updateStockOutStatus(
-  id: string,
-  status: StockOutStatus
-): Promise<StockOutRecord> {
-  await delay();
-  const record = MOCK_STOCK_OUT_RECORDS.find((r) => r.id === id);
-  if (!record) throw new Error(`Stock-out record ${id} not found`);
-  record.status = status;
-  if (status === "packed") {
-    record.completedDate = new Date().toISOString().split("T")[0];
-    // Deduct stock and log a movement for each line item
-    for (const li of record.lineItems) {
-      const invItem = MOCK_INVENTORY_ITEMS.find((i) => i.variantId === li.variantId);
-      if (invItem) {
-        const before = invItem.quantityOnHand;
-        invItem.quantityOnHand = Math.max(0, before - li.quantity);
-        invItem.quantityAvailable = Math.max(0, invItem.quantityOnHand - invItem.quantityReserved);
-        invItem.alertLevel =
-          invItem.quantityOnHand === 0
-            ? "out_of_stock_inv"
-            : invItem.quantityOnHand <= invItem.lowStockThreshold
-            ? "low_stock"
-            : "ok";
-        invItem.updatedAt = new Date().toISOString();
-        const movement: StockMovement = {
-          id: `MOV-${String(MOCK_STOCK_MOVEMENTS.length + 1).padStart(3, "0")}`,
-          type: "stock_out",
-          productId: invItem.productId,
-          variantId: invItem.variantId,
-          productName: invItem.productName,
-          variantName: invItem.variantName,
-          sku: invItem.sku,
-          quantityBefore: before,
-          quantityChange: -li.quantity,
-          quantityAfter: invItem.quantityOnHand,
-          referenceId: record.id,
-          referenceType: "stock_out",
-          note: li.note,
-          performedBy: "Admin",
-          performedAt: new Date().toISOString(),
-        };
-        MOCK_STOCK_MOVEMENTS.unshift(movement);
-      }
-    }
-  }
-  record.updatedAt = new Date().toISOString();
-  const s = MOCK_STOCK_OUT_SUMMARIES.find((s) => s.id === id);
-  if (s) { s.status = status; s.completedDate = record.completedDate; }
-  return { ...record };
+// ─── KPI Dashboard ────────────────────────────────────────────────────────────
+
+export async function getInventoryKpiDashboard(
+  params: { period?: string; startDate?: string; endDate?: string } = {}
+): Promise<InventoryKpiDashboard> {
+  const qs = new URLSearchParams();
+  if (params.period) qs.set("period", params.period);
+  if (params.startDate) qs.set("startDate", params.startDate);
+  if (params.endDate) qs.set("endDate", params.endDate);
+  const query = qs.toString();
+  return apiFetch<InventoryKpiDashboard>(`/admin/inventory/kpi/dashboard${query ? `?${query}` : ""}`);
 }
 
-// ─── Returns ──────────────────────────────────────────────────────────────────
+// ─── Stock Movements (server-side paginated) ──────────────────────────────────
 
-export async function getReturnRequests(): Promise<ReturnRequestSummary[]> {
-  await delay();
-  return [...MOCK_RETURN_SUMMARIES].sort(
-    (a, b) => new Date(b.requestedAt).getTime() - new Date(a.requestedAt).getTime()
-  );
+export interface StockMovementParams {
+  page?: number;
+  limit?: number;
+  types?: string[];
+  variantId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  referenceType?: string;
+  q?: string;
+  sortBy?: string;
+  sortDir?: string;
 }
 
-export async function getReturnById(id: string): Promise<ReturnRequest | null> {
-  await delay();
-  return MOCK_RETURN_REQUESTS.find((r) => r.id === id) ?? null;
+export interface StockMovementPage {
+  data: StockMovement[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
 }
 
-export async function updateReturnStatus(
-  id: string,
-  status: ReturnRequestStatus,
-  adminNote?: string
-): Promise<ReturnRequest> {
-  await delay();
-  const ret = MOCK_RETURN_REQUESTS.find((r) => r.id === id);
-  if (!ret) throw new Error(`Return ${id} not found`);
-  const now = new Date().toISOString();
-  ret.status = status;
-  if (adminNote !== undefined) ret.adminNote = adminNote;
-  ret.processedBy = "Admin";
-  ret.updatedAt = now;
-  if (status === "approved") ret.approvedAt = now;
-  if (status === "received") ret.receivedAt = now;
-  if (status === "completed") ret.completedAt = now;
-  const s = MOCK_RETURN_SUMMARIES.find((s) => s.id === id);
-  if (s) { s.status = status; s.processedBy = "Admin"; }
-  return { ...ret };
+export async function getStockMovementsPaginated(
+  params: StockMovementParams = {}
+): Promise<StockMovementPage> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.types && params.types.length > 0) qs.set("types", params.types.join(","));
+  if (params.variantId) qs.set("variantId", params.variantId);
+  if (params.dateFrom) qs.set("dateFrom", params.dateFrom);
+  if (params.dateTo) qs.set("dateTo", params.dateTo);
+  if (params.referenceType) qs.set("referenceType", params.referenceType);
+  if (params.q) qs.set("q", params.q);
+  if (params.sortBy) qs.set("sortBy", params.sortBy);
+  if (params.sortDir) qs.set("sortDir", params.sortDir);
+  return apiFetch<StockMovementPage>(`/admin/inventory/movements?${qs}`);
 }
 
-export async function getLowStockItems(): Promise<InventoryItem[]> {
-  await delay();
-  return MOCK_INVENTORY_ITEMS.filter(
-    (i) => i.alertLevel === "low_stock" || i.alertLevel === "out_of_stock_inv"
-  );
+// ─── Receipt Code Preview ─────────────────────────────────────────────────────
+
+export async function getNextReceiptCode(): Promise<string> {
+  const res = await apiFetch<{ code: string }>("/admin/inventory/import/next-code");
+  return res.code;
 }
 
-export async function updateAlertThreshold(
-  itemId: string,
-  threshold: number
-): Promise<InventoryItem> {
-  await delay();
-  const item = MOCK_INVENTORY_ITEMS.find((i) => i.id === itemId);
-  if (!item) throw new Error(`Inventory item ${itemId} not found`);
-  item.lowStockThreshold = threshold;
-  item.alertLevel =
-    item.quantityOnHand === 0
-      ? "out_of_stock_inv"
-      : item.quantityOnHand <= threshold
-      ? "low_stock"
-      : "ok";
-  item.updatedAt = new Date().toISOString();
-  return { ...item };
+// ─── Stock Batches ────────────────────────────────────────────────────────────
+
+export async function getVariantStockLevel(variantId: string): Promise<VariantStockLevel> {
+  return apiFetch<VariantStockLevel>(`/admin/inventory/${variantId}/stock-level`);
+}
+
+export async function getBatchesByVariant(variantId: string): Promise<StockBatch[]> {
+  return apiFetch<StockBatch[]>(`/admin/inventory/${variantId}/batches`);
+}
+
+
+export async function getVariantHistory(
+  variantId: string,
+  params: { page?: number; limit?: number; startDate?: string; endDate?: string; loaiGiaoDich?: string } = {}
+): Promise<StockMovementPage> {
+  const qs = new URLSearchParams();
+  if (params.page) qs.set("page", String(params.page));
+  if (params.limit) qs.set("limit", String(params.limit));
+  if (params.startDate) qs.set("startDate", params.startDate);
+  if (params.endDate) qs.set("endDate", params.endDate);
+  if (params.loaiGiaoDich) qs.set("loaiGiaoDich", params.loaiGiaoDich);
+  return apiFetch<StockMovementPage>(`/admin/inventory/${variantId}/history?${qs}`);
 }

@@ -1,10 +1,12 @@
 export const dynamic = "force-dynamic";
 
-import { getReturnRequests } from "@/src/services/inventory.service";
+import { getReturns } from "@/src/services/returns.service";
 import { ReturnsTable } from "@/src/components/admin/inventory/ReturnsTable";
 
+const PAGE_SIZE = 20;
+
 export default async function OrderReturnsPage() {
-  const returns = await getReturnRequests();
+  const result = await getReturns({ page: 1, limit: PAGE_SIZE });
   return (
     <div className="p-6 space-y-4">
       <div>
@@ -13,7 +15,7 @@ export default async function OrderReturnsPage() {
           Quản lý các yêu cầu trả hàng, hoàn tiền và tình trạng xử lý của chúng.
         </p>
       </div>
-      <ReturnsTable initialReturns={returns} />
+      <ReturnsTable initialData={result.items} initialTotal={result.total} />
     </div>
   );
 }
