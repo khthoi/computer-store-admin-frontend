@@ -27,6 +27,17 @@ export interface DropzoneProps {
    */
   onPreviewChange?: (url: string) => void;
   /**
+   * Enable multi-file selection. When true the file picker allows selecting
+   * multiple images at once and drag-and-drop accepts multiple files in one
+   * drop. Use `onFilesChange` instead of `onFileChange` in this mode.
+   */
+  multiple?: boolean;
+  /**
+   * Called with every valid file accepted in a single pick/drop event.
+   * Only used when `multiple` is true.
+   */
+  onFilesChange?: (files: File[]) => void;
+  /**
    * Aspect-ratio hint displayed to guide the user toward the correct image
    * dimensions. Shown both in the empty dropzone and as an overlay on the preview.
    * @default "16:5 – Kích thước đề nghị 1600 × 500 px"
@@ -65,6 +76,8 @@ export function Dropzone({
   initialUrl,
   onFileChange,
   onPreviewChange,
+  multiple       = false,
+  onFilesChange,
   aspectRatioHint = "16:5 – Kích thước đề nghị 1600 × 500 px",
   maxSizeMB       = 2,
   disabled,
@@ -75,7 +88,7 @@ export function Dropzone({
   const [fileError,  setFileError]  = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // ── File processor ────────────────────────────────────────────────────────
+  // ── Single-file processor ─────────────────────────────────────────────────
   const processFile = useCallback((file: File) => {
     setFileError(null);
     if (!file.type.startsWith("image/")) {
@@ -92,6 +105,25 @@ export function Dropzone({
     onPreviewChange?.(url);
   }, [maxSizeMB, onFileChange, onPreviewChange]);
 
+  // ── Multi-file processor ──────────────────────────────────────────────────
+  const processFiles = useCallback((fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    setFileError(null);
+    const valid: File[] = [];
+    const errors: string[] = [];
+    Array.from(fileList).forEach((file) => {
+      if (!file.type.startsWith("image/")) {
+        errors.push(`"${file.name}" không phải file hình ảnh.`);
+      } else if (file.size > maxSizeMB * 1024 * 1024) {
+        errors.push(`"${file.name}" vượt quá ${maxSizeMB} MB.`);
+      } else {
+        valid.push(file);
+      }
+    });
+    if (errors.length > 0) setFileError(errors.join(" "));
+    if (valid.length > 0) onFilesChange?.(valid);
+  }, [maxSizeMB, onFilesChange]);
+
   // ── Drag handlers ─────────────────────────────────────────────────────────
   const handleDragOver  = (e: React.DragEvent) => { e.preventDefault(); if (!disabled) setIsDragging(true); };
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
@@ -99,15 +131,23 @@ export function Dropzone({
     e.preventDefault();
     setIsDragging(false);
     if (disabled) return;
-    const file = e.dataTransfer.files?.[0];
-    if (file) processFile(file);
+    if (multiple) {
+      processFiles(e.dataTransfer.files);
+    } else {
+      const file = e.dataTransfer.files?.[0];
+      if (file) processFile(file);
+    }
   };
 
   // ── Input change ──────────────────────────────────────────────────────────
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) processFile(file);
-    // Reset so the same file can be re-selected
+    if (multiple) {
+      processFiles(e.target.files);
+    } else {
+      const file = e.target.files?.[0];
+      if (file) processFile(file);
+    }
+    // Reset so the same file(s) can be re-selected
     e.target.value = "";
   };
 
@@ -164,7 +204,7 @@ export function Dropzone({
         <div
           role="button"
           tabIndex={disabled ? -1 : 0}
-          aria-label="Tải lên hình ảnh banner"
+          aria-label={multiple ? "Tải lên nhiều hình ảnh" : "Tải lên hình ảnh banner"}
           onClick={() => !disabled && inputRef.current?.click()}
           onKeyDown={(e) => ["Enter", " "].includes(e.key) && !disabled && inputRef.current?.click()}
           onDragOver={handleDragOver}
@@ -194,17 +234,19 @@ export function Dropzone({
             <p className="text-sm font-medium text-secondary-700">
               Kéo thả hoặc{" "}
               <span className={isDragging ? "text-primary-700" : "text-primary-600"}>
-                nhấn để chọn ảnh
+                {multiple ? "nhấn để chọn nhiều ảnh" : "nhấn để chọn ảnh"}
               </span>
             </p>
             <p className="mt-0.5 text-xs text-secondary-400">
-              PNG, JPG, WEBP — Tối đa {maxSizeMB} MB
+              PNG, JPG, WEBP — Tối đa {maxSizeMB} MB{multiple ? " / ảnh" : ""}
             </p>
           </div>
 
           {/* Aspect ratio hint pill */}
           <div className="flex items-center gap-1.5 rounded-lg border border-primary-200 bg-primary-50 px-3 py-1.5">
-            <span className="text-[11px] font-semibold text-primary-700">Tỉ lệ đề nghị:</span>
+            <span className="text-[11px] font-semibold text-primary-700">
+              {multiple ? "Định dạng:" : "Tỉ lệ đề nghị:"}
+            </span>
             <span className="text-[11px] text-primary-600">{aspectRatioHint}</span>
           </div>
         </div>
@@ -220,6 +262,7 @@ export function Dropzone({
         ref={inputRef}
         type="file"
         accept="image/*"
+        multiple={multiple}
         onChange={handleInputChange}
         className="sr-only"
         disabled={disabled}

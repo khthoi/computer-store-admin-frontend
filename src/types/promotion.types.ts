@@ -232,6 +232,28 @@ export interface CartAppliedPromotion {
 
 // ── Form payload types ─────────────────────────────────────────────────────────
 
+/** Action shape sent to backend CREATE/UPDATE — flat BXGY fields matching CreateActionDto */
+export interface PromotionFormAction {
+  actionType: ActionType;
+  applicationLevel: ApplicationLevel;
+  discountType?: DiscountType;
+  discountValue?: number;
+  maxDiscountAmount?: number;
+  // BXGY flat fields (backend CreateActionDto uses these, not a nested bxgy object)
+  bxgyBuyQty?: number;
+  bxgyBuyProductId?: string;
+  bxgyGetQty?: number;
+  bxgyGetProductId?: string;
+  bxgyGetDiscountPct?: number;
+  bxgyDeliveryMode?: DeliveryMode;
+  bxgyMaxApplications?: number;
+  bxgyEligibleProductIds?: string;
+  // Bulk/tiered
+  bulkTiers?: BulkTier[];
+  // Bundle — backend field is bulkComponents (not requiredComponents)
+  bulkComponents?: Omit<BundleComponent, "id">[];
+}
+
 export interface PromotionFormPayload {
   name: string;
   description?: string;
@@ -247,5 +269,5 @@ export interface PromotionFormPayload {
   perCustomerLimit?: number;
   scopes: Omit<PromotionScope, "id" | "promotionId">[];
   conditions: Omit<PromotionCondition, "id" | "promotionId">[];
-  actions: Omit<PromotionAction, "id" | "promotionId">[];
+  actions: PromotionFormAction[];
 }

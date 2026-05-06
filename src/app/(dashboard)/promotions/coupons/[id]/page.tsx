@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPromotionById, getPromotionUsage } from "@/src/services/promotion.service";
-import { PromotionDetailClient } from "@/src/components/admin/promotions/PromotionDetailClient";
+import { PromotionFormClient } from "@/src/components/admin/promotions/PromotionFormClient";
+import { PromotionUsageSection } from "@/src/components/admin/promotions/PromotionUsageSection";
 
 export async function generateMetadata({
   params,
@@ -11,7 +12,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  return { title: `Coupon ${id} — Admin` };
+  const coupon = await getPromotionById(id);
+  return { title: `${coupon?.code ?? id} — Admin` };
 }
 
 export default async function CouponDetailPage({
@@ -22,9 +24,14 @@ export default async function CouponDetailPage({
   const { id } = await params;
   const [coupon, usage] = await Promise.all([
     getPromotionById(id),
-    getPromotionUsage(id),
+    getPromotionUsage(id).catch(() => []),
   ]);
   if (!coupon || !coupon.isCoupon) notFound();
 
-  return <PromotionDetailClient promotion={coupon} initialUsage={usage} />;
+  return (
+    <div>
+      <PromotionFormClient mode="view" promotion={coupon} />
+      <PromotionUsageSection promotion={coupon} initialUsage={usage} />
+    </div>
+  );
 }

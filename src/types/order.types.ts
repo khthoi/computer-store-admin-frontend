@@ -95,7 +95,7 @@ export interface OrderRefundRecord {
 
 // ─── Return request types ──────────────────────────────────────────────────────
 
-export type ReturnRequestStatus = "ChoDuyet" | "DaDuyet" | "TuChoi" | "DangXuLy" | "HoanThanh";
+export type ReturnRequestStatus = "ChoDuyet" | "DaDuyet" | "TuChoi" | "DaNhanHang" | "DaKiemTra" | "TuChoiNhanHang" | "DangXuLy" | "HoanThanh";
 export type ReturnRequestType   = "DoiHang" | "TraHang" | "BaoHanh";
 export type ReturnResolution    = "GiaoHangMoi" | "HoanTien" | "BaoHanh";
 

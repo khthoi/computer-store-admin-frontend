@@ -73,7 +73,7 @@ export function CategoryTreeSelect({
       const flipUp = spaceBelow < 320 && rect.top > spaceBelow;
 
       setDropdownPos({
-        top: rect.bottom + 4,
+        top: flipUp ? rect.top : rect.bottom + 4,
         left: rect.left,
         width: rect.width,
         flipUp,
@@ -150,7 +150,7 @@ export function CategoryTreeSelect({
             style={
               dropdownPos.flipUp
                 ? {
-                    bottom: `${window.innerHeight - dropdownPos.top + 8}px`,
+                    bottom: `${window.innerHeight - dropdownPos.top + 4}px`,
                     left:   `${dropdownPos.left}px`,
                     width:  `${dropdownPos.width}px`,
                     minWidth: "280px",

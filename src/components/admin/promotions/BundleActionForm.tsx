@@ -1,50 +1,21 @@
 "use client";
 
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useState, useEffect, useMemo } from "react";
+import { PlusIcon, TrashIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Select, type SelectOptionBadge } from "@/src/components/ui/Select";
+import { CategoryTreeSelect } from "@/src/components/admin/CategoryTreeSelect";
+import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
+import { getCategoryNodeTree } from "@/src/services/category.service";
+import { getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
 import type { BundleComponent } from "@/src/types/promotion.types";
 
-// ─── Stock badge helper ────────────────────────────────────────────────────────
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function stockBadge(qty: number): SelectOptionBadge {
-  if (qty === 0) return { text: "Out of stock", variant: "error" };
-  if (qty <= 5)  return { text: `${qty} left`,      variant: "warning" };
-  return { text: `${qty} in stock`, variant: "default" };
+  if (qty === 0) return { text: "Hết hàng", variant: "error" };
+  if (qty <= 5)  return { text: `${qty} còn lại`, variant: "warning" };
+  return { text: `${qty} trong kho`, variant: "default" };
 }
-
-// ─── Mock reference data ──────────────────────────────────────────────────────
-
-const MOCK_REFS = {
-  category: [
-    { id: "cat-cpu",    label: "Processors (CPU)",     description: "cat-cpu" },
-    { id: "cat-mb",     label: "Motherboards",          description: "cat-mb" },
-    { id: "cat-ram",    label: "RAM / Memory",          description: "cat-ram" },
-    { id: "cat-gpu",    label: "Graphics Cards",        description: "cat-gpu" },
-    { id: "cat-ssd",    label: "SSDs / Storage",        description: "cat-ssd" },
-    { id: "cat-psu",    label: "Power Supplies",        description: "cat-psu" },
-    { id: "cat-case",   label: "PC Cases",              description: "cat-case" },
-    { id: "cat-fans",   label: "Case Fans / Cooling",   description: "cat-fans" },
-    { id: "cat-cooler", label: "CPU Coolers",           description: "cat-cooler" },
-  ],
-  product: [
-    { id: "PROD-001", label: "Intel Core i9-13900K",       description: "ID: PROD-001", badge: stockBadge(15) },
-    { id: "PROD-002", label: "AMD Ryzen 9 7950X",           description: "ID: PROD-002", badge: stockBadge(8)  },
-    { id: "PROD-003", label: "ASUS ROG Strix Z790-E",       description: "ID: PROD-003", badge: stockBadge(3)  },
-    { id: "PROD-004", label: "Corsair Vengeance DDR5 32GB", description: "ID: PROD-004", badge: stockBadge(42) },
-    { id: "PROD-005", label: "Samsung 990 Pro 2TB NVMe",    description: "ID: PROD-005", badge: stockBadge(27) },
-    { id: "PROD-006", label: "NVIDIA RTX 4090 FE",          description: "ID: PROD-006", badge: stockBadge(2)  },
-  ],
-  variant: [
-    { id: "VAR-I9-13900K-BOX",  label: "Core i9-13900K — Box",          description: "SKU: VAR-I9-13900K-BOX",  badge: stockBadge(10) },
-    { id: "VAR-I9-13900K-TRAY", label: "Core i9-13900K — Tray",         description: "SKU: VAR-I9-13900K-TRAY", badge: stockBadge(5)  },
-    { id: "VAR-R9-7950X-BOX",   label: "Ryzen 9 7950X — Box",           description: "SKU: VAR-R9-7950X-BOX",   badge: stockBadge(8)  },
-    { id: "VAR-DDR5-32-2X16",   label: "Vengeance DDR5 32GB (2×16GB)",  description: "SKU: VAR-DDR5-32-2X16",   badge: stockBadge(22) },
-    { id: "VAR-DDR5-64-2X32",   label: "Vengeance DDR5 64GB (2×32GB)",  description: "SKU: VAR-DDR5-64-2X32",   badge: stockBadge(7)  },
-    { id: "VAR-990PRO-1TB",     label: "Samsung 990 Pro — 1TB",          description: "SKU: VAR-990PRO-1TB",     badge: stockBadge(18) },
-    { id: "VAR-990PRO-2TB",     label: "Samsung 990 Pro — 2TB",          description: "SKU: VAR-990PRO-2TB",     badge: stockBadge(9)  },
-    { id: "VAR-RTX4090-FE",     label: "RTX 4090 Founders Edition",      description: "SKU: VAR-RTX4090-FE",     badge: stockBadge(2)  },
-  ],
-};
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
@@ -56,15 +27,57 @@ interface BundleActionFormProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BundleActionForm({ components, onChange }: BundleActionFormProps) {
+  const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
+  const [variantFlats, setVariantFlats] = useState<ProductVariantFlat[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    Promise.all([
+      getCategoryNodeTree().catch(() => [] as CategoryNode[]),
+      getProductVariantsFlat(60).catch(() => [] as ProductVariantFlat[]),
+    ]).then(([cats, variants]) => {
+      setCategoryTree(cats);
+      setVariantFlats(variants);
+      setLoading(false);
+    });
+  }, []);
+
+  // Deduplicate to get unique products
+  const productOpts = useMemo(() => {
+    const seen = new Set<string>();
+    return variantFlats
+      .filter((v) => { if (seen.has(v.productId)) return false; seen.add(v.productId); return true; })
+      .map((v) => ({ value: v.productId, label: v.productName }));
+  }, [variantFlats]);
+
+  // Detect duplicate refId across components (same product/category/variant selected twice)
+  const duplicateRefIds = useMemo(() => {
+    const counts = new Map<string, number>();
+    components.forEach((c) => {
+      if (c.refId) counts.set(c.refId, (counts.get(c.refId) ?? 0) + 1);
+    });
+    const dups = new Set<string>();
+    counts.forEach((n, id) => { if (n > 1) dups.add(id); });
+    return dups;
+  }, [components]);
+
+  const variantOpts = useMemo(
+    () =>
+      variantFlats.map((v) => ({
+        value: v.variantId,
+        label: v.productName,
+        subLabel: v.variantName,
+        description: v.sku,
+        badge: stockBadge(v.stock),
+        disabled: v.status === "inactive",
+      })),
+    [variantFlats]
+  );
+
   function addComponent() {
     onChange([
       ...components,
-      {
-        id: `bc-${Date.now()}`,
-        scope: "category",
-        refId: "",
-        minQuantity: 1,
-      },
+      { id: `bc-${Date.now()}`, scope: "category", refId: "", minQuantity: 1 },
     ]);
   }
 
@@ -97,71 +110,127 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
       )}
 
       {components.map((comp, idx) => {
-        const refs = MOCK_REFS[comp.scope] ?? [];
+        const isDuplicate = !!comp.refId && duplicateRefIds.has(comp.refId);
         return (
-          <div key={comp.id} className="flex items-center gap-3 rounded-xl border border-secondary-200 bg-secondary-50 p-3">
-            <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-xs font-bold text-primary-700">
-              {idx + 1}
-            </span>
+        <div
+          key={comp.id}
+          className={[
+            "flex items-center gap-3 rounded-xl border p-3",
+            isDuplicate
+              ? "border-warning-300 bg-warning-50"
+              : "border-secondary-200 bg-secondary-50",
+          ].join(" ")}
+        >
+          <span className="flex-shrink-0 flex items-center justify-center w-6 h-6 rounded-full bg-primary-100 text-xs font-bold text-primary-700">
+            {idx + 1}
+          </span>
 
-            {/* Scope type */}
-            <div className="w-36 flex-shrink-0">
-              <Select
-                options={[
-                  { value: "category", label: "Danh mục" },
-                  { value: "product",  label: "Sản phẩm" },
-                  { value: "variant",  label: "Phiên bản" },
-                ]}
-                value={comp.scope}
-                onChange={(v) =>
-                  updateComponent(comp.id, { scope: v as BundleComponent["scope"] })
+          {/* Scope type */}
+          <div className="w-36 flex-shrink-0">
+            <Select
+              options={[
+                { value: "category", label: "Danh mục" },
+                { value: "product",  label: "Sản phẩm" },
+                { value: "variant",  label: "Phiên bản" },
+              ]}
+              value={comp.scope}
+              onChange={(v) => updateComponent(comp.id, { scope: v as BundleComponent["scope"] })}
+            />
+          </div>
+
+          {/* Category → CategoryTreeSelect */}
+          {comp.scope === "category" && (
+            <div className="flex-1">
+              <CategoryTreeSelect
+                categories={categoryTree}
+                value={comp.refId || undefined}
+                onChange={(id, node) =>
+                  updateComponent(comp.id, {
+                    refId: id,
+                    refLabel: node.label,
+                  })
                 }
-                size="sm"
+                placeholder={loading ? "Đang tải danh mục…" : "— Chọn danh mục —"}
+                disabled={loading}
               />
             </div>
+          )}
 
-            {/* Ref selector */}
+          {/* Product → Select (deduplicated from variant flat list) */}
+          {comp.scope === "product" && (
             <div className="flex-1">
               <Select
-                options={refs.map((r) => ({ value: r.id, label: r.label, description: r.description, badge: "badge" in r ? (r.badge as SelectOptionBadge) : undefined }))}
+                options={productOpts}
                 value={comp.refId}
                 onChange={(v) => {
                   const id = v as string;
-                  const found = refs.find((r) => r.id === id);
+                  const found = productOpts.find((o) => o.value === id);
                   updateComponent(comp.id, { refId: id, refLabel: found?.label });
                 }}
                 searchable
                 clearable
-                boldLabel={comp.scope === "product" || comp.scope === "variant"}
-                placeholder={`— Select ${comp.scope} —`}
-                size="sm"
+                boldLabel
+                placeholder={loading ? "Đang tải sản phẩm…" : "— Chọn sản phẩm —"}
+                disabled={loading}
               />
             </div>
+          )}
 
-            {/* Min qty */}
-            <div className="flex items-center gap-1.5 flex-shrink-0">
-              <span className="text-xs text-secondary-500 whitespace-nowrap">SL tối thiểu:</span>
-              <input
-                type="number"
-                min={1}
-                step={1}
-                value={comp.minQuantity}
-                onChange={(e) =>
-                  updateComponent(comp.id, { minQuantity: Math.max(1, parseInt(e.target.value, 10) || 1) })
-                }
-                className="w-16 rounded-lg border border-secondary-300 bg-white px-2 py-1.5 text-center text-sm text-secondary-800 focus:border-primary-500 focus:outline-none"
+          {/* Variant → Select (same pattern as ConditionBuilder required_products) */}
+          {comp.scope === "variant" && (
+            <div className="flex-1">
+              <Select
+                options={variantOpts}
+                value={comp.refId}
+                onChange={(v) => {
+                  const id = v as string;
+                  const vdata = variantFlats.find((vf) => vf.variantId === id);
+                  updateComponent(comp.id, {
+                    refId: id,
+                    refLabel: vdata ? `${vdata.productName} — ${vdata.variantName}` : id || undefined,
+                  });
+                }}
+                searchable
+                clearable
+                boldLabel
+                placeholder={loading ? "Đang tải phiên bản…" : "— Chọn phiên bản —"}
+                disabled={loading}
               />
             </div>
+          )}
 
-            {/* Remove */}
-            <button
-              type="button"
-              onClick={() => removeComponent(comp.id)}
-              className="flex items-center justify-center w-8 h-8 rounded-lg text-error-500 hover:bg-error-50 transition-colors"
-            >
-              <TrashIcon className="w-4 h-4" />
-            </button>
+          {/* Min qty */}
+          <div className="flex items-center gap-1.5 flex-shrink-0">
+            <span className="text-xs text-secondary-500 whitespace-nowrap">SL tối thiểu:</span>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={comp.minQuantity}
+              onChange={(e) =>
+                updateComponent(comp.id, { minQuantity: Math.max(1, parseInt(e.target.value, 10) || 1) })
+              }
+              className="w-16 rounded-lg border border-secondary-300 bg-white px-2 py-1.5 text-center text-sm text-secondary-800 focus:border-primary-500 focus:outline-none"
+            />
           </div>
+
+          {/* Duplicate warning */}
+          {isDuplicate && (
+            <ExclamationTriangleIcon
+              className="w-4 h-4 shrink-0 text-warning-600"
+              title="Sản phẩm/danh mục này đã được chọn ở thành phần khác"
+            />
+          )}
+
+          {/* Remove */}
+          <button
+            type="button"
+            onClick={() => removeComponent(comp.id)}
+            className="flex items-center justify-center w-8 h-8 rounded-lg text-error-500 hover:bg-error-50 transition-colors flex-shrink-0"
+          >
+            <TrashIcon className="w-4 h-4" />
+          </button>
+        </div>
         );
       })}
 
@@ -173,6 +242,13 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
         <PlusIcon className="w-4 h-4" />
         Thêm thành phần combo
       </button>
+
+      {duplicateRefIds.size > 0 && (
+        <div className="flex items-start gap-2 rounded-lg bg-warning-50 border border-warning-200 px-3 py-2 text-xs text-warning-700">
+          <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          Một số sản phẩm/danh mục được chọn nhiều hơn một lần — mỗi thành phần combo phải là sản phẩm khác nhau.
+        </div>
+      )}
 
       {components.length > 0 && (
         <p className="text-xs text-secondary-400 bg-info-50 border border-info-200 rounded-lg px-3 py-2">

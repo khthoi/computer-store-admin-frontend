@@ -435,14 +435,23 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
               {(flashSale.bannerTitle || flashSale.bannerImageUrl) && (
                 <div className="sm:col-span-3">
                   <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400 mb-2">Banner</p>
-                  <div className="rounded-xl border border-secondary-100 bg-secondary-50 p-4 space-y-2">
-                    {flashSale.bannerTitle && (
-                      <p className="text-base font-bold text-secondary-900">{flashSale.bannerTitle}</p>
+                  <div className="relative w-full overflow-hidden rounded-xl border border-secondary-100 bg-secondary-50" style={{ aspectRatio: "16/5" }}>
+                    {flashSale.bannerImageUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={flashSale.bannerImageUrl}
+                        alt={flashSale.bannerAlt ?? flashSale.bannerTitle ?? "Banner flash sale"}
+                        className="absolute inset-0 h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <PhotoIcon className="h-10 w-10 text-secondary-300" aria-hidden="true" />
+                      </div>
                     )}
-                    {flashSale.bannerImageUrl && (
-                      <p className="font-mono text-xs text-secondary-400 break-all">
-                        {flashSale.bannerImageUrl}
-                      </p>
+                    {flashSale.bannerTitle && (
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 py-3">
+                        <p className="text-sm font-bold text-white drop-shadow">{flashSale.bannerTitle}</p>
+                      </div>
                     )}
                   </div>
                 </div>

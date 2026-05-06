@@ -23,12 +23,26 @@ function formatDate(s: string) {
 }
 
 const STATUS_OPTIONS = [
-  { value: "ChoDuyet",  label: "Chờ duyệt" },
-  { value: "DaDuyet",   label: "Đã duyệt" },
-  { value: "TuChoi",    label: "Từ chối" },
-  { value: "DangXuLy",  label: "Đang xử lý" },
-  { value: "HoanThanh", label: "Hoàn thành" },
+  { value: "ChoDuyet",   label: "Chờ duyệt" },
+  { value: "DaDuyet",    label: "Đã duyệt" },
+  { value: "TuChoi",     label: "Từ chối" },
+  { value: "DaNhanHang",    label: "Đã nhận hàng" },
+  { value: "DaKiemTra",    label: "Đã kiểm tra" },
+  { value: "TuChoiNhanHang", label: "Từ chối nhận" },
+  { value: "DangXuLy",    label: "Đang xử lý" },
+  { value: "HoanThanh",  label: "Hoàn thành" },
 ];
+
+const REASON_LABELS: Record<string, string> = {
+  LoiNhaSanXuat:      "Lỗi từ nhà sản xuất",
+  GuiNhamHang:        "Store gửi nhầm hàng",
+  HuHongKhiVanChuyen: "Hư hỏng khi vận chuyển",
+  ThieuPhuKien:       "Thiếu phụ kiện trong hộp",
+  KhongDungMoTa:      "Sản phẩm không đúng mô tả",
+  DoiYKien:           "Khách đổi ý",
+  KhongTuongThich:    "Không tương thích thiết bị",
+  HieuNangKemHon:     "Hiệu năng kém hơn mô tả",
+};
 
 const RESOLUTION_OPTIONS = [
   { value: "GiaoHangMoi", label: "Giao hàng mới" },
@@ -37,15 +51,17 @@ const RESOLUTION_OPTIONS = [
 ];
 
 const TYPE_OPTIONS = [
-  { value: "DoiHang", label: "Đổi hàng" },
-  { value: "TraHang", label: "Trả hàng" },
-  { value: "BaoHanh", label: "Bảo hành" },
+  { value: "DoiHang",  label: "Đổi hàng" },
+  { value: "TraHang",  label: "Trả hàng" },
+  { value: "BaoHanh",  label: "Bảo hành" },
+  { value: "HoanTien", label: "Hoàn tiền" },
 ];
 
 const TYPE_STYLE: Record<string, { text: string; cls: string }> = {
-  DoiHang: { text: "Đổi hàng", cls: "bg-blue-50 text-blue-700" },
-  TraHang: { text: "Trả hàng", cls: "bg-amber-50 text-amber-700" },
-  BaoHanh: { text: "Bảo hành", cls: "bg-purple-50 text-purple-700" },
+  DoiHang:  { text: "Đổi hàng",  cls: "bg-info-50 text-info-700" },
+  TraHang:  { text: "Trả hàng",  cls: "bg-warning-50 text-warning-700" },
+  BaoHanh:  { text: "Bảo hành",  cls: "bg-secondary-100 text-secondary-700" },
+  HoanTien: { text: "Hoàn tiền", cls: "bg-success-50 text-success-700" },
 };
 
 function buildColumns(basePath: string): ColumnDef<Row>[] {
@@ -78,10 +94,9 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
       header: "Loại",
       width: "w-28",
       render: (_, row) => {
-        const cfg = TYPE_STYLE[row.requestType as string] ?? {
-          text: row.requestType as string,
-          cls: "bg-secondary-100 text-secondary-600",
-        };
+        const t = row.requestType as string | null | undefined;
+        if (!t) return <span className="text-secondary-400">—</span>;
+        const cfg = TYPE_STYLE[t] ?? { text: t, cls: "bg-secondary-100 text-secondary-600" };
         return (
           <span className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${cfg.cls}`}>
             {cfg.text}
@@ -93,19 +108,27 @@ function buildColumns(basePath: string): ColumnDef<Row>[] {
       key: "status",
       header: "Trạng thái",
       sortable: true,
-      render: (_, row) => <StatusBadge status={row.status as string} size="sm" />,
+      render: (_, row) => {
+        const s = row.status as string | null | undefined;
+        return s ? <StatusBadge status={s} size="sm" /> : <span className="text-secondary-400">—</span>;
+      },
     },
     {
       key: "reason",
       header: "Lý do",
       render: (_, row) => (
-        <span className="text-sm text-secondary-600">{row.reason as string}</span>
+        <span className="text-sm text-secondary-600">
+          {REASON_LABELS[row.reason as string] ?? (row.reason as string)}
+        </span>
       ),
     },
     {
       key: "resolution",
       header: "Giải quyết",
-      render: (_, row) => <StatusBadge status={row.resolution as string} size="sm" />,
+      render: (_, row) => {
+        const r = row.resolution as string | null | undefined;
+        return r ? <StatusBadge status={r} size="sm" /> : <span className="text-secondary-400">—</span>;
+      },
     },
     {
       key: "requestedAt",
@@ -179,7 +202,7 @@ export function ReturnsTable({
       .finally(() => setLoading(false));
   }, [page, pageSize, statusFilter]);
 
-  // Client-side secondary filtering (type, resolution, search) within fetched page
+  // Client-side secondary filtering (status, type, resolution, search) within fetched page
   const filtered = useMemo(() => {
     let list = [...rows] as Row[];
     if (q.trim()) {
@@ -189,6 +212,9 @@ export function ReturnsTable({
           ((r.orderCode as string | undefined) ?? "").toLowerCase().includes(lower) ||
           ((r.customerName as string) ?? "").toLowerCase().includes(lower)
       );
+    }
+    if (statusFilter.length > 0) {
+      list = list.filter((r) => statusFilter.includes(r.status as string));
     }
     if (typeFilter.length > 0) {
       list = list.filter((r) => typeFilter.includes(r.requestType as string));
@@ -203,9 +229,9 @@ export function ReturnsTable({
       return sortDir === "asc" ? cmp : -cmp;
     });
     return list;
-  }, [rows, q, typeFilter, resolutionFilter, sortKey, sortDir]);
+  }, [rows, q, statusFilter, typeFilter, resolutionFilter, sortKey, sortDir]);
 
-  const hasClientFilter = q.trim() || typeFilter.length > 0 || resolutionFilter.length > 0;
+  const hasClientFilter = q.trim() || statusFilter.length > 0 || typeFilter.length > 0 || resolutionFilter.length > 0;
   const displayTotal = hasClientFilter ? filtered.length : total;
 
   const toolbarActions = (

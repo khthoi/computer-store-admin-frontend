@@ -1,21 +1,24 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { DocumentDuplicateIcon } from "@heroicons/react/24/outline";
+import { DocumentDuplicateIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import {
   DataTable,
   RowActions,
   RowActionView,
   RowActionEdit,
+  RowActionDelete,
   type ColumnDef,
   type SortDir,
 } from "@/src/components/admin/DataTable";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import { useToast } from "@/src/components/ui/Toast";
 import { Tooltip } from "@/src/components/ui/Tooltip";
-import { duplicatePromotion } from "@/src/services/promotion.service";
+import { duplicatePromotion, deletePromotion, getPromotionList } from "@/src/services/promotion.service";
 import type { PromotionSummary, PromotionType, StackingPolicy } from "@/src/types/promotion.types";
 
 type Row = PromotionSummary & Record<string, unknown>;
@@ -23,11 +26,11 @@ type Row = PromotionSummary & Record<string, unknown>;
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
 const TYPE_LABELS: Record<PromotionType, string> = {
-  standard:     "Standard",
-  bxgy:         "Buy X Get Y",
-  bundle:       "Bundle",
-  bulk:         "Bulk Tiered",
-  free_shipping:"Free Shipping",
+  standard:      "Giảm giá thông thường",
+  bxgy:          "Mua X tặng Y",
+  bundle:        "Combo / Gói sản phẩm",
+  bulk:          "Số lượng lớn / Phân cấp",
+  free_shipping: "FreeShip",
 };
 
 const STACKING_LABELS: Record<StackingPolicy, string> = {
@@ -45,83 +48,158 @@ const STACKING_STYLES: Record<StackingPolicy, string> = {
 // ─── Filter options ───────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
-  { value: "active",    label: "Active" },
-  { value: "scheduled", label: "Scheduled" },
-  { value: "draft",     label: "Draft" },
-  { value: "paused",    label: "Paused" },
-  { value: "ended",     label: "Ended" },
-  { value: "cancelled", label: "Cancelled" },
+  { value: "active",    label: "Đang hoạt động" },
+  { value: "scheduled", label: "Đã lên lịch" },
+  { value: "draft",     label: "Bản nháp" },
+  { value: "paused",    label: "Tạm dừng" },
+  { value: "ended",     label: "Đã kết thúc" },
+  { value: "cancelled", label: "Đã hủy" },
 ];
 
 const TYPE_OPTIONS = [
-  { value: "standard",      label: "Standard" },
-  { value: "bxgy",          label: "Buy X Get Y" },
-  { value: "bundle",        label: "Bundle" },
-  { value: "bulk",          label: "Bulk Tiered" },
-  { value: "free_shipping", label: "Free Shipping" },
+  { value: "standard",      label: "Giảm giá thông thường" },
+  { value: "bxgy",          label: "Mua X tặng Y" },
+  { value: "bundle",        label: "Combo / Gói sản phẩm" },
+  { value: "bulk",          label: "Số lượng lớn / Phân cấp" },
+  { value: "free_shipping", label: "FreeShip" },
 ];
 
 function formatDate(s: string) {
   return new Date(s).toLocaleDateString("vi-VN", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
+// ─── Props ────────────────────────────────────────────────────────────────────
+
+interface Props {
+  initialPromotions: PromotionSummary[];
+  initialTotal: number;
+  showCoupons?: boolean;
+  onTotalChange?: (total: number) => void;
+}
+
+const PAGE_SIZE = 10;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function PromotionsTable({
-  initialPromotions,
-  showCoupons = false,
-}: {
-  initialPromotions: PromotionSummary[];
-  showCoupons?: boolean;
-}) {
+export function PromotionsTable({ initialPromotions, initialTotal, showCoupons = false, onTotalChange }: Props) {
+  const router = useRouter();
   const { showToast } = useToast();
+
+  // ── Server state ──────────────────────────────────────────────────────────
+  const [promotions, setPromotions] = useState<PromotionSummary[]>(initialPromotions);
+  const [loading, setLoading] = useState(false);
+  const [serverTotal, setServerTotal] = useState(initialTotal);
+  const fetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+  const prevSearchRef = useRef("");
+  const nonPageChangedRef = useRef(false);
+
+  // ── Filter / search / sort state ──────────────────────────────────────────
   const [q, setQ] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string[]>([]);
   const [sortKey, setSortKey] = useState("startDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE);
+
+  // ── Other state ───────────────────────────────────────────────────────────
   const [duplicating, setDuplicating] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Row | null>(null);
+  const [deleting, setDeleting] = useState(false);
+
+  // ── Server fetch ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    const isSearchChange = q !== prevSearchRef.current;
+    prevSearchRef.current = q;
+    const isNonPageChange = nonPageChangedRef.current;
+    nonPageChangedRef.current = false;
+
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = setTimeout(async () => {
+      if (isNonPageChange) setLoading(true);
+      try {
+        const result = await getPromotionList({
+          page,
+          limit: pageSize,
+          search: q || undefined,
+          status: statusFilter[0],
+          type: typeFilter[0],
+          isCoupon: showCoupons,
+          sortBy: sortKey,
+          sortOrder: sortDir,
+        });
+        setPromotions(result.data);
+        setServerTotal(result.total);
+        onTotalChange?.(result.total);
+      } catch { /* keep existing */ }
+      finally { setLoading(false); }
+    }, isSearchChange ? 300 : 0);
+
+    return () => { if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current); };
+  }, [page, pageSize, q, statusFilter, typeFilter, sortKey, sortDir, showCoupons]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handleSortChange = (key: string, dir: SortDir) => {
+    nonPageChangedRef.current = true; setSortKey(key); setSortDir(dir); setPage(1);
+  };
+  const handleSearchChange = (val: string) => {
+    nonPageChangedRef.current = true; setQ(val); setPage(1);
+  };
+  const handleStatusFilterChange = (v: string[]) => {
+    nonPageChangedRef.current = true; setStatusFilter(v); setPage(1);
+  };
+  const handleTypeFilterChange = (v: string[]) => {
+    nonPageChangedRef.current = true; setTypeFilter(v); setPage(1);
+  };
+  const handlePageSizeChange = (size: number) => {
+    nonPageChangedRef.current = true; setPageSize(size); setPage(1);
+  };
 
   async function handleDuplicate(id: string) {
     setDuplicating(id);
     try {
       const copy = await duplicatePromotion(id);
-      showToast(`Duplicated as "${copy.name}" (draft).`, "success");
+      showToast(`Đã nhân bản thành "${copy.name}".`, "success");
+      router.refresh();
     } catch {
-      showToast("Failed to duplicate.", "error");
+      showToast("Nhân bản thất bại.", "error");
     } finally {
       setDuplicating(null);
     }
   }
 
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await deletePromotion(deleteTarget.id as string);
+      showToast(`Đã xoá "${deleteTarget.name as string}".`, "success");
+      setDeleteTarget(null);
+      router.refresh();
+    } catch {
+      showToast("Xoá thất bại.", "error");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   const COLUMNS: ColumnDef<Row>[] = useMemo(() => [
     {
-      key: "id",
-      header: "ID",
-      width: "w-[7%]",
-      sortable: true,
-      render: (_, row) => (
-        <Link
-          href={`/promotions/${row.id as string}`}
-          className="font-mono text-sm font-semibold text-primary-600 hover:underline"
-        >
-          {row.id as string}
-        </Link>
-      ),
-    },
-    {
       key: "name",
-      header: "Tên khuyến mãi",
-      width: "w-[14%]",
+      header: showCoupons ? "Tên mã giảm giá" : "Tên khuyến mãi",
+      width: "w-[21%]",
       sortable: true,
       render: (_, row) => (
         <div>
           <Tooltip content={row.name as string} placement="top" anchorToContent>
-            <p className="truncate text-sm font-medium text-secondary-900 cursor-default">
+            <Link
+              href={`/promotions/${row.id as string}`}
+              className="block truncate text-sm font-medium text-secondary-900 hover:text-primary-600 hover:underline"
+            >
               {row.name as string}
-            </p>
+            </Link>
           </Tooltip>
           {(row.isCoupon as boolean) && (
             <span className="inline-block mt-0.5 rounded-md bg-secondary-100 px-1.5 py-0.5 font-mono text-[11px] font-bold tracking-wide text-secondary-600">
@@ -244,72 +322,72 @@ export function PromotionsTable({
             type="button"
             onClick={() => handleDuplicate(row.id as string)}
             disabled={duplicating === (row.id as string)}
-            title="Duplicate"
-            className="flex items-center justify-center w-8 h-8 rounded-lg text-secondary-400 hover:bg-secondary-50 hover:text-secondary-700 transition-colors disabled:opacity-40"
+            title="Nhân bản"
+            className="flex items-center justify-center w-7 h-7 rounded text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700 transition-colors disabled:opacity-40"
           >
             <DocumentDuplicateIcon className="w-4 h-4" />
           </button>
+          <RowActionDelete onClick={() => setDeleteTarget(row)} ariaLabel="Xoá" />
         </RowActions>
       ),
     },
-  ], [duplicating]);
-
-  const filtered = useMemo(() => {
-    let rows = [...initialPromotions] as Row[];
-    rows = rows.filter((r) => (showCoupons ? r.isCoupon : !r.isCoupon));
-    if (q.trim()) {
-      const lower = q.toLowerCase();
-      rows = rows.filter(
-        (r) =>
-          (r.id as string).toLowerCase().includes(lower) ||
-          (r.name as string).toLowerCase().includes(lower) ||
-          ((r.code as string | undefined) ?? "").toLowerCase().includes(lower)
-      );
-    }
-    if (statusFilter.length > 0) rows = rows.filter((r) => statusFilter.includes(r.status as string));
-    if (typeFilter.length > 0)   rows = rows.filter((r) => typeFilter.includes(r.type as string));
-    rows.sort((a, b) => {
-      const av = (a as Record<string, unknown>)[sortKey] as string | number;
-      const bv = (b as Record<string, unknown>)[sortKey] as string | number;
-      const cmp = av < bv ? -1 : av > bv ? 1 : 0;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return rows;
-  }, [initialPromotions, showCoupons, q, statusFilter, typeFilter, sortKey, sortDir]);
-
-  const totalRows = filtered.length;
-  const pageRows = filtered.slice((page - 1) * pageSize, page * pageSize);
+  ], [duplicating, showCoupons]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const toolbarActions = (
     <>
-      <FilterDropdown label="Status" options={STATUS_OPTIONS} selected={statusFilter} onChange={(v) => { setStatusFilter(v); setPage(1); }} />
-      <FilterDropdown label="Type"   options={TYPE_OPTIONS}   selected={typeFilter}   onChange={(v) => { setTypeFilter(v);   setPage(1); }} />
+      <FilterDropdown label="Status" options={STATUS_OPTIONS} selected={statusFilter} onChange={handleStatusFilterChange} />
+      <FilterDropdown label="Type"   options={TYPE_OPTIONS}   selected={typeFilter}   onChange={handleTypeFilterChange} />
       <span className="text-sm text-secondary-400 whitespace-nowrap">
-        {totalRows} {showCoupons ? "coupon" : "promotion"}{totalRows !== 1 ? "s" : ""}
+        {serverTotal} {showCoupons ? "coupon" : "promotion"}{serverTotal !== 1 ? "s" : ""}
       </span>
     </>
   );
 
   return (
-    <DataTable<Row>
-      columns={COLUMNS}
-      data={pageRows}
-      keyField="id"
-      tableLayout="fixed"
-      sortKey={sortKey}
-      sortDir={sortDir}
-      onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
-      searchQuery={q}
-      onSearchChange={(val) => { setQ(val); setPage(1); }}
-      searchPlaceholder={showCoupons ? "Search by ID, name, or code…" : "Search by ID or name…"}
-      toolbarActions={toolbarActions}
-      page={page}
-      pageSize={pageSize}
-      totalRows={totalRows}
-      pageSizeOptions={[10, 25, 50]}
-      onPageChange={setPage}
-      onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-      emptyMessage={showCoupons ? "No coupons found." : "No promotions found."}
-    />
+    <>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70">
+            <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-600" />
+          </div>
+        )}
+        <DataTable<Row>
+          columns={COLUMNS}
+          data={promotions as Row[]}
+          keyField="id"
+          tableLayout="fixed"
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={handleSortChange}
+          searchQuery={q}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder={showCoupons ? "Search by ID, name, or code…" : "Search by ID or name…"}
+          toolbarActions={toolbarActions}
+          page={page}
+          pageSize={pageSize}
+          totalRows={serverTotal}
+          pageSizeOptions={[10, 25, 50]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          emptyMessage={showCoupons ? "No coupons found." : "No promotions found."}
+        />
+      </div>
+
+      <ConfirmDialog
+        isOpen={Boolean(deleteTarget)}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Xoá khuyến mãi?"
+        description={
+          deleteTarget
+            ? `"${deleteTarget.name as string}" sẽ bị xoá vĩnh viễn cùng toàn bộ điều kiện, hành động và lịch sử sử dụng. Không thể hoàn tác.`
+            : ""
+        }
+        confirmLabel="Xoá vĩnh viễn"
+        cancelLabel="Huỷ"
+        variant="danger"
+        isConfirming={deleting}
+      />
+    </>
   );
 }

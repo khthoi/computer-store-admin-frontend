@@ -245,7 +245,7 @@ export function FilterDropdown({
                     type="text"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Search…"
+                    placeholder="Tìm kiếm..."
                     className="w-full rounded-md border border-secondary-200 py-1.5 pl-7 pr-2 text-xs focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-200"
                   />
                 </div>
@@ -261,7 +261,7 @@ export function FilterDropdown({
             >
               {filtered.length === 0 ? (
                 <li className="px-3 py-2 text-xs text-secondary-400">
-                  No options found
+                  Không tìm thấy kết quả
                 </li>
               ) : (
                 filtered.map((option) => {
@@ -316,7 +316,7 @@ export function FilterDropdown({
             {hasSelection && (
               <div className="flex items-center justify-between border-t border-secondary-100 px-3 py-2">
                 <span className="text-xs text-secondary-500">
-                  {selectedCount} selected
+                  {selectedCount} đã chọn
                 </span>
                 <button
                   type="button"
@@ -324,7 +324,7 @@ export function FilterDropdown({
                   className="flex items-center gap-1 text-xs text-error-600 hover:underline focus-visible:outline-none"
                 >
                   <XMarkIcon className="w-3 h-3" aria-hidden="true" />
-                  Clear
+                  Xóa
                 </button>
               </div>
             )}

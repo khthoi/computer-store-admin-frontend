@@ -1,21 +1,23 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { SparklesIcon, PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { SparklesIcon, PencilSquareIcon, TrashIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import type { LoyaltyRedemptionCatalog } from "@/src/types/loyalty.types";
 import { DataTable } from "@/src/components/admin/DataTable";
 import type { ColumnDef } from "@/src/components/admin/DataTable";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Tooltip } from "@/src/components/ui/Tooltip";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
+import { useToast } from "@/src/components/ui/Toast";
+import { getRedemptionCatalog, updateRedemptionCatalogItem, deleteRedemptionCatalogItem } from "@/src/services/loyalty.service";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  initialItems: LoyaltyRedemptionCatalog[];
+  reloadTrigger?: number;
   onEdit: (item: LoyaltyRedemptionCatalog) => void;
-  onDelete: (id: string) => void;
-  onToggleActive: (id: string, isActive: boolean) => void;
+  onTotalChange?: (total: number) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -31,22 +33,87 @@ function formatDate(iso?: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function RedemptionCatalogTable({
-  initialItems,
-  onEdit,
-  onDelete,
-  onToggleActive,
-}: Props) {
-  const [page, setPage]         = useState(1);
-  const [pageSize, setPageSize] = useState(10);
+export function RedemptionCatalogTable({ reloadTrigger, onEdit, onTotalChange }: Props) {
+  const { showToast } = useToast();
 
+  const [items, setItems]             = useState<LoyaltyRedemptionCatalog[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [loading, setLoading]         = useState(false);
+  const [page, setPage]               = useState(1);
+  const [pageSize, setPageSize]       = useState(10);
+  const [search, setSearch]           = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const fetchTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevSearchRef     = useRef("");
+  const nonPageChangedRef = useRef(true); // first render = show loader
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const isSearchChange = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
+    const isNonPageChange = nonPageChangedRef.current;
+    nonPageChangedRef.current = false;
+
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = setTimeout(async () => {
+      if (isNonPageChange) setLoading(true);
+      try {
+        const result = await getRedemptionCatalog(page, pageSize, search || undefined);
+        setItems(result.data);
+        setServerTotal(result.total);
+        onTotalChange?.(result.total);
+      } catch { /* keep existing */ }
+      finally { setLoading(false); }
+    }, isSearchChange ? 300 : 0);
+
+    return () => { if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current); };
+  }, [page, pageSize, search, reloadTrigger]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handlePageSizeChange = (size: number) => {
+    nonPageChangedRef.current = true; setPageSize(size); setPage(1);
+  };
+  const handleSearchChange = (val: string) => {
+    nonPageChangedRef.current = true; setSearch(val); setPage(1);
+  };
+
+  async function handleToggleActive(id: string, isActive: boolean) {
+    const snapshot = items;
+    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, isActive } : i)));
+    try {
+      await updateRedemptionCatalogItem(id, { isActive });
+    } catch {
+      setItems(snapshot);
+      showToast("Failed to update.", "error");
+    }
+  }
+
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteRedemptionCatalogItem(deleteTarget.id);
+      showToast("Deleted.", "success");
+      nonPageChangedRef.current = true;
+      const result = await getRedemptionCatalog(page, pageSize, search || undefined);
+      setItems(result.data);
+      setServerTotal(result.total);
+      onTotalChange?.(result.total);
+    } catch {
+      showToast("Failed to delete.", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
+  }
+
+  // ── Columns ───────────────────────────────────────────────────────────────
   type Row = LoyaltyRedemptionCatalog & Record<string, unknown>;
 
   const columns: ColumnDef<Row>[] = [
     {
       key: "name",
       header: "Tên",
-      width: "w-[18%]",
+      width: "w-[22%]",
       render: (v) => (
         <Tooltip content={v as string} anchorToContent>
           <span className="block truncate text-sm font-medium text-secondary-800">
@@ -70,7 +137,7 @@ export function RedemptionCatalogTable({
     {
       key: "promotionCode",
       header: "Mã giảm giá",
-      width: "w-[18%]",
+      width: "w-[24%]",
       render: (v, row) => (
         <div className="space-y-0.5">
           <Link
@@ -88,14 +155,6 @@ export function RedemptionCatalogTable({
       ),
     },
     {
-      key: "discountDisplay",
-      header: "Giảm giá",
-      width: "w-[10%]",
-      render: (v) => (
-        <span className="text-sm text-secondary-700">{(v as string) ?? "—"}</span>
-      ),
-    },
-    {
       key: "isActive",
       header: "Kích hoạt",
       width: "w-[8%]",
@@ -103,7 +162,7 @@ export function RedemptionCatalogTable({
       render: (v, row) => (
         <Toggle
           checked={v as boolean}
-          onChange={(e) => onToggleActive(row.id as string, e.target.checked)}
+          onChange={(e) => handleToggleActive(row.id as string, e.target.checked)}
           size="sm"
         />
       ),
@@ -115,7 +174,7 @@ export function RedemptionCatalogTable({
       align: "center",
       render: (v, row) => (
         <span className="text-sm text-secondary-600">
-          {(v as number).toLocaleString("vi-VN")} /{" "}
+          {((v as number) ?? 0).toLocaleString("vi-VN")} /{" "}
           {row.stockLimit != null
             ? (row.stockLimit as number).toLocaleString("vi-VN")
             : "∞"}
@@ -156,11 +215,7 @@ export function RedemptionCatalogTable({
             type="button"
             title="Xoá"
             className="rounded p-1 text-secondary-400 hover:bg-error-50 hover:text-error-600 transition-colors"
-            onClick={() => {
-              if (window.confirm(`Xoá "${row.name as string}"? Không thể hoàn tác.`)) {
-                onDelete(row.id as string);
-              }
-            }}
+            onClick={() => setDeleteTarget({ id: row.id as string, name: row.name as string })}
           >
             <TrashIcon className="w-4 h-4" />
           </button>
@@ -169,20 +224,42 @@ export function RedemptionCatalogTable({
     },
   ];
 
-  const pagedItems = initialItems.slice((page - 1) * pageSize, page * pageSize);
-
   return (
-    <DataTable
-      data={pagedItems as Row[]}
-      columns={columns}
-      keyField="id"
-      page={page}
-      pageSize={pageSize}
-      totalRows={initialItems.length}
-      onPageChange={setPage}
-      onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-      tableLayout="fixed"
-      emptyMessage="Chưa có mục đổi điểm nào."
-    />
+    <>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70">
+            <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-600" />
+          </div>
+        )}
+        <DataTable
+          data={items as Row[]}
+          columns={columns}
+          keyField="id"
+          page={page}
+          pageSize={pageSize}
+          totalRows={serverTotal}
+          pageSizeOptions={[10, 25, 50]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          searchQuery={search}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Tìm theo tên, mã giảm giá…"
+          tableLayout="fixed"
+          emptyMessage="Chưa có mục đổi điểm nào."
+        />
+      </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Xoá mục đổi thưởng"
+        description={`Bạn có chắc muốn xoá "${deleteTarget?.name ?? ""}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá"
+        cancelLabel="Huỷ"
+        variant="danger"
+      />
+    </>
   );
 }

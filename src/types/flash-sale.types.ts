@@ -60,7 +60,9 @@ export interface FlashSale {
   /** Alt text for the banner image (for accessibility / SEO) */
   bannerAlt?: string;
   items: FlashSaleItem[];
+  createdByEmployeeId?: number;
   createdBy: string;
+  createdByEmail?: string;
   createdAt: string;
   updatedAt: string;
 }

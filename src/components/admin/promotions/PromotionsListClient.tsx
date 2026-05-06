@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   PlusIcon,
@@ -10,31 +9,27 @@ import {
   Bars4Icon,
   CircleStackIcon,
 } from "@heroicons/react/24/outline";
+import Link from "next/link";
 import { PromotionsTable } from "./PromotionsTable";
 import { RedemptionCatalogTable } from "./RedemptionCatalogTable";
 import { RedemptionCatalogForm } from "./RedemptionCatalogForm";
 import { EarnRulesTable } from "./EarnRulesTable";
 import type { PromotionSummary } from "@/src/types/promotion.types";
-import type { LoyaltyRedemptionCatalog, LoyaltyEarnRule } from "@/src/types/loyalty.types";
-import {
-  getRedemptionCatalog,
-  updateRedemptionCatalogItem,
-  deleteRedemptionCatalogItem,
-  getEarnRules,
-  updateEarnRule,
-  deleteEarnRule,
-} from "@/src/services/loyalty.service";
+import type { LoyaltyRedemptionCatalog } from "@/src/types/loyalty.types";
 import { useToast } from "@/src/components/ui/Toast";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  initialPromotions: PromotionSummary[];
+  initialPromos: PromotionSummary[];
+  initialPromoTotal: number;
+  initialCoupons: PromotionSummary[];
+  initialCouponTotal: number;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function PromotionsListClient({ initialPromotions }: Props) {
+export function PromotionsListClient({ initialPromos, initialPromoTotal, initialCoupons, initialCouponTotal }: Props) {
   const { showToast } = useToast();
   const searchParams = useSearchParams();
   const tabParam = searchParams.get("tab");
@@ -45,34 +40,20 @@ export function PromotionsListClient({ initialPromotions }: Props) {
     tabParam === "coupons"     ? "coupons"     : "promotions"
   );
 
-  const promoCount  = initialPromotions.filter((p) => !p.isCoupon).length;
-  const couponCount = initialPromotions.filter((p) =>  p.isCoupon).length;
+  // ── Badge counts ──────────────────────────────────────────────────────────
+  const [promoCount, setPromoCount]         = useState(initialPromoTotal);
+  const [couponCount, setCouponCount]       = useState(initialCouponTotal);
+  const [catalogTotal, setCatalogTotal]     = useState(0);
+  const [earnActiveCount, setEarnActiveCount] = useState(0);
 
   const isCouponsTab     = activeTab === "coupons";
   const isRedemptionsTab = activeTab === "redemptions";
   const isEarnRulesTab   = activeTab === "earn-rules";
 
-  // ── Redemption catalog state ───────────────────────────────────────────────
-  const [catalogItems, setCatalogItems] = useState<LoyaltyRedemptionCatalog[]>([]);
+  // ── Redemption catalog modal state ────────────────────────────────────────
   const [editingCatalog, setEditingCatalog] = useState<LoyaltyRedemptionCatalog | undefined>(undefined);
   const [showCatalogForm, setShowCatalogForm] = useState(false);
-  const [catalogLoading, setCatalogLoading] = useState(false);
-
-  // ── Earn rules state ───────────────────────────────────────────────────────
-  const [earnRules, setEarnRules] = useState<LoyaltyEarnRule[]>([]);
-
-  // Load both on mount so badge counts are available immediately
-  useEffect(() => {
-    setCatalogLoading(true);
-    getRedemptionCatalog().then((items) => {
-      setCatalogItems(items);
-      setCatalogLoading(false);
-    });
-
-    getEarnRules().then((rules) => {
-      setEarnRules(rules);
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  const [catalogReloadKey, setCatalogReloadKey] = useState(0);
 
   // ── Header content ─────────────────────────────────────────────────────────
   const headerTitle = isEarnRulesTab
@@ -184,7 +165,7 @@ export function PromotionsListClient({ initialPromotions }: Props) {
           <CircleStackIcon className="w-4 h-4" />
           Đổi thưởng
           <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${activeTab === "redemptions" ? "bg-primary-100 text-primary-700" : "bg-secondary-200 text-secondary-500"}`}>
-            {catalogItems.length}
+            {catalogTotal}
           </span>
         </button>
 
@@ -202,65 +183,48 @@ export function PromotionsListClient({ initialPromotions }: Props) {
           <Bars4Icon className="w-4 h-4" />
           Quy tắc thưởng
           <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${activeTab === "earn-rules" ? "bg-primary-100 text-primary-700" : "bg-secondary-200 text-secondary-500"}`}>
-            {earnRules.filter((r) => r.isActive).length}
+            {earnActiveCount}
           </span>
         </button>
       </div>
 
       {/* ── Promotions / Coupons ─────────────────────────────────────────────── */}
-      {(activeTab === "promotions" || activeTab === "coupons") && (
+      {activeTab === "promotions" && (
         <PromotionsTable
-          initialPromotions={initialPromotions}
-          showCoupons={isCouponsTab}
+          key="promotions"
+          initialPromotions={initialPromos}
+          initialTotal={initialPromoTotal}
+          showCoupons={false}
+          onTotalChange={setPromoCount}
+        />
+      )}
+      {activeTab === "coupons" && (
+        <PromotionsTable
+          key="coupons"
+          initialPromotions={initialCoupons}
+          initialTotal={initialCouponTotal}
+          showCoupons={true}
+          onTotalChange={setCouponCount}
         />
       )}
 
       {/* ── Redemption Catalog ───────────────────────────────────────────────── */}
       {activeTab === "redemptions" && (
         <>
-          {catalogLoading ? (
-            <div className="animate-pulse space-y-2">
-              {[0, 1, 2].map((i) => (
-                <div key={i} className="h-12 rounded bg-secondary-100" />
-              ))}
-            </div>
-          ) : (
-            <RedemptionCatalogTable
-              initialItems={catalogItems}
-              onEdit={(item) => { setEditingCatalog(item); setShowCatalogForm(true); }}
-              onDelete={async (id) => {
-                await deleteRedemptionCatalogItem(id);
-                setCatalogItems((prev) => prev.filter((i) => i.id !== id));
-                showToast("Deleted.", "success");
-              }}
-              onToggleActive={async (id, isActive) => {
-                setCatalogItems((prev) =>
-                  prev.map((i) => (i.id === id ? { ...i, isActive } : i))
-                );
-                try {
-                  await updateRedemptionCatalogItem(id, { isActive });
-                } catch {
-                  setCatalogItems((prev) =>
-                    prev.map((i) => (i.id === id ? { ...i, isActive: !isActive } : i))
-                  );
-                  showToast("Failed to update.", "error");
-                }
-              }}
-            />
-          )}
+          <RedemptionCatalogTable
+            reloadTrigger={catalogReloadKey}
+            onEdit={(item) => { setEditingCatalog(item); setShowCatalogForm(true); }}
+            onTotalChange={setCatalogTotal}
+          />
 
           {showCatalogForm && (
             <RedemptionCatalogForm
               item={editingCatalog}
               onClose={() => setShowCatalogForm(false)}
-              onSaved={(saved) => {
-                setCatalogItems((prev) =>
-                  editingCatalog
-                    ? prev.map((i) => (i.id === saved.id ? saved : i))
-                    : [...prev, saved]
-                );
+              onSaved={() => {
                 setShowCatalogForm(false);
                 showToast(editingCatalog ? "Updated." : "Created.", "success");
+                setCatalogReloadKey((k) => k + 1);
               }}
             />
           )}
@@ -269,33 +233,7 @@ export function PromotionsListClient({ initialPromotions }: Props) {
 
       {/* ── Earn Rules ───────────────────────────────────────────────────────── */}
       {activeTab === "earn-rules" && (
-        <EarnRulesTable
-          items={earnRules}
-          onDelete={async (id) => {
-            setEarnRules((prev) => prev.filter((r) => r.id !== id));
-            try {
-              await deleteEarnRule(id);
-              showToast("Earn rule deleted.", "success");
-            } catch {
-              // refetch on error
-              getEarnRules().then(setEarnRules);
-              showToast("Failed to delete.", "error");
-            }
-          }}
-          onToggleActive={async (id, isActive) => {
-            setEarnRules((prev) =>
-              prev.map((r) => (r.id === id ? { ...r, isActive } : r))
-            );
-            try {
-              await updateEarnRule(id, { isActive });
-            } catch {
-              setEarnRules((prev) =>
-                prev.map((r) => (r.id === id ? { ...r, isActive: !isActive } : r))
-              );
-              showToast("Failed to update.", "error");
-            }
-          }}
-        />
+        <EarnRulesTable onTotalChange={setEarnActiveCount} />
       )}
     </>
   );

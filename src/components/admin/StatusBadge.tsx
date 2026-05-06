@@ -80,7 +80,20 @@ export type AdminStatus =
   | "earn"
   | "redeem"
   | "expire"
-  | "adjust";
+  | "adjust"
+  // ── Return request statuses ──
+  | "ChoDuyet"
+  | "DaDuyet"
+  | "TuChoi"
+  | "DaNhanHang"
+  | "DaKiemTra"
+  | "TuChoiNhanHang"
+  | "DangXuLy"
+  | "HoanThanh"
+  // ── Return resolution types ──
+  | "GiaoHangMoi"
+  | "HoanTien"
+  | "BaoHanh";
 
 export interface StatusBadgeProps {
   /** Any known AdminStatus value; unknown values render a neutral fallback. */
@@ -152,6 +165,19 @@ const CONFIG: Record<
   redeem:              { label: "Redeem",           wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: GiftIcon },
   expire:              { label: "Expire",           wrapper: "bg-error-50 text-error-700 border-error-200",               icon: MinusCircleIcon },
   adjust:              { label: "Adjust",           wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: AdjustmentsHorizontalIcon },
+  // ── Return request statuses ──
+  ChoDuyet:            { label: "Chờ duyệt",        wrapper: "bg-warning-50 text-warning-700 border-warning-200",         icon: ClockIcon },
+  DaDuyet:             { label: "Đã duyệt",         wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: CheckBadgeIcon },
+  TuChoi:              { label: "Từ chối",           wrapper: "bg-error-50 text-error-700 border-error-200",               icon: XCircleIcon },
+  DaNhanHang:          { label: "Đã nhận hàng",     wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: ArrowDownTrayIcon },
+  DaKiemTra:           { label: "Đã kiểm tra",      wrapper: "bg-warning-50 text-warning-700 border-warning-200",          icon: MagnifyingGlassCircleIcon },
+  TuChoiNhanHang:      { label: "Từ chối nhận",     wrapper: "bg-error-50 text-error-700 border-error-200",                icon: XCircleIcon },
+  DangXuLy:            { label: "Đang xử lý",       wrapper: "bg-warning-50 text-warning-700 border-warning-200",          icon: ArrowPathIcon },
+  HoanThanh:           { label: "Hoàn thành",       wrapper: "bg-success-50 text-success-700 border-success-200",         icon: CheckCircleIcon },
+  // ── Return resolution types ──
+  GiaoHangMoi:         { label: "Giao hàng mới",    wrapper: "bg-info-50 text-info-700 border-info-200",                  icon: TruckIcon },
+  HoanTien:            { label: "Hoàn tiền",         wrapper: "bg-success-50 text-success-700 border-success-200",         icon: BanknotesIcon },
+  BaoHanh:             { label: "Bảo hành",          wrapper: "bg-secondary-100 text-secondary-700 border-secondary-300",  icon: ArrowPathIcon },
 };
 
 const FALLBACK_CONFIG = {

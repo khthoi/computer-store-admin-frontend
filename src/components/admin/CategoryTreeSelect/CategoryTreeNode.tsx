@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRightIcon } from "@heroicons/react/24/outline";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import type { CategoryNode } from "./types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -63,20 +64,20 @@ export function CategoryTreeNode({
   selectableParents,
   searchQuery = "",
 }: CategoryTreeNodeProps) {
+  // Row click: always expand/collapse for parent nodes; select for leaves
   function handleRowClick() {
-    if (hasChildren && !isSelectable) {
+    if (hasChildren) {
       onToggleExpand(node.id);
-    } else if (hasChildren && isSelectable) {
-      // Clicking on the label selects; clicking the chevron toggles expand
-      onSelect(node.id, node);
     } else {
       onSelect(node.id, node);
     }
   }
 
-  function handleChevronClick(e: React.MouseEvent) {
+  // Label click: select the category (stops propagation so row expand doesn't fire)
+  function handleLabelClick(e: React.MouseEvent) {
+    if (!isSelectable) return;
     e.stopPropagation();
-    onToggleExpand(node.id);
+    onSelect(node.id, node);
   }
 
   const isNonSelectableParent = hasChildren && !isSelectable;
@@ -92,25 +93,24 @@ export function CategoryTreeNode({
       {/* ── Row ── */}
       {/*
        * Two-layer layout:
-       *   1. Outer div  — full-width click target, carries indentation via
-       *                   padding-left. Intentionally has NO background so the
-       *                   highlight never bleeds into the indent / guide-line area.
-       *   2. Inner div  — flex-1 content pill that starts right after the indent.
-       *                   This is the ONLY element that receives bg-primary-50 /
-       *                   hover:bg-secondary-50, so the highlight is cleanly
-       *                   scoped to the chevron + dot + label region.
+       *   1. Outer div  — full-width click target (expand/collapse for parents,
+       *                   select for leaves). Carries indentation via padding-left.
+       *   2. Inner div  — content pill with bg highlight, scoped to chevron + label.
+       *
+       * For parent nodes the row always expands/collapses. Selecting a parent
+       * requires clicking specifically on the label text, which stops propagation.
        */}
       <div
         onClick={handleRowClick}
         className={[
-          "flex items-center py-0.5",
-          isNonSelectableParent ? "cursor-default" : "cursor-pointer",
+          "flex items-center py-0.5 select-none",
+          hasChildren ? "cursor-pointer" : isNonSelectableParent ? "cursor-default" : "cursor-pointer",
         ]
           .filter(Boolean)
           .join(" ")}
         style={{ paddingLeft: `${depth * 16}px` }}
       >
-        {/* ── Content pill (highlight lives here, not on the outer div) ── */}
+        {/* ── Content pill ── */}
         <div
           className={[
             "flex flex-1 items-center gap-1.5 rounded-lg px-2 py-1.5 transition-colors",
@@ -121,21 +121,20 @@ export function CategoryTreeNode({
             .filter(Boolean)
             .join(" ")}
         >
-          {/* Chevron — always reserves space; invisible on leaves */}
+          {/* Chevron — larger hit area on parent nodes */}
           <span
-            onClick={hasChildren ? handleChevronClick : undefined}
             className={[
-              "flex h-4 w-4 shrink-0 items-center justify-center rounded transition-transform",
+              "flex shrink-0 items-center justify-center rounded transition-transform",
               hasChildren
-                ? "text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600"
-                : "invisible",
+                ? "h-5 w-5 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-600"
+                : "invisible h-4 w-4",
               isExpanded ? "rotate-90" : "rotate-0",
             ]
               .filter(Boolean)
               .join(" ")}
             aria-hidden="true"
           >
-            {hasChildren && <ChevronRightIcon className="h-3.5 w-3.5" />}
+            {hasChildren && <ChevronRightIcon className="h-4 w-4" />}
           </span>
 
           {/* Selected dot */}
@@ -147,20 +146,39 @@ export function CategoryTreeNode({
             aria-hidden="true"
           />
 
-          {/* Label */}
-          <span
-            className={[
-              "min-w-0 flex-1 truncate text-sm leading-5",
-              isSelected
-                ? "font-semibold text-primary-900"
-                : isNonSelectableParent
-                ? "font-medium text-secondary-400"
-                : "text-secondary-700",
-            ]
-              .filter(Boolean)
-              .join(" ")}
-          >
-            <HighlightedLabel label={node.label} query={searchQuery} />
+          {/* Label — outer span handles flex layout; inner span scopes click/hover to text only */}
+          <span className="min-w-0 flex-1 overflow-hidden">
+            <Tooltip
+              content={
+                hasChildren && isSelectable
+                  ? `Bấm để chọn "${node.label}"`
+                  : undefined
+              }
+              disabled={!(hasChildren && isSelectable)}
+              placement="top"
+              delay={400}
+            >
+              <span
+                onClick={handleLabelClick}
+                className={[
+                  "inline truncate text-sm leading-5",
+                  hasChildren && isSelectable
+                    ? "cursor-pointer hover:text-primary-700 hover:underline"
+                    : !isSelectable
+                    ? "cursor-default"
+                    : "cursor-pointer",
+                  isSelected
+                    ? "font-semibold text-primary-900"
+                    : isNonSelectableParent
+                    ? "font-medium text-secondary-400"
+                    : "text-secondary-700",
+                ]
+                  .filter(Boolean)
+                  .join(" ")}
+              >
+                <HighlightedLabel label={node.label} query={searchQuery} />
+              </span>
+            </Tooltip>
           </span>
         </div>
       </div>

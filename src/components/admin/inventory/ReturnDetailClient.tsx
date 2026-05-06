@@ -1,41 +1,44 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { Button } from "@/src/components/ui/Button";
-import { Input } from "@/src/components/ui/Input";
-import { Textarea } from "@/src/components/ui/Textarea";
-import { DateInput } from "@/src/components/ui/DateInput";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { useToast } from "@/src/components/ui/Toast";
 import { formatVND } from "@/src/lib/format";
 import {
   updateReturnStatus,
-  processRefund,
-  processExchange,
-  confirmExchangeDelivered,
-  initWarranty,
-  updateWarrantyStatus,
-  processWarranty,
   getReturnAssets,
-  type ProcessRefundDto,
-  type ProcessExchangeDto,
-  type UpdateWarrantyStatusDto,
-  type ProcessWarrantyDto,
+  confirmReceived,
   type ReturnAssetItem,
+  type ConfirmReceivedDto,
 } from "@/src/services/returns.service";
-import { MediaGallery } from "@/src/components/admin/variant/MediaGallery";
-import type { VariantMedia } from "@/src/types/product.types";
-import type { ReturnRequest, ReturnResolution } from "@/src/types/inventory.types";
+import { getVariantStockLevel, getBatchesByVariant } from "@/src/services/inventory.service";
+import type { StockBatch, ReturnRequest } from "@/src/types/inventory.types";
+import { ProductImageGallery, type GalleryMedia } from "@/src/components/product/ProductImageGallery";
+import { InspectionPanel, InspectionEvidencePanel, ConfirmInspectionPanel } from "./ReturnInspectionSection";
+import {
+  RefundPanel,
+  ExchangePanel,
+  WarrantyPanel,
+  DefectiveHandlingPanel,
+  CompleteReusePanel,
+  RejectGoodsPanel,
+} from "./ReturnResolutionPanels";
+import { ApproveDialog, type ItemStockInfo } from "./ReturnApproveDialog";
+import { InlineStockPanel } from "./ReturnInlineStock";
+import { ConfirmReceivedModal } from "./ReturnConfirmReceivedModal";
+
+// ─── Helpers / label maps ─────────────────────────────────────────────────────
 
 function formatDate(s?: string) {
   if (!s) return "—";
-  return new Date(s).toLocaleDateString("vi-VN", {
-    year: "numeric", month: "2-digit", day: "2-digit",
-  });
+  const d = new Date(s);
+  const time = d.toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false });
+  const date = d.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit", year: "numeric" });
+  return `${time} ${date}`;
 }
 
 const REQUEST_TYPE_LABELS: Record<string, string> = {
@@ -50,449 +53,16 @@ const RESOLUTION_LABELS: Record<string, string> = {
   BaoHanh:     "Bảo hành",
 };
 
-// ─── ApproveDialog ────────────────────────────────────────────────────────────
-
-const APPROVE_RESOLUTION_OPTIONS = [
-  { value: "HoanTien",    label: "Hoàn tiền",     desc: "Hoàn lại tiền cho khách" },
-  { value: "GiaoHangMoi", label: "Giao hàng mới", desc: "Gửi sản phẩm thay thế" },
-  { value: "BaoHanh",     label: "Bảo hành",       desc: "Gửi về hãng bảo hành" },
-];
-
-interface ApproveDialogProps {
-  isOpen: boolean;
-  isConfirming: boolean;
-  onClose: () => void;
-  onConfirm: (resolution: string) => void;
-}
-
-function ApproveDialog({ isOpen, isConfirming, onClose, onConfirm }: ApproveDialogProps) {
-  const [pendingResolution, setPendingResolution] = useState("");
-
-  function handleClose() {
-    setPendingResolution("");
-    onClose();
-  }
-
-  if (!isOpen || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        aria-hidden="true"
-        onClick={handleClose}
-        className="absolute inset-0 bg-secondary-900/60 backdrop-blur-sm"
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="approve-dialog-title"
-        className="relative z-10 w-full max-w-md rounded-2xl bg-white shadow-2xl"
-      >
-        <div className="px-6 pb-6 pt-6">
-          <h2 id="approve-dialog-title" className="mb-1 text-base font-semibold text-secondary-900">
-            Duyệt yêu cầu
-          </h2>
-          <p className="mb-4 text-sm text-secondary-500">Chọn hướng xử lý trước khi duyệt:</p>
-          <div className="space-y-2">
-            {APPROVE_RESOLUTION_OPTIONS.map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => setPendingResolution(opt.value)}
-                className={[
-                  "w-full rounded-xl border-2 px-4 py-3 text-left transition-colors",
-                  pendingResolution === opt.value
-                    ? "border-primary-500 bg-primary-50"
-                    : "border-secondary-200 hover:border-secondary-300 hover:bg-secondary-50",
-                ].join(" ")}
-              >
-                <p className="text-sm font-medium text-secondary-900">{opt.label}</p>
-                <p className="mt-0.5 text-xs text-secondary-400">{opt.desc}</p>
-              </button>
-            ))}
-          </div>
-          <div className="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            <button
-              type="button"
-              onClick={handleClose}
-              disabled={isConfirming}
-              className="flex items-center justify-center rounded-xl border border-secondary-200 px-5 py-2.5 text-sm font-medium text-secondary-700 transition-colors hover:bg-secondary-50 disabled:pointer-events-none disabled:opacity-50"
-            >
-              Huỷ
-            </button>
-            <button
-              type="button"
-              onClick={() => onConfirm(pendingResolution)}
-              disabled={!pendingResolution || isConfirming}
-              className="flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isConfirming && (
-                <svg className="h-4 w-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-              )}
-              Xác nhận duyệt
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>,
-    document.body
-  );
-}
-
-// ─── HoanTien panel ───────────────────────────────────────────────────────────
-
-function RefundPanel({ returnId, onDone }: { returnId: string; onDone: () => void }) {
-  const { showToast } = useToast();
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<ProcessRefundDto>({
-    soTienHoan: 0,
-    phuongThucHoan: "ChuyenKhoan",
-    maGiaoDichHoan: "",
-    nganHangViHoan: "",
-    ghiChu: "",
-  });
-
-  async function handleSubmit() {
-    if (!form.soTienHoan || form.soTienHoan <= 0) {
-      showToast("Vui lòng nhập số tiền hoàn trả hợp lệ.", "error");
-      return;
-    }
-    setSaving(true);
-    try {
-      await processRefund(returnId, {
-        ...form,
-        maGiaoDichHoan: form.maGiaoDichHoan || undefined,
-        nganHangViHoan: form.nganHangViHoan || undefined,
-        ghiChu: form.ghiChu || undefined,
-      });
-      showToast("Hoàn tiền thành công.", "success");
-      onDone();
-    } catch (err) {
-      showToast((err as Error)?.message || "Không thể thực hiện hoàn tiền.", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-4">
-      <h3 className="text-sm font-semibold text-secondary-900">Thực hiện hoàn tiền</h3>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <Input
-            label="Số tiền hoàn (VNĐ) *"
-            type="number"
-            min={0}
-            value={form.soTienHoan || ""}
-            onChange={(e) => setForm((f) => ({ ...f, soTienHoan: Number(e.target.value) }))}
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium text-secondary-700">Phương thức hoàn *</label>
-          <select value={form.phuongThucHoan}
-            onChange={(e) => setForm((f) => ({ ...f, phuongThucHoan: e.target.value }))}
-            className="w-full h-10 rounded border border-secondary-300 px-3 text-sm text-secondary-700 bg-white focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/15 transition-colors"
-          >
-            <option value="ChuyenKhoan">Chuyển khoản</option>
-            <option value="TienMat">Tiền mặt</option>
-            <option value="HoanViMomo">Hoàn ví MoMo</option>
-            <option value="HoanVNPay">Hoàn VNPay</option>
-          </select>
-        </div>
-        <div>
-          <Input
-            label="Mã giao dịch hoàn"
-            type="text"
-            value={form.maGiaoDichHoan || ""}
-            onChange={(e) => setForm((f) => ({ ...f, maGiaoDichHoan: e.target.value }))}
-          />
-        </div>
-        <div>
-          <Input
-            label="Ngân hàng / Ví"
-            type="text"
-            value={form.nganHangViHoan || ""}
-            onChange={(e) => setForm((f) => ({ ...f, nganHangViHoan: e.target.value }))}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Input
-            label="Ghi chú"
-            type="text"
-            value={form.ghiChu || ""}
-            onChange={(e) => setForm((f) => ({ ...f, ghiChu: e.target.value }))}
-          />
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <Button variant="primary" onClick={handleSubmit} disabled={saving} isLoading={saving}>
-          Xác nhận hoàn tiền
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ─── GiaoHangMoi panel ────────────────────────────────────────────────────────
-
-function ExchangePanel({ returnId, resolutionId, resolutionStatus, onDone }: {
-  returnId: string;
-  resolutionId?: string;
-  resolutionStatus?: string;
-  onDone: () => void;
-}) {
-  const { showToast } = useToast();
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState<ProcessExchangeDto>({
-    trackingDoiHang: "",
-    carrierDoiHang: "",
-    ghiChu: "",
-  });
-
-  async function handleExchange() {
-    setSaving(true);
-    try {
-      await processExchange(returnId, {
-        ...form,
-        trackingDoiHang: form.trackingDoiHang || undefined,
-        carrierDoiHang:  form.carrierDoiHang  || undefined,
-        ghiChu:          form.ghiChu          || undefined,
-      });
-      showToast("Đã xuất hàng đổi thành công.", "success");
-      onDone();
-    } catch (err) {
-      showToast((err as Error)?.message || "Không thể xuất hàng đổi.", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleConfirmDelivered() {
-    if (!resolutionId) return;
-    setSaving(true);
-    try {
-      await confirmExchangeDelivered(resolutionId);
-      showToast("Đã xác nhận khách nhận được hàng.", "success");
-      onDone();
-    } catch (err) {
-      showToast((err as Error)?.message || "Không thể xác nhận.", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (resolutionId && resolutionStatus !== "HoanThanh") {
-    return (
-      <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-3">
-        <h3 className="text-sm font-semibold text-secondary-900">Đổi hàng — xác nhận giao thành công</h3>
-        <p className="text-sm text-secondary-600">Xác nhận khách hàng đã nhận được hàng đổi để hoàn tất quy trình.</p>
-        <div className="flex justify-end">
-          <Button variant="primary" onClick={handleConfirmDelivered} disabled={saving} isLoading={saving}>
-            Xác nhận khách đã nhận
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  if (resolutionId) return null;
-
-  return (
-    <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-4">
-      <h3 className="text-sm font-semibold text-secondary-900">Xuất hàng đổi</h3>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div>
-          <Input
-            label="Đơn vị vận chuyển"
-            type="text"
-            value={form.carrierDoiHang || ""}
-            onChange={(e) => setForm((f) => ({ ...f, carrierDoiHang: e.target.value }))}
-          />
-        </div>
-        <div className="sm:col-span-2">
-          <Input
-            label="Mã vận đơn"
-            type="text"
-            value={form.trackingDoiHang || ""}
-            onChange={(e) => setForm((f) => ({ ...f, trackingDoiHang: e.target.value }))}
-          />
-        </div>
-      </div>
-      <div className="flex justify-end">
-        <Button variant="primary" onClick={handleExchange} disabled={saving} isLoading={saving}>
-          Xuất hàng đổi
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-// ─── BaoHanh panel ────────────────────────────────────────────────────────────
-
-function WarrantyPanel({ returnId, resolutionId, resolutionStatus, resolutionRecord, onDone }: {
-  returnId: string;
-  resolutionId?: string;
-  resolutionStatus?: string;
-  resolutionRecord?: ReturnRequest["resolutionRecord"];
-  onDone: () => void;
-}) {
-  const { showToast } = useToast();
-  const [saving, setSaving] = useState(false);
-  const [warrantyForm, setWarrantyForm] = useState<UpdateWarrantyStatusDto>({
-    maBaoHanhHang: resolutionRecord?.maBaoHanhHang ?? "",
-    ngayGuiHangBaoHanh: resolutionRecord?.ngayGuiHangBaoHanh?.slice(0, 10) ?? "",
-    ngayNhanHangVe: resolutionRecord?.ngayNhanHangVe?.slice(0, 10) ?? "",
-    ketQuaBaoHanh: resolutionRecord?.ketQuaBaoHanh ?? "",
-  });
-  const [returnForm, setReturnForm] = useState<ProcessWarrantyDto>({
-    trackingTraKhach: "",
-    ghiChu: "",
-  });
-
-  async function handleInitWarranty() {
-    setSaving(true);
-    try {
-      await initWarranty(returnId);
-      showToast("Đã khởi tạo bản ghi bảo hành.", "success");
-      onDone();
-    } catch (err) {
-      showToast((err as Error)?.message || "Không thể khởi tạo bảo hành.", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleUpdateWarranty() {
-    if (!resolutionId) return;
-    setSaving(true);
-    try {
-      await updateWarrantyStatus(resolutionId, {
-        maBaoHanhHang:      warrantyForm.maBaoHanhHang      || undefined,
-        ngayGuiHangBaoHanh: warrantyForm.ngayGuiHangBaoHanh || undefined,
-        ngayNhanHangVe:     warrantyForm.ngayNhanHangVe     || undefined,
-        ketQuaBaoHanh:      warrantyForm.ketQuaBaoHanh      || undefined,
-      });
-      showToast("Đã cập nhật trạng thái bảo hành.", "success");
-      onDone();
-    } catch (err) {
-      showToast((err as Error)?.message || "Không thể cập nhật.", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleProcessWarranty() {
-    if (!returnForm.trackingTraKhach) {
-      showToast("Vui lòng nhập mã vận đơn trả khách.", "error");
-      return;
-    }
-    setSaving(true);
-    try {
-      await processWarranty(returnId, {
-        ...returnForm,
-        ghiChu: returnForm.ghiChu || undefined,
-      });
-      showToast("Đã trả hàng bảo hành lại khách.", "success");
-      onDone();
-    } catch (err) {
-      showToast((err as Error)?.message || "Không thể trả hàng.", "error");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  if (!resolutionId) {
-    return (
-      <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-3">
-        <h3 className="text-sm font-semibold text-secondary-900">Bảo hành — khởi tạo</h3>
-        <p className="text-sm text-secondary-600">Khởi tạo bản ghi bảo hành sau khi đã nhận hàng từ khách.</p>
-        <div className="flex justify-end">
-          <Button variant="primary" onClick={handleInitWarranty} disabled={saving} isLoading={saving}>
-            Khởi tạo bảo hành
-          </Button>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-5">
-      <h3 className="text-sm font-semibold text-secondary-900">Bảo hành — theo dõi & trả hàng</h3>
-
-      {resolutionStatus !== "HoanThanh" && (
-        <div className="space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Cập nhật trạng thái bảo hành</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Input
-                label="Mã bảo hành hãng"
-                type="text"
-                value={warrantyForm.maBaoHanhHang || ""}
-                onChange={(e) => setWarrantyForm((f) => ({ ...f, maBaoHanhHang: e.target.value }))}
-              />
-            </div>
-            <div>
-              <DateInput
-                label="Ngày gửi hàng về hãng"
-                value={warrantyForm.ngayGuiHangBaoHanh || ""}
-                onChange={(v) => setWarrantyForm((f) => ({ ...f, ngayGuiHangBaoHanh: v }))}
-              />
-            </div>
-            <div>
-              <DateInput
-                label="Ngày nhận hàng về"
-                value={warrantyForm.ngayNhanHangVe || ""}
-                onChange={(v) => setWarrantyForm((f) => ({ ...f, ngayNhanHangVe: v }))}
-              />
-            </div>
-            <div className="sm:col-span-2">
-              <Textarea
-                label="Kết quả bảo hành"
-                value={warrantyForm.ketQuaBaoHanh || ""}
-                onChange={(e) => setWarrantyForm((f) => ({ ...f, ketQuaBaoHanh: e.target.value }))}
-                showCharCount
-                maxCharCount={512}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button variant="secondary" onClick={handleUpdateWarranty} disabled={saving} isLoading={saving}>
-              Lưu cập nhật
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {resolutionStatus !== "HoanThanh" && (
-        <div className="space-y-3 border-t border-secondary-100 pt-4">
-          <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Trả hàng lại khách</p>
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <Input
-                label="Mã vận đơn trả khách *"
-                type="text"
-                value={returnForm.trackingTraKhach}
-                onChange={(e) => setReturnForm((f) => ({ ...f, trackingTraKhach: e.target.value }))}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end">
-            <Button variant="primary" onClick={handleProcessWarranty} disabled={saving} isLoading={saving}>
-              Trả hàng lại khách
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {resolutionStatus === "HoanThanh" && (
-        <p className="text-sm text-success-700 font-medium">Bảo hành đã hoàn tất.</p>
-      )}
-    </div>
-  );
-}
+const REASON_LABELS: Record<string, string> = {
+  LoiNhaSanXuat:      "Lỗi từ nhà sản xuất",
+  GuiNhamHang:        "Store gửi nhầm hàng",
+  HuHongKhiVanChuyen: "Hư hỏng khi vận chuyển",
+  ThieuPhuKien:       "Thiếu phụ kiện trong hộp",
+  KhongDungMoTa:      "Sản phẩm không đúng mô tả",
+  DoiYKien:           "Khách đổi ý",
+  KhongTuongThich:    "Không tương thích thiết bị",
+  HieuNangKemHon:     "Hiệu năng kém hơn mô tả",
+};
 
 // ─── Main component ───────────────────────────────────────────────────────────
 
@@ -504,21 +74,47 @@ export function ReturnDetailClient({
   backHref?: string;
 }) {
   const { showToast } = useToast();
-  const [ret, setRet]                   = useState(initialReturn);
-  const [isSaving, setIsSaving]         = useState(false);
-  const [approveOpen, setApproveOpen]   = useState(false);
-  const [assets, setAssets]             = useState<ReturnAssetItem[]>([]);
+  const [ret, setRet]                                   = useState(initialReturn);
+  const [isSaving, setIsSaving]                         = useState(false);
+  const [approveOpen, setApproveOpen]                   = useState(false);
+  const [confirmReceivedOpen, setConfirmReceivedOpen]   = useState(false);
+  const [assets, setAssets]                             = useState<ReturnAssetItem[]>([]);
+  const [goodsAccepted, setGoodsAccepted]               = useState(false);
+  const [lineStockMap, setLineStockMap]                 = useState<Record<string, ItemStockInfo>>({});
+  const [lineStockLoading, setLineStockLoading]         = useState(false);
 
   useEffect(() => {
     getReturnAssets(ret.id).then(setAssets).catch(() => {});
   }, [ret.id]);
 
-  const canApprove      = ret.status === "ChoDuyet";
-  const canReject       = ret.status === "ChoDuyet";
-  const canMarkReceived = ret.status === "DaDuyet";
-  const isDangXuLy      = ret.status === "DangXuLy";
+  // Fetch stock info per line item only for DoiHang requests
+  useEffect(() => {
+    if (ret.requestType !== "DoiHang" || !ret.lineItems.length) return;
+    setLineStockLoading(true);
+    Promise.all(
+      ret.lineItems.map(async (item) => {
+        const [stockLevel, batches] = await Promise.all([
+          getVariantStockLevel(item.variantId).catch(() => null),
+          getBatchesByVariant(item.variantId).catch((): StockBatch[] => []),
+        ]);
+        return { variantId: item.variantId, stockLevel, batches };
+      }),
+    ).then((results) => {
+      const map: Record<string, ItemStockInfo> = {};
+      for (const r of results) map[r.variantId] = { stockLevel: r.stockLevel, batches: r.batches };
+      setLineStockMap(map);
+    }).finally(() => setLineStockLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ret.id]);
+
+  const canApprove       = ret.status === "ChoDuyet";
+  const canReject        = ret.status === "ChoDuyet";
+  const canMarkReceived  = ret.status === "DaDuyet";
+  const isDaKiemTra      = ret.status === "DaKiemTra";
+  const isDangXuLy       = ret.status === "DangXuLy";
+  const isTuChoiNhanHang = ret.status === "TuChoiNhanHang";
   const showResolutionPanel =
-    (canMarkReceived || isDangXuLy) &&
+    (isDangXuLy || (isDaKiemTra && goodsAccepted)) &&
     ret.resolution &&
     ret.status !== "HoanThanh" &&
     ret.status !== "TuChoi";
@@ -530,8 +126,8 @@ export function ReturnDetailClient({
   async function handleStatus(status: ReturnRequest["status"]) {
     setIsSaving(true);
     try {
-      await updateReturnStatus(ret.id, { status });
-      setRet((prev) => ({ ...prev, status }));
+      const updated = await updateReturnStatus(ret.id, { status });
+      setRet((prev) => ({ ...prev, ...updated, lineItems: updated.lineItems.length ? updated.lineItems : prev.lineItems }));
       showToast("Đã cập nhật trạng thái.", "success");
     } catch {
       showToast("Không thể cập nhật trạng thái.", "error");
@@ -543,8 +139,8 @@ export function ReturnDetailClient({
   async function handleApprove(resolution: string) {
     setIsSaving(true);
     try {
-      await updateReturnStatus(ret.id, { status: "DaDuyet", resolution });
-      setRet((prev) => ({ ...prev, status: "DaDuyet", resolution: resolution as ReturnResolution }));
+      const updated = await updateReturnStatus(ret.id, { status: "DaDuyet", resolution });
+      setRet((prev) => ({ ...prev, ...updated, lineItems: updated.lineItems.length ? updated.lineItems : prev.lineItems }));
       showToast("Đã duyệt yêu cầu.", "success");
     } catch {
       showToast("Không thể duyệt.", "error");
@@ -554,46 +150,57 @@ export function ReturnDetailClient({
     }
   }
 
-  async function handleMarkReceived(adminNote: string) {
+  async function handleConfirmReceived(dto: ConfirmReceivedDto) {
     setIsSaving(true);
     try {
-      await updateReturnStatus(ret.id, {
-        status: "DangXuLy",
-        inspectionResult: adminNote || undefined,
-      });
-      setRet((prev) => ({
-        ...prev,
-        status: "DangXuLy",
-        inspectionResult: adminNote || prev.inspectionResult,
-      }));
-      showToast("Đã xác nhận nhận hàng.", "success");
-    } catch {
-      showToast("Không thể cập nhật trạng thái.", "error");
+      const updated = await confirmReceived(ret.id, dto);
+      setRet(updated);
+      setConfirmReceivedOpen(false);
+      showToast("Đã xác nhận kho nhận hàng.", "success");
+    } catch (err) {
+      showToast((err as Error)?.message || "Không thể xác nhận nhận hàng.", "error");
     } finally {
       setIsSaving(false);
     }
   }
 
-  // ─── Stepper steps ────────────────────────────────────────────────────────
+  // ─── Stepper ───────────────────────────────────────────────────────────────
 
-  const isTuChoi = ret.status === "TuChoi";
+  const isTuChoi          = ret.status === "TuChoi";
+  const receivedStatuses  = ["DaNhanHang", "DaKiemTra", "TuChoiNhanHang", "DangXuLy", "HoanThanh"];
+  const inspectedStatuses = ["DaKiemTra", "TuChoiNhanHang", "DangXuLy", "HoanThanh"];
+
   const stepperSteps: { label: string; done: boolean; error: boolean; date?: string }[] = isTuChoi
     ? [
-        { label: "Yêu cầu gửi", done: true,  error: false, date: ret.requestedAt },
-        { label: "Từ chối",      done: true,  error: true,  date: ret.updatedAt   },
+        { label: "Yêu cầu gửi", done: true, error: false, date: ret.requestedAt },
+        { label: "Từ chối",     done: true, error: true,  date: ret.updatedAt   },
+      ]
+    : isTuChoiNhanHang
+    ? [
+        { label: "Yêu cầu gửi",  done: true, error: false, date: ret.requestedAt },
+        { label: "Đã duyệt",     done: true, error: false, date: ret.approvedAt ?? undefined },
+        { label: "Đã nhận hàng", done: true, error: false, date: ret.returnReceivedAt ?? undefined },
+        { label: "Đã kiểm tra",  done: true, error: false, date: ret.inspectedAt ?? undefined },
+        { label: "Từ chối nhận", done: true, error: true,  date: ret.rejectedAt ?? undefined },
       ]
     : [
-        { label: "Yêu cầu gửi", done: true,  error: false, date: ret.requestedAt },
-        { label: "Đã duyệt",    done: ret.status !== "ChoDuyet", error: false },
-        { label: "Đang xử lý",  done: ret.status === "DangXuLy" || ret.status === "HoanThanh", error: false },
-        { label: "Hoàn thành",  done: ret.status === "HoanThanh", error: false, date: ret.status === "HoanThanh" ? ret.updatedAt : undefined },
+        { label: "Yêu cầu gửi",  done: true,                                                    error: false, date: ret.requestedAt },
+        { label: "Đã duyệt",     done: ret.status !== "ChoDuyet",                               error: false, date: ret.approvedAt ?? undefined },
+        { label: "Đã nhận hàng", done: receivedStatuses.includes(ret.status),                   error: false, date: ret.returnReceivedAt ?? undefined },
+        { label: "Đã kiểm tra",  done: inspectedStatuses.includes(ret.status),                  error: false, date: ret.inspectedAt ?? undefined },
+        { label: "Đang xử lý",   done: ret.status === "DangXuLy" || ret.status === "HoanThanh", error: false, date: ret.processingStartedAt ?? undefined },
+        { label: "Hoàn thành",   done: ret.status === "HoanThanh",                              error: false, date: ret.status === "HoanThanh" ? ret.updatedAt : undefined },
       ];
 
-  const visibleAssets = assets.filter((a) => !!a.assetUrl);
+  const customerAssets   = assets.filter((a) => !!a.assetUrl && a.loaiAsset !== "inspection_evidence");
+  const inspectionAssets = assets.filter((a) => !!a.assetUrl && a.loaiAsset === "inspection_evidence");
+
+  const rec = ret.resolutionRecord;
+  const hasReturnToCustomerInfo = rec && (rec.trackingTraKhach || rec.trackingDoiHang);
 
   return (
     <div className="space-y-6 p-6">
-      {/* Header */}
+      {/* ── Header ── */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <nav className="flex items-center gap-1.5 text-sm text-secondary-400">
@@ -630,17 +237,18 @@ export function ReturnDetailClient({
             </Button>
           )}
           {canMarkReceived && (
-            <Button variant="primary" onClick={() => handleMarkReceived("")} disabled={isSaving} isLoading={isSaving}>
+            <Button variant="primary" onClick={() => setConfirmReceivedOpen(true)} disabled={isSaving}>
               Đã nhận hàng
             </Button>
           )}
         </div>
       </div>
 
-      {/* Content */}
+      {/* ── Content grid ── */}
       <div className="grid gap-6 xl:grid-cols-[1fr_340px] xl:items-start">
         <div className="space-y-6">
-          {/* Return details */}
+
+          {/* ── Chi tiết yêu cầu ── */}
           <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm">
             <h2 className="mb-4 text-sm font-semibold text-secondary-900">Chi tiết yêu cầu</h2>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -670,7 +278,7 @@ export function ReturnDetailClient({
               </div>
               <div>
                 <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Lý do</p>
-                <p className="mt-1 text-sm text-secondary-700">{ret.reason}</p>
+                <p className="mt-1 text-sm text-secondary-700">{REASON_LABELS[ret.reason] ?? ret.reason}</p>
               </div>
               {ret.resolution && (
                 <div>
@@ -680,12 +288,10 @@ export function ReturnDetailClient({
                   </p>
                 </div>
               )}
-              {ret.resolutionRecord?.soTienHoan && (
+              {rec?.soTienHoan && (
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Số tiền hoàn trả</p>
-                  <p className="mt-1 text-sm font-semibold text-secondary-900">
-                    {formatVND(ret.resolutionRecord.soTienHoan)}
-                  </p>
+                  <p className="mt-1 text-sm font-semibold text-secondary-900">{formatVND(rec.soTienHoan)}</p>
                 </div>
               )}
               <div>
@@ -698,44 +304,145 @@ export function ReturnDetailClient({
               </div>
             </div>
 
-            {(ret.description || ret.inspectionResult) && (
-              <div className="mt-5 space-y-3 border-t border-secondary-100 pt-4">
-                {ret.description && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Mô tả của khách</p>
-                    <p className="mt-1 text-sm text-secondary-700">{ret.description}</p>
-                  </div>
-                )}
-                {ret.inspectionResult && (
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Kết quả kiểm tra</p>
-                    <p className="mt-1 text-sm text-secondary-700">{ret.inspectionResult}</p>
-                  </div>
-                )}
+            {/* Mô tả của khách */}
+            {ret.description && (
+              <div className="mt-5 border-t border-secondary-100 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Mô tả của khách</p>
+                <p className="mt-1 text-sm text-secondary-700">{ret.description}</p>
               </div>
             )}
 
+            {/* Kết quả kiểm tra hàng */}
+            {ret.inspectionResult && (
+              <div className="mt-4 border-t border-secondary-100 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Kết quả kiểm tra hàng</p>
+                <p className="mt-1 text-sm text-secondary-700">{ret.inspectionResult}</p>
+              </div>
+            )}
+
+            {/* Thông tin hàng hoàn trả */}
+            {(ret.returnReceivedAt || ret.returnTrackingCode) && (
+              <div className="mt-5 space-y-3 border-t border-secondary-100 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Thông tin hàng hoàn trả</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ret.returnTrackingCode && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Mã vận đơn hoàn trả</p>
+                      <p className="mt-0.5 font-mono text-sm font-medium text-secondary-800">{ret.returnTrackingCode}</p>
+                    </div>
+                  )}
+                  {ret.returnCarrier && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Đơn vị vận chuyển</p>
+                      <p className="mt-0.5 text-sm text-secondary-800">{ret.returnCarrier}</p>
+                    </div>
+                  )}
+                  {ret.returnReceivedAt && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Ngày kho nhận</p>
+                      <p className="mt-0.5 text-sm text-secondary-800">{formatDate(ret.returnReceivedAt)}</p>
+                    </div>
+                  )}
+                  {ret.returnReceivedByName && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Nhân viên xác nhận</p>
+                      <p className="mt-0.5 text-sm text-secondary-800">{ret.returnReceivedByName}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Thông tin từ chối nhận hàng */}
+            {isTuChoiNhanHang && (ret.rejectTrackingCode || ret.rejectCarrier || ret.rejectNotes) && (
+              <div className="mt-5 space-y-3 border-t border-secondary-100 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-error-600">Thông tin từ chối nhận hàng</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {ret.rejectTrackingCode && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Mã vận đơn trả khách</p>
+                      <p className="mt-0.5 font-mono text-sm font-medium text-secondary-800">{ret.rejectTrackingCode}</p>
+                    </div>
+                  )}
+                  {ret.rejectCarrier && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Đơn vị vận chuyển</p>
+                      <p className="mt-0.5 text-sm text-secondary-800">{ret.rejectCarrier}</p>
+                    </div>
+                  )}
+                  {ret.rejectedAt && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Ngày từ chối</p>
+                      <p className="mt-0.5 text-sm text-secondary-800">{formatDate(ret.rejectedAt)}</p>
+                    </div>
+                  )}
+                  {ret.rejectedByName && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Nhân viên từ chối</p>
+                      <p className="mt-0.5 text-sm text-secondary-800">{ret.rejectedByName}</p>
+                    </div>
+                  )}
+                  {ret.rejectNotes && (
+                    <div className="sm:col-span-2">
+                      <p className="text-xs text-secondary-400">Lý do từ chối</p>
+                      <p className="mt-0.5 text-sm text-secondary-700">{ret.rejectNotes}</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Vận đơn trả khách (exchange / warranty) */}
+            {hasReturnToCustomerInfo && (
+              <div className="mt-5 space-y-3 border-t border-secondary-100 pt-4">
+                <p className="text-xs font-semibold uppercase tracking-wide text-secondary-400">Thông tin giao hàng trả khách</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {rec?.trackingDoiHang && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Mã vận đơn đổi hàng</p>
+                      <p className="mt-0.5 font-mono text-sm font-medium text-secondary-800">{rec.trackingDoiHang}</p>
+                      {rec.carrierDoiHang && <p className="text-xs text-secondary-500">{rec.carrierDoiHang}</p>}
+                    </div>
+                  )}
+                  {rec?.trackingTraKhach && (
+                    <div>
+                      <p className="text-xs text-secondary-400">Mã vận đơn trả khách</p>
+                      <p className="mt-0.5 font-mono text-sm font-medium text-secondary-800">{rec.trackingTraKhach}</p>
+                      {rec.carrierTraKhach && <p className="text-xs text-secondary-500">{rec.carrierTraKhach}</p>}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
-          {/* Attached media */}
-          {visibleAssets.length > 0 && (
-            <MediaGallery
-              media={visibleAssets.map<VariantMedia>((a) => ({
-                id: String(a.id),
-                variantId: "",
-                url: a.assetUrl!,
-                assetId: String(a.assetId),
-                type: "gallery",
-                order: a.sortOrder,
-                altText: "Ảnh bằng chứng",
-              }))}
-            />
+          {/* ── Ảnh bằng chứng của khách ── */}
+          {customerAssets.length > 0 && (
+            <div className="rounded-2xl border border-secondary-100 bg-white p-6 shadow-sm space-y-3">
+              <h3 className="text-sm font-semibold text-secondary-900">Ảnh bằng chứng của khách</h3>
+              <div className="mx-auto max-w-sm xl:max-w-md">
+                <ProductImageGallery
+                  items={customerAssets.map<GalleryMedia>((a) => ({
+                    key:  String(a.id),
+                    src:  a.assetUrl!,
+                    alt:  "Ảnh bằng chứng khách",
+                    type: "image",
+                  }))}
+                />
+              </div>
+            </div>
           )}
 
-          {/* Line items */}
+          {/* ── Sản phẩm yêu cầu ── */}
           <div className="rounded-2xl border border-secondary-100 bg-white shadow-sm">
-            <div className="border-b border-secondary-100 px-6 py-4">
+            <div className="border-b border-secondary-100 px-6 py-4 flex items-center justify-between">
               <h2 className="text-sm font-semibold text-secondary-900">Sản phẩm yêu cầu</h2>
+              {ret.requestType === "DoiHang" && (
+                <span className="text-[11px] text-secondary-400 flex items-center gap-1">
+                  <span className="inline-block w-2.5 h-1.5 rounded-sm bg-amber-300" />
+                  Tồn kho &amp; lô hàng đổi
+                </span>
+              )}
             </div>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -747,16 +454,19 @@ export function ReturnDetailClient({
                 </thead>
                 <tbody className="divide-y divide-secondary-100">
                   {ret.lineItems.map((item) => (
-                    <tr key={item.id} className="text-secondary-700">
+                    <tr key={item.id} className="text-secondary-700 align-top">
                       <td className="px-4 py-3">
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-start gap-3">
                           {item.thumbnailUrl ? (
-                            <img src={item.thumbnailUrl} alt={item.productName}
-                              className="h-9 w-9 rounded-lg border border-secondary-100 object-cover shrink-0" />
+                            <img
+                              src={item.thumbnailUrl}
+                              alt={item.productName}
+                              className="mt-0.5 h-9 w-9 rounded-lg border border-secondary-100 object-cover shrink-0"
+                            />
                           ) : (
-                            <div className="h-9 w-9 rounded-lg border border-secondary-100 bg-secondary-50 shrink-0" />
+                            <div className="mt-0.5 h-9 w-9 rounded-lg border border-secondary-100 bg-secondary-50 shrink-0" />
                           )}
-                          <div className="min-w-0">
+                          <div className="min-w-0 flex-1">
                             {item.productId ? (
                               <Tooltip content={item.productName} multiline maxWidth="320px">
                                 <Link
@@ -771,6 +481,15 @@ export function ReturnDetailClient({
                             )}
                             <p className="text-xs text-secondary-500">{item.variantName}</p>
                             {item.sku && <p className="font-mono text-xs text-secondary-400">{item.sku}</p>}
+
+                            {/* Stock + batch breakdown — DoiHang only */}
+                            {ret.requestType === "DoiHang" && (
+                              <InlineStockPanel
+                                item={item}
+                                info={lineStockMap[item.variantId]}
+                                loading={lineStockLoading && !lineStockMap[item.variantId]}
+                              />
+                            )}
                           </div>
                         </div>
                       </td>
@@ -782,7 +501,45 @@ export function ReturnDetailClient({
             </div>
           </div>
 
-          {/* Resolution panel */}
+          {/* ── Kết quả kiểm tra (editable) ── */}
+          {(ret.status === "DaNhanHang" || ret.status === "DaKiemTra" || ret.status === "DangXuLy") && (
+            <InspectionPanel
+              returnId={ret.id}
+              existingResult={ret.inspectionResult}
+              onDone={(updated) => setRet(updated)}
+            />
+          )}
+
+          {/* ── Ảnh bằng chứng kiểm tra ── */}
+          {(ret.status === "DaNhanHang" || ret.status === "DaKiemTra" || ret.status === "TuChoiNhanHang" || inspectionAssets.length > 0) && (
+            <InspectionEvidencePanel
+              returnId={ret.id}
+              canUpload={ret.status === "DaNhanHang" || ret.status === "DaKiemTra"}
+              assets={inspectionAssets}
+              onUploaded={(updated) => setAssets(updated)}
+            />
+          )}
+
+          {/* ── Xác nhận hoàn tất kiểm tra ── */}
+          {ret.status === "DaNhanHang" && (
+            <ConfirmInspectionPanel
+              returnId={ret.id}
+              hasResult={!!ret.inspectionResult?.trim()}
+              hasPhotos={inspectionAssets.length > 0}
+              onDone={(updated) => setRet(updated)}
+            />
+          )}
+
+          {/* ── Quyết định sau kiểm tra ── */}
+          {ret.status === "DaKiemTra" && !goodsAccepted && (
+            <RejectGoodsPanel
+              returnId={ret.id}
+              onDone={(updated) => setRet(updated)}
+              onAccept={() => setGoodsAccepted(true)}
+            />
+          )}
+
+          {/* ── Resolution panels ── */}
           {showResolutionPanel && ret.resolution === "HoanTien" && (
             <RefundPanel returnId={ret.id} onDone={reload} />
           )}
@@ -791,6 +548,7 @@ export function ReturnDetailClient({
               returnId={ret.id}
               resolutionId={ret.resolutionRecord?.id}
               resolutionStatus={ret.resolutionRecord?.status}
+              lineItems={ret.lineItems}
               onDone={reload}
             />
           )}
@@ -803,9 +561,26 @@ export function ReturnDetailClient({
               onDone={reload}
             />
           )}
+
+          {ret.resolutionRecord?.status === "HoanThanh" && ret.resolutionRecord.id && (
+            <DefectiveHandlingPanel
+              resolutionId={ret.resolutionRecord.id}
+              defectiveHandling={ret.resolutionRecord.defectiveHandling}
+              defectiveHandledAt={ret.resolutionRecord.defectiveHandledAt}
+              defectiveNotes={ret.resolutionRecord.defectiveNotes}
+              onDone={reload}
+            />
+          )}
+
+          {ret.resolutionRecord?.status === "HoanThanh" &&
+           ret.resolutionRecord.id &&
+           ret.resolutionRecord.defectiveHandling === "TaiSuDung" &&
+           !ret.resolutionRecord.defectiveHandledAt && (
+            <CompleteReusePanel resolutionId={ret.resolutionRecord.id} onDone={reload} />
+          )}
         </div>
 
-        {/* Right column — status + processor */}
+        {/* ── Right column: stepper + processor ── */}
         <div className="space-y-4">
           <div className="rounded-2xl border border-secondary-100 bg-white p-5 shadow-sm">
             <h3 className="mb-4 text-sm font-semibold text-secondary-900">Tiến trình xử lý</h3>
@@ -859,8 +634,16 @@ export function ReturnDetailClient({
       <ApproveDialog
         isOpen={approveOpen}
         isConfirming={isSaving}
+        requestType={ret.requestType}
+        lineItems={ret.lineItems}
         onClose={() => setApproveOpen(false)}
         onConfirm={handleApprove}
+      />
+      <ConfirmReceivedModal
+        isOpen={confirmReceivedOpen}
+        isSaving={isSaving}
+        onClose={() => setConfirmReceivedOpen(false)}
+        onConfirm={handleConfirmReceived}
       />
     </div>
   );

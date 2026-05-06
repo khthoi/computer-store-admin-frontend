@@ -4,18 +4,22 @@ import { useEffect, useState } from "react";
 import { ClockIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/src/components/ui/Modal";
 
-const COUNTDOWN_SECONDS = 5;
+const COUNTDOWN_MS = 3000;
+const TICK_MS = 10;
+
+function formatMs(ms: number): string {
+  const clamped = Math.max(0, ms);
+  return (clamped / 1000).toFixed(2);
+}
 
 export function SessionExpiredModal() {
   const [open, setOpen] = useState(false);
-  const [countdown, setCountdown] = useState(COUNTDOWN_SECONDS);
+  const [remaining, setRemaining] = useState(COUNTDOWN_MS);
 
-  // Listen for the session-expired event dispatched by apiFetch
-  // Use functional setter so concurrent 401s don't reset the countdown once started
   useEffect(() => {
     function handleExpired() {
       setOpen((alreadyOpen) => {
-        if (!alreadyOpen) setCountdown(COUNTDOWN_SECONDS);
+        if (!alreadyOpen) setRemaining(COUNTDOWN_MS);
         return true;
       });
     }
@@ -23,19 +27,24 @@ export function SessionExpiredModal() {
     return () => window.removeEventListener("session-expired", handleExpired);
   }, []);
 
-  // Countdown + redirect once modal is open
   useEffect(() => {
     if (!open) return;
 
-    if (countdown <= 0) {
-      // Hard redirect — soft router.push can silently fail when session is broken
+    if (remaining <= 0) {
       window.location.replace("/login");
       return;
     }
 
-    const timer = setTimeout(() => setCountdown((c) => c - 1), 1000);
+    const timer = setTimeout(
+      () => setRemaining((r) => r - TICK_MS),
+      TICK_MS,
+    );
     return () => clearTimeout(timer);
-  }, [open, countdown]);
+  }, [open, remaining]);
+
+  function handleLoginNow() {
+    window.location.replace("/login");
+  }
 
   return (
     <Modal
@@ -61,9 +70,11 @@ export function SessionExpiredModal() {
           </p>
         </div>
 
-        {/* Countdown ring */}
-        <div className="flex size-16 items-center justify-center rounded-full border-4 border-warning-400 bg-warning-50">
-          <span className="text-2xl font-bold text-warning-600">{countdown}</span>
+        {/* Countdown display */}
+        <div className="flex min-w-[5rem] items-center justify-center rounded-full border-4 border-warning-400 bg-warning-50 px-4 py-3">
+          <span className="font-mono text-2xl font-bold tabular-nums text-warning-600">
+            {formatMs(remaining)}
+          </span>
         </div>
 
         <p className="text-xs text-secondary-400">
@@ -71,6 +82,13 @@ export function SessionExpiredModal() {
           <br />
           Vui lòng đăng nhập lại để tiếp tục.
         </p>
+
+        <button
+          onClick={handleLoginNow}
+          className="w-fit mt-1 w-full rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-700 active:bg-accent-800"
+        >
+          Đăng nhập lại
+        </button>
       </div>
     </Modal>
   );

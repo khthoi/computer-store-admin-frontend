@@ -11,6 +11,7 @@ import {
 import { Button } from "@/src/components/ui/Button";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { useToast } from "@/src/components/ui/Toast";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { deleteEarnRule, updateEarnRule } from "@/src/services/loyalty.service";
 import type { LoyaltyEarnRule } from "@/src/types/loyalty.types";
 
@@ -134,7 +135,7 @@ export function EarnRuleDetailClient({ rule: initial }: { rule: LoyaltyEarnRule 
 
           <Button
             variant="primary"
-            onClick={() => router.push(`/promotions/earn-rules/${rule.id}/edit`)}
+            onClick={() => router.push(`/promotions/earn-rules/${rule.id}/edit?mode=edit`)}
             disabled={isBusy}
             className="rounded-lg"
           >
@@ -270,36 +271,17 @@ export function EarnRuleDetailClient({ rule: initial }: { rule: LoyaltyEarnRule 
         )}
       </div>
 
-      {/* Delete confirm modal */}
-      {showDeleteConfirm && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm"
-          onClick={() => setShowDeleteConfirm(false)}
-        >
-          <div
-            className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-base font-semibold text-secondary-900">Xóa quy tắc tích điểm?</h3>
-            <p className="mt-2 text-sm text-secondary-600">
-              <span className="font-medium">{rule.name}</span> sẽ bị xóa vĩnh viễn.
-              Khách hàng sẽ không còn tích điểm theo quy tắc này. Hành động này không thể hoàn tác.
-            </p>
-            <div className="mt-5 flex justify-end gap-2">
-              <Button variant="secondary" onClick={() => setShowDeleteConfirm(false)}>
-                Hủy
-              </Button>
-              <Button
-                variant="danger"
-                onClick={handleDelete}
-                isLoading={isBusy}
-              >
-                Xác nhận xóa
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={handleDelete}
+        title="Xoá quy tắc tích điểm?"
+        description={`"${rule.name}" sẽ bị xoá vĩnh viễn. Khách hàng sẽ không còn tích điểm theo quy tắc này. Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá"
+        cancelLabel="Huỷ"
+        variant="danger"
+        isConfirming={isBusy}
+      />
     </div>
   );
 }

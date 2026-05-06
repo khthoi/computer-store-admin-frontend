@@ -14,6 +14,7 @@ import { Select }    from "@/src/components/ui/Select";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
 import type { ImageFieldValue } from "@/src/components/ui/ImageField";
+import { Tooltip }   from "@/src/components/ui/Tooltip";
 import { useToast }  from "@/src/components/ui/Toast";
 import { createFlashSale, updateFlashSale } from "@/src/services/flash-sale.service";
 import { FlashSaleItemsEditor } from "./FlashSaleItemsEditor";
@@ -146,10 +147,9 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
       : ""
   );
   const [bannerTitle, setBannerTitle] = useState(initialData?.bannerTitle ?? "");
-  const [bannerAlt,   setBannerAlt]   = useState(initialData?.bannerAlt ?? "");
   const [bannerImage, setBannerImage] = useState<ImageFieldValue>(
     initialData?.bannerImageUrl
-      ? imageFieldFromUrl(initialData.bannerImageUrl)
+      ? imageFieldFromUrl(initialData.bannerImageUrl, initialData.bannerAlt)
       : emptyImageField()
   );
   const [items,          setItems]          = useState<FlashSaleItemPayload[]>(
@@ -199,8 +199,7 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
         ketThuc,
         bannerTitle:    bannerTitle.trim()               || undefined,
         bannerImageUrl: bannerImage.displayUrl?.trim()   || undefined,
-        bannerAssetId:  bannerImage.assetId              ?? undefined,
-        bannerAlt:      bannerAlt.trim()                 || undefined,
+        bannerAlt:      bannerImage.alt?.trim()          || undefined,
         items,
       };
 
@@ -328,13 +327,6 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
               onChange={(e) => setBannerTitle(e.target.value)}
               disabled={isReadonlyStatus}
             />
-            <Input
-              label="Alt text (tuỳ chọn)"
-              placeholder="Mô tả ngắn về hình ảnh để hỗ trợ accessibility / SEO"
-              value={bannerAlt}
-              onChange={(e) => setBannerAlt(e.target.value)}
-              disabled={isReadonlyStatus}
-            />
           </Section>
 
           {/* Section 4: Items */}
@@ -389,7 +381,29 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
             {/* Metadata */}
             {isEdit && initialData && (
               <div className="space-y-2 pt-2 border-t border-secondary-100">
-                <MetaRow label="Người tạo">{initialData.createdBy}</MetaRow>
+                <MetaRow label="Người tạo">
+                  {initialData.createdByEmployeeId ? (
+                    <Tooltip
+                      placement="left"
+                      multiline
+                      content={
+                        <div className="space-y-0.5">
+                          <div>{initialData.createdBy}</div>
+                          {initialData.createdByEmail && <div>{initialData.createdByEmail}</div>}
+                        </div>
+                      }
+                    >
+                      <Link
+                        href={`/employees/${initialData.createdByEmployeeId}`}
+                        className="text-primary-600 hover:text-primary-800 hover:underline transition-colors"
+                      >
+                        {initialData.createdBy}
+                      </Link>
+                    </Tooltip>
+                  ) : (
+                    initialData.createdBy
+                  )}
+                </MetaRow>
                 <MetaRow label="Ngày tạo">{formatDateTime(initialData.createdAt)}</MetaRow>
                 <MetaRow label="Cập nhật">{formatDateTime(initialData.updatedAt)}</MetaRow>
               </div>

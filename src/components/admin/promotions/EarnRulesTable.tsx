@@ -1,22 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { PencilSquareIcon, TrashIcon, EyeIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, TrashIcon, EyeIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import type { LoyaltyEarnRule } from "@/src/types/loyalty.types";
 import { DataTable } from "@/src/components/admin/DataTable";
 import type { ColumnDef } from "@/src/components/admin/DataTable";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Tooltip } from "@/src/components/ui/Tooltip";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
+import { useToast } from "@/src/components/ui/Toast";
+import { getEarnRules, updateEarnRule, deleteEarnRule } from "@/src/services/loyalty.service";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface Props {
-  items: LoyaltyEarnRule[];
-  /** kept for API compat with PromotionsListClient — not used; navigation via Link */
-  onEdit?: (item: LoyaltyEarnRule) => void;
-  onDelete: (id: string) => void;
-  onToggleActive: (id: string, isActive: boolean) => void;
+  onTotalChange?: (activeCount: number) => void;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -42,56 +41,97 @@ const BONUS_STYLES: Record<string, string> = {
   manual:      "bg-secondary-100 text-secondary-600 border-secondary-200",
 };
 
-// ─── 2-step delete button ─────────────────────────────────────────────────────
+// ─── Component ────────────────────────────────────────────────────────────────
 
-function DeleteButton({ onConfirm }: { onConfirm: () => void }) {
-  const [confirming, setConfirming] = useState(false);
+export function EarnRulesTable({ onTotalChange }: Props) {
+  const { showToast } = useToast();
 
-  function handleClick() {
-    if (confirming) {
-      onConfirm();
-      setConfirming(false);
-    } else {
-      setConfirming(true);
-      setTimeout(() => setConfirming(false), 3000);
+  const [items, setItems]           = useState<LoyaltyEarnRule[]>([]);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [loading, setLoading]       = useState(false);
+  const [page, setPage]             = useState(1);
+  const [pageSize, setPageSize]     = useState(10);
+  const [search, setSearch]         = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const fetchTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevSearchRef     = useRef("");
+  const nonPageChangedRef = useRef(true); // first render = show loader
+
+  // ── Fetch ─────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    const isSearchChange = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
+    const isNonPageChange = nonPageChangedRef.current;
+    nonPageChangedRef.current = false;
+
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = setTimeout(async () => {
+      if (isNonPageChange) setLoading(true);
+      try {
+        const result = await getEarnRules(page, pageSize, search || undefined);
+        setItems(result.data);
+        setServerTotal(result.total);
+        onTotalChange?.(result.data.filter((r) => r.isActive).length);
+      } catch { /* keep existing */ }
+      finally { setLoading(false); }
+    }, isSearchChange ? 300 : 0);
+
+    return () => { if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current); };
+  }, [page, pageSize, search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+  const handlePageSizeChange = (size: number) => {
+    nonPageChangedRef.current = true; setPageSize(size); setPage(1);
+  };
+  const handleSearchChange = (val: string) => {
+    nonPageChangedRef.current = true; setSearch(val); setPage(1);
+  };
+
+  async function handleToggleActive(id: string, isActive: boolean) {
+    const snapshot = items;
+    const updated = items.map((r) => (r.id === id ? { ...r, isActive } : r));
+    setItems(updated);
+    onTotalChange?.(updated.filter((r) => r.isActive).length);
+    try {
+      await updateEarnRule(id, { isActive });
+    } catch {
+      setItems(snapshot);
+      onTotalChange?.(snapshot.filter((r) => r.isActive).length);
+      showToast("Failed to update.", "error");
     }
   }
 
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      title={confirming ? "Click to confirm deletion" : "Delete"}
-      className={[
-        "rounded px-1.5 py-1 text-xs font-medium transition-colors",
-        confirming
-          ? "bg-error-100 text-error-700 hover:bg-error-200"
-          : "text-secondary-400 hover:bg-error-50 hover:text-error-600",
-      ].join(" ")}
-    >
-      {confirming ? "Confirm?" : <TrashIcon className="w-4 h-4" />}
-    </button>
-  );
-}
+  async function handleDeleteConfirm() {
+    if (!deleteTarget) return;
+    try {
+      await deleteEarnRule(deleteTarget.id);
+      showToast("Earn rule deleted.", "success");
+      nonPageChangedRef.current = true;
+      const result = await getEarnRules(page, pageSize, search || undefined);
+      setItems(result.data);
+      setServerTotal(result.total);
+      onTotalChange?.(result.data.filter((r) => r.isActive).length);
+    } catch {
+      showToast("Failed to delete.", "error");
+    } finally {
+      setDeleteTarget(null);
+    }
+  }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
-  const [page, setPage]         = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
+  // ── Columns ───────────────────────────────────────────────────────────────
   type Row = LoyaltyEarnRule & Record<string, unknown>;
 
   const columns: ColumnDef<Row>[] = [
     {
       key: "name",
-      header: "Name",
+      header: "Tên",
       width: "w-[18%]",
       render: (v, row) => (
         <div>
           <Tooltip content={v as string} anchorToContent>
             <Link
-              href={`/promotions/earn-rules/${row.id as string}`}
+              href={`/promotions/earn-rules/${row.id as string}/edit`}
               className="block truncate text-sm font-medium text-primary-600 hover:underline"
             >
               {v as string}
@@ -107,7 +147,7 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "priority",
-      header: "Priority",
+      header: "Ưu tiên",
       width: "w-[7%]",
       align: "center",
       render: (v) => (
@@ -118,7 +158,7 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "pointsPerUnit",
-      header: "Rate",
+      header: "Tỉ lệ",
       width: "w-[12%]",
       render: (v, row) => (
         <span className="text-sm font-semibold text-primary-700 whitespace-nowrap">
@@ -128,7 +168,7 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "minOrderValue",
-      header: "Min Order",
+      header: "Đơn tối thiểu",
       width: "w-[10%]",
       align: "right",
       render: (v) => (
@@ -142,14 +182,14 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "scopes",
-      header: "Scope",
+      header: "Phạm vi",
       width: "w-[16%]",
       render: (v) => {
         const scopes = v as LoyaltyEarnRule["scopes"];
         if (!scopes || scopes.length === 0) {
           return (
             <span className="inline-flex items-center rounded-full border border-secondary-200 bg-secondary-50 px-2 py-0.5 text-[10px] font-semibold text-secondary-500">
-              Global
+              Toàn cục
             </span>
           );
         }
@@ -158,7 +198,7 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
             {scopes.map((s) => (
               <Tooltip
                 key={s.id}
-                content={`${s.scopeType === "category" ? "Category" : s.scopeType === "brand" ? "Brand" : "Product Variant"}: ${s.scopeRefLabel} — ${s.multiplier}×`}
+                content={`${s.scopeType === "category" ? "Danh mục" : s.scopeType === "brand" ? "Thương hiệu" : "Biến thể"}: ${s.scopeRefLabel} — ${s.multiplier}×`}
               >
                 <span className="inline-flex items-center rounded-full border border-primary-200 bg-primary-50 px-2 py-0.5 text-[10px] font-semibold text-primary-700 cursor-default">
                   {s.multiplier}× {s.scopeRefLabel}
@@ -171,7 +211,7 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "bonusTrigger",
-      header: "Bonus",
+      header: "Điểm thưởng",
       width: "w-[10%]",
       align: "center",
       render: (v, row) => {
@@ -184,7 +224,7 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
             </span>
             {row.bonusPoints != null && (
               <span className="text-[10px] text-secondary-500">
-                +{(row.bonusPoints as number).toLocaleString("vi-VN")} pts
+                +{(row.bonusPoints as number).toLocaleString("vi-VN")} điểm
               </span>
             )}
           </div>
@@ -193,26 +233,26 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "isActive",
-      header: "Active",
+      header: "Kích hoạt",
       width: "w-[7%]",
       align: "center",
       render: (v, row) => (
         <Toggle
           checked={v as boolean}
-          onChange={(e) => onToggleActive(row.id as string, e.target.checked)}
+          onChange={(e) => handleToggleActive(row.id as string, e.target.checked)}
           size="sm"
         />
       ),
     },
     {
       key: "validFrom",
-      header: "Valid Period",
+      header: "Thời hạn",
       width: "w-[12%]",
       render: (v, row) => {
         const from = formatDate(v as string | undefined);
         const until = formatDate(row.validUntil as string | undefined);
         if (!from && !until)
-          return <span className="text-sm text-secondary-400">Always</span>;
+          return <span className="text-sm text-secondary-400">Luôn áp dụng</span>;
         return (
           <span className="text-xs text-secondary-600">
             {from || "—"} – {until || "—"}
@@ -222,47 +262,77 @@ export function EarnRulesTable({ items, onDelete, onToggleActive }: Props) {
     },
     {
       key: "id",
-      header: "Actions",
+      header: "Thao tác",
       width: "w-[8%]",
       align: "center",
       render: (_, row) => (
         <div className="flex items-center justify-center gap-1">
-          <Tooltip content="View details">
+          <Tooltip content="Xem chi tiết">
             <Link
-              href={`/promotions/earn-rules/${row.id as string}`}
+              href={`/promotions/earn-rules/${row.id as string}/edit`}
               className="rounded p-1 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700 transition-colors"
             >
               <EyeIcon className="w-4 h-4" />
             </Link>
           </Tooltip>
-          <Tooltip content="Edit">
+          <Tooltip content="Chỉnh sửa">
             <Link
-              href={`/promotions/earn-rules/${row.id as string}/edit`}
+              href={`/promotions/earn-rules/${row.id as string}/edit?mode=edit`}
               className="rounded p-1 text-secondary-400 hover:bg-secondary-100 hover:text-secondary-700 transition-colors"
             >
               <PencilSquareIcon className="w-4 h-4" />
             </Link>
           </Tooltip>
-          <DeleteButton onConfirm={() => onDelete(row.id as string)} />
+          <Tooltip content="Xoá">
+            <button
+              type="button"
+              className="rounded p-1 text-secondary-400 hover:bg-error-50 hover:text-error-600 transition-colors"
+              onClick={() => setDeleteTarget({ id: row.id as string, name: row.name as string })}
+            >
+              <TrashIcon className="w-4 h-4" />
+            </button>
+          </Tooltip>
         </div>
       ),
     },
   ];
 
-  const pagedItems = items.slice((page - 1) * pageSize, page * pageSize);
-
   return (
-    <DataTable
-      data={pagedItems as Row[]}
-      columns={columns}
-      keyField="id"
-      page={page}
-      pageSize={pageSize}
-      totalRows={items.length}
-      onPageChange={setPage}
-      onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
-      tableLayout="fixed"
-      emptyMessage="No earn rules configured yet."
-    />
+    <>
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70">
+            <ArrowPathIcon className="w-6 h-6 animate-spin text-primary-600" />
+          </div>
+        )}
+        <DataTable
+          data={items as Row[]}
+          columns={columns}
+          keyField="id"
+          page={page}
+          pageSize={pageSize}
+          totalRows={serverTotal}
+          pageSizeOptions={[10, 25, 50]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          searchQuery={search}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Tìm theo tên quy tắc…"
+          tableLayout="fixed"
+          emptyMessage="Chưa có quy tắc tích điểm nào."
+        />
+      </div>
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Xoá quy tắc tích điểm"
+        description={`Bạn có chắc muốn xoá "${deleteTarget?.name ?? ""}"? Hành động này không thể hoàn tác.`}
+        confirmLabel="Xoá"
+        cancelLabel="Huỷ"
+        variant="danger"
+      />
+    </>
   );
 }

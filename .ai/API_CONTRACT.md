@@ -293,12 +293,20 @@ DELETE /admin/flash-sales/:id
 
 ```
 GET    /admin/loyalty/rules
+GET    /admin/loyalty/rules/:id
 POST   /admin/loyalty/rules
 PUT    /admin/loyalty/rules/:id
+DELETE /admin/loyalty/rules/:id
 GET    /admin/loyalty/catalog
 POST   /admin/loyalty/catalog
+PUT    /admin/loyalty/catalog/:id
+DELETE /admin/loyalty/catalog/:id
 POST   /admin/loyalty/adjust     { customerId, points, reason }
 ```
+
+Response shape — earn rules: `EarnRuleResponseDto` (`id: string`, includes `scopes[]`, `bonusTrigger`, `bonusPoints`, `updatedAt`)
+Response shape — catalog: `RedemptionCatalogResponseDto` (`id: string`, `promotionId: string`, includes `promotionCode?`, `promotionName?`, `updatedAt`)
+List endpoints return `{ data: T[], total: number }` wrapped by ResponseInterceptor.
 
 ---
 

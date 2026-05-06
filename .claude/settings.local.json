@@ -49,7 +49,13 @@
       "Bash(del *)",
       "PowerShell(Remove-Item *)",
       "Bash(pandoc *)",
-      "Bash(xargs cat *)"
+      "Bash(xargs cat *)",
+      "PowerShell(cd \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"ReturnDetailClient|ReturnResolution|ReturnInspection|inventory\" } | Select-Object -First 30)",
+      "PowerShell(cd \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\" ; npx tsc --noEmit 2>&1 | Where-Object { $_ -notmatch \"_mock\" } | Select-Object -First 60)",
+      "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\[id]\\\\variants\\\\_mock.ts\" -Force)",
+      "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_mock.ts\" -Force)",
+      "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_mock_spec_templates.ts\" -Force)",
+      "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_categoryMock.ts\" -Force)"
     ]
   }
 }

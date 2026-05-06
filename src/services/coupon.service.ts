@@ -17,5 +17,5 @@ export {
 
 export async function getCouponList() {
   const { getPromotionList } = await import("@/src/services/promotion.service");
-  return getPromotionList(true);
+  return getPromotionList({ isCoupon: true });
 }

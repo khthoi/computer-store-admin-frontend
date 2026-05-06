@@ -1,6 +1,7 @@
 "use client";
 
-import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { useMemo } from "react";
+import { PlusIcon, TrashIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 import { Select } from "@/src/components/ui/Select";
 import { formatVND } from "@/src/lib/format";
 import type { BulkTier, DiscountType } from "@/src/types/promotion.types";
@@ -15,6 +16,45 @@ interface BulkTiersFormProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
+  // ── Overlap / gap detection ──────────────────────────────────────────────────
+  const tierIssues = useMemo(() => {
+    const issues: { type: "overlap" | "gap"; idxA: number; idxB: number; msg: string }[] = [];
+    for (let i = 0; i < tiers.length - 1; i++) {
+      const curr = tiers[i];
+      const next = tiers[i + 1];
+      if (curr.maxQuantity === undefined) continue;
+      if (curr.maxQuantity >= next.minQuantity) {
+        issues.push({
+          type: "overlap",
+          idxA: i,
+          idxB: i + 1,
+          msg: `Bậc ${i + 1} (tối đa ${curr.maxQuantity}) và Bậc ${i + 2} (tối thiểu ${next.minQuantity}) bị chồng lấp — cùng số lượng được tính 2 bậc.`,
+        });
+      } else if (curr.maxQuantity + 1 < next.minQuantity) {
+        issues.push({
+          type: "gap",
+          idxA: i,
+          idxB: i + 1,
+          msg: `Khoảng trống ${curr.maxQuantity + 1}–${next.minQuantity - 1} sản phẩm giữa Bậc ${i + 1} và Bậc ${i + 2} — đơn trong khoảng này không được giảm giá.`,
+        });
+      }
+    }
+    return issues;
+  }, [tiers]);
+
+  const tierFlags = useMemo(() => {
+    const flags: ("overlap" | "gap" | null)[] = tiers.map(() => null);
+    for (const issue of tierIssues) {
+      if (issue.type === "overlap") {
+        flags[issue.idxA] = "overlap";
+        flags[issue.idxB] = "overlap";
+      } else {
+        if (flags[issue.idxA] !== "overlap") flags[issue.idxA] = "gap";
+      }
+    }
+    return flags;
+  }, [tierIssues, tiers]);
+
   function addTier() {
     const prevMax = tiers[tiers.length - 1]?.maxQuantity;
     const newMin = prevMax !== undefined ? prevMax + 1 : (tiers.length === 0 ? 2 : 1);
@@ -62,7 +102,17 @@ export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
       )}
 
       {tiers.map((tier, idx) => (
-        <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center rounded-xl border border-secondary-200 bg-secondary-50 px-3 py-2.5">
+        <div
+          key={idx}
+          className={[
+            "grid grid-cols-[1fr_1fr_1fr_1fr_auto] gap-2 items-center rounded-xl border px-3 py-2.5",
+            tierFlags[idx] === "overlap"
+              ? "border-error-300 bg-error-50"
+              : tierFlags[idx] === "gap"
+              ? "border-warning-300 bg-warning-50"
+              : "border-secondary-200 bg-secondary-50",
+          ].join(" ")}
+        >
           {/* Min qty */}
           <input
             type="number"
@@ -131,6 +181,37 @@ export function BulkTiersForm({ tiers, onChange }: BulkTiersFormProps) {
         <PlusIcon className="w-4 h-4" />
         Thêm bậc
       </button>
+
+      {/* Multiple discount type warning */}
+      {hasMultipleTypes && (
+        <div className="flex items-start gap-2 rounded-lg bg-warning-50 border border-warning-200 px-3 py-2 text-xs text-warning-700">
+          <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          Các bậc đang dùng nhiều loại giảm giá khác nhau (% và ₫) — đảm bảo đây là cố ý.
+        </div>
+      )}
+
+      {/* Overlap / gap issues */}
+      {tierIssues.length > 0 && (
+        <div className="space-y-1.5">
+          {tierIssues.map((issue, i) => (
+            <div
+              key={i}
+              className={[
+                "flex items-start gap-2 rounded-lg px-3 py-2 text-xs",
+                issue.type === "overlap"
+                  ? "bg-error-50 border border-error-200 text-error-700"
+                  : "bg-warning-50 border border-warning-200 text-warning-700",
+              ].join(" ")}
+            >
+              <ExclamationTriangleIcon className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+              <span>
+                <span className="font-semibold">{issue.type === "overlap" ? "Lỗi chồng lấp: " : "Cảnh báo khoảng trống: "}</span>
+                {issue.msg}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Preview */}
       {tiers.length > 0 && (

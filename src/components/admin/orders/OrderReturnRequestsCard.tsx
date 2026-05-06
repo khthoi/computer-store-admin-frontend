@@ -16,11 +16,14 @@ interface OrderReturnRequestsCardProps {
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<ReturnRequestStatus, { label: string; variant: "default" | "warning" | "success" | "error" | "info" }> = {
-  ChoDuyet:   { label: "Chờ duyệt",   variant: "warning" },
-  DaDuyet:    { label: "Đã duyệt",    variant: "info"    },
-  TuChoi:     { label: "Từ chối",     variant: "error"   },
-  DangXuLy:   { label: "Đang xử lý", variant: "warning" },
-  HoanThanh:  { label: "Hoàn thành", variant: "success" },
+  ChoDuyet:    { label: "Chờ duyệt",    variant: "warning" },
+  DaDuyet:     { label: "Đã duyệt",     variant: "info"    },
+  TuChoi:      { label: "Từ chối",      variant: "error"   },
+  DaNhanHang:     { label: "Đã nhận hàng", variant: "info"    },
+  DaKiemTra:      { label: "Đã kiểm tra", variant: "info"    },
+  TuChoiNhanHang: { label: "Từ chối nhận", variant: "error"  },
+  DangXuLy:       { label: "Đang xử lý",  variant: "warning" },
+  HoanThanh:   { label: "Hoàn thành",  variant: "success" },
 };
 
 const TYPE_LABELS: Record<ReturnRequestType, string> = {

@@ -3,7 +3,8 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPromotionById, getPromotionUsage } from "@/src/services/promotion.service";
-import { PromotionDetailClient } from "@/src/components/admin/promotions/PromotionDetailClient";
+import { PromotionFormClient } from "@/src/components/admin/promotions/PromotionFormClient";
+import { PromotionUsageSection } from "@/src/components/admin/promotions/PromotionUsageSection";
 
 export async function generateMetadata({
   params,
@@ -11,7 +12,8 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  return { title: `Promotion ${id} — Admin` };
+  const promotion = await getPromotionById(id);
+  return { title: `${promotion?.name ?? id} — Admin` };
 }
 
 export default async function PromotionDetailPage({
@@ -22,9 +24,14 @@ export default async function PromotionDetailPage({
   const { id } = await params;
   const [promotion, usage] = await Promise.all([
     getPromotionById(id),
-    getPromotionUsage(id),
+    getPromotionUsage(id).catch(() => []),
   ]);
   if (!promotion) notFound();
 
-  return <PromotionDetailClient promotion={promotion} initialUsage={usage} />;
+  return (
+    <div>
+      <PromotionFormClient mode="view" promotion={promotion} />
+      <PromotionUsageSection promotion={promotion} initialUsage={usage} />
+    </div>
+  );
 }

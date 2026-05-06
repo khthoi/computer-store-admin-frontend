@@ -1,18 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { getEarnRules } from "@/src/services/loyalty.service";
-import { EarnRuleDetailClient } from "@/src/components/admin/promotions/EarnRuleDetailClient";
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  return { title: `Earn Rule ${id} — Admin` };
-}
+import { redirect } from "next/navigation";
 
 export default async function EarnRuleDetailPage({
   params,
@@ -20,9 +8,5 @@ export default async function EarnRuleDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const rules = await getEarnRules();
-  const rule = rules.find((r) => r.id === id);
-  if (!rule) notFound();
-
-  return <EarnRuleDetailClient rule={rule} />;
+  redirect(`/promotions/earn-rules/${id}/edit`);
 }

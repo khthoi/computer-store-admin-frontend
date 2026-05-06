@@ -14,10 +14,25 @@ export type ReturnRequestStatus =
   | "ChoDuyet"
   | "DaDuyet"
   | "TuChoi"
+  | "DaNhanHang"
+  | "DaKiemTra"
+  | "TuChoiNhanHang"
   | "DangXuLy"
   | "HoanThanh";
 
-export type ReturnRequestType = "DoiHang" | "TraHang" | "BaoHanh";
+export type ReturnReasonCode =
+  | "LoiNhaSanXuat"
+  | "GuiNhamHang"
+  | "HuHongKhiVanChuyen"
+  | "ThieuPhuKien"
+  | "KhongDungMoTa"
+  | "DoiYKien"
+  | "KhongTuongThich"
+  | "HieuNangKemHon";
+
+export type DefectiveHandling = "TraNhaCungCap" | "TieuHuy" | "TaiSuDung";
+
+export type ReturnRequestType = "DoiHang" | "TraHang" | "BaoHanh" | "HoanTien";
 
 export type ReturnResolution = "GiaoHangMoi" | "HoanTien" | "BaoHanh";
 
@@ -179,6 +194,16 @@ export interface ReturnResolutionRecord {
   ngayGuiHangBaoHanh?: string;
   ngayNhanHangVe?: string;
   ketQuaBaoHanh?: string;
+  trackingDoiHang?: string | null;
+  carrierDoiHang?: string | null;
+  trackingTraKhach?: string | null;
+  carrierTraKhach?: string | null;
+  trackingGuiNhaSanXuat?: string | null;
+  carrierGuiNhaSanXuat?: string | null;
+  defectiveHandling?: DefectiveHandling | null;
+  defectiveHandledAt?: string | null;
+  defectiveHandledById?: number | null;
+  defectiveNotes?: string | null;
   createdAt: string;
 }
 
@@ -190,7 +215,7 @@ export interface ReturnRequest {
   customerName: string;
   requestType: ReturnRequestType;
   status: ReturnRequestStatus;
-  reason: string;
+  reason: ReturnReasonCode | string;
   description?: string;
   resolution?: ReturnResolution;
   resolutionRecord?: ReturnResolutionRecord;
@@ -198,6 +223,19 @@ export interface ReturnRequest {
   inspectionResult?: string;
   processedByName?: string;
   processedById?: string;
+  returnTrackingCode?: string | null;
+  returnCarrier?: string | null;
+  returnReceivedAt?: string | null;
+  returnReceivedById?: number | null;
+  returnReceivedByName?: string | null;
+  rejectTrackingCode?: string | null;
+  rejectCarrier?: string | null;
+  rejectNotes?: string | null;
+  rejectedAt?: string | null;
+  rejectedByName?: string | null;
+  approvedAt?: string | null;
+  inspectedAt?: string | null;
+  processingStartedAt?: string | null;
   requestedAt: string;
   updatedAt: string;
 }
@@ -210,9 +248,12 @@ export interface ReturnRequestSummary {
   customerName?: string;
   requestType: ReturnRequestType;
   status: ReturnRequestStatus;
-  reason: string;
+  reason: ReturnReasonCode | string;
   resolution?: ReturnResolution;
   itemCount: number;
+  returnTrackingCode?: string | null;
+  returnCarrier?: string | null;
+  returnReceivedAt?: string | null;
   requestedAt: string;
   processedByName?: string;
   processedById?: string;

@@ -108,6 +108,56 @@ export async function getProductById(id: string): Promise<Product | null> {
   }
 }
 
+// ─── Variant flat list (for promotion condition builder) ──────────────────────
+
+interface ProductDetailVariant {
+  id: string;
+  sku: string;
+  name: string;
+  stock: number;
+  status: "active" | "inactive";
+}
+
+interface ProductDetailWithVariants {
+  id: string;
+  name: string;
+  variants: ProductDetailVariant[];
+}
+
+export interface ProductVariantFlat {
+  productId: string;
+  productName: string;
+  variantId: string;
+  variantName: string;
+  sku: string;
+  stock: number;
+  status: "active" | "inactive";
+}
+
+export async function getProductVariantsFlat(productLimit = 60): Promise<ProductVariantFlat[]> {
+  const list = await apiFetch<{ data: Array<{ id: string; name: string }> }>(
+    `/admin/products?limit=${productLimit}`
+  );
+  const details = await Promise.all(
+    list.data.map((p) =>
+      apiFetch<ProductDetailWithVariants>(`/admin/products/${p.id}`).catch(() => null)
+    )
+  );
+  return details
+    .filter((d): d is ProductDetailWithVariants => d !== null)
+    .flatMap((p) =>
+      (p.variants ?? []).map((v) => ({
+        productId: p.id,
+        productName: p.name,
+        variantId: v.id,
+        variantName: v.name,
+        sku: v.sku,
+        stock: v.stock,
+        status: v.status,
+      }))
+    );
+}
+
 // ─── Payloads ──────────────────────────────────────────────────────────────────
 
 export interface VariantPayload {
