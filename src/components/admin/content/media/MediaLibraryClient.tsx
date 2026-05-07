@@ -3,12 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import { CloudArrowUpIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
-import { Badge } from "@/src/components/ui/Badge";
 import { FolderSidebar } from "./FolderSidebar";
 import { MediaGrid } from "./MediaGrid";
 import { MediaDetailDrawer } from "./MediaDetailDrawer";
 import { MediaUploadModal } from "./MediaUploadModal";
-import { getMediaFiles } from "@/src/services/content.service";
+import { FolderFormModal } from "./FolderFormModal";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
+import {
+  getMediaFiles,
+  getMediaFolders,
+  createMediaFolder,
+  updateMediaFolder,
+  deleteMediaFolder,
+} from "@/src/services/content.service";
+import { useAuth } from "@/src/store/auth.store";
+import { useToast } from "@/src/components/ui/Toast";
 import type { MediaFile, MediaFolder, MediaFileType } from "@/src/types/content.types";
 
 // ─── Filter options ───────────────────────────────────────────────────────────
@@ -18,30 +27,45 @@ const FILE_TYPE_FILTERS: { value: MediaFileType | "all"; label: string }[] = [
   { value: "image", label: "Ảnh" },
   { value: "video", label: "Video" },
   { value: "document", label: "Tài liệu" },
-  { value: "audio", label: "Âm thanh" },
 ];
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function MediaLibraryClient() {
+  const { state: authState } = useAuth();
+  const isAdmin = authState.user?.roles?.includes("admin") ?? false;
+  const { showToast } = useToast();
+
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [folders, setFolders] = useState<MediaFolder[]>([]);
   const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState<MediaFileType | "all">("all");
   const [detailFile, setDetailFile] = useState<MediaFile | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
-  const load = useCallback(async () => {
+  // Folder CRUD state
+  const [folderFormOpen, setFolderFormOpen] = useState(false);
+  const [editingFolder, setEditingFolder] = useState<MediaFolder | undefined>();
+  const [deletingFolder, setDeletingFolder] = useState<MediaFolder | null>(null);
+  const [isFolderDeleting, setIsFolderDeleting] = useState(false);
+
+  const PAGE_SIZE = 48;
+
+  const loadFiles = useCallback(async () => {
     setIsLoading(true);
+    setPage(1);
     try {
       const result = await getMediaFiles({
         q: search,
         folderId: selectedFolderId ?? undefined,
         fileType: typeFilter === "all" ? undefined : [typeFilter],
-        pageSize: 48,
+        page: 1,
+        pageSize: PAGE_SIZE,
       });
       setFiles(result.data);
       setTotal(result.total);
@@ -51,7 +75,31 @@ export function MediaLibraryClient() {
     }
   }, [search, selectedFolderId, typeFilter]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadFiles(); }, [loadFiles]);
+
+  async function handleLoadMore() {
+    const nextPage = page + 1;
+    setIsLoadingMore(true);
+    try {
+      const result = await getMediaFiles({
+        q: search,
+        folderId: selectedFolderId ?? undefined,
+        fileType: typeFilter === "all" ? undefined : [typeFilter],
+        page: nextPage,
+        pageSize: PAGE_SIZE,
+      });
+      setFiles((prev) => [...prev, ...result.data]);
+      setTotal(result.total);
+      setPage(nextPage);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }
+
+  async function reloadFolders() {
+    const updated = await getMediaFolders();
+    setFolders(updated);
+  }
 
   function handleFileDeleted(id: string) {
     setFiles((prev) => prev.filter((f) => f.id !== id));
@@ -68,6 +116,54 @@ export function MediaLibraryClient() {
     setTotal((prev) => prev + newFiles.length);
   }
 
+  function handleAddFolder() {
+    setEditingFolder(undefined);
+    setFolderFormOpen(true);
+  }
+
+  function handleEditFolder(folder: MediaFolder) {
+    setEditingFolder(folder);
+    setFolderFormOpen(true);
+  }
+
+  async function handleFolderFormSubmit(values: {
+    tenHienThi: string;
+    duongDan: string;
+    moTa?: string;
+    loaiChoPhep?: "all" | "image" | "video" | "raw";
+    isActive?: boolean;
+  }) {
+    try {
+      if (editingFolder) {
+        await updateMediaFolder(editingFolder.id, values);
+        showToast(`Đã cập nhật thư mục "${values.tenHienThi}"`, "success");
+      } else {
+        await createMediaFolder(values);
+        showToast(`Đã tạo thư mục "${values.tenHienThi}"`, "success");
+      }
+      await reloadFolders();
+    } catch {
+      showToast(editingFolder ? "Cập nhật thư mục thất bại." : "Tạo thư mục thất bại.", "error");
+      throw new Error();
+    }
+  }
+
+  async function handleFolderDelete() {
+    if (!deletingFolder) return;
+    setIsFolderDeleting(true);
+    try {
+      await deleteMediaFolder(deletingFolder.id);
+      if (selectedFolderId === deletingFolder.id) setSelectedFolderId(null);
+      await reloadFolders();
+      showToast(`Đã xoá thư mục "${deletingFolder.name}"`, "success");
+    } catch {
+      showToast("Xoá thư mục thất bại.", "error");
+    } finally {
+      setIsFolderDeleting(false);
+      setDeletingFolder(null);
+    }
+  }
+
   return (
     <div className="flex h-full gap-0 overflow-hidden rounded-xl border border-secondary-200 bg-white">
       {/* Folder sidebar */}
@@ -76,6 +172,9 @@ export function MediaLibraryClient() {
           folders={folders}
           selectedFolderId={selectedFolderId}
           onSelect={setSelectedFolderId}
+          onAddFolder={isAdmin ? handleAddFolder : undefined}
+          onEditFolder={isAdmin ? handleEditFolder : undefined}
+          onDeleteFolder={isAdmin ? (folder) => setDeletingFolder(folder) : undefined}
         />
       </div>
 
@@ -132,6 +231,18 @@ export function MediaLibraryClient() {
             isLoading={isLoading}
             onOpen={setDetailFile}
           />
+          {!isLoading && files.length < total && (
+            <div className="flex justify-center pt-4 pb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleLoadMore}
+                isLoading={isLoadingMore}
+              >
+                {isLoadingMore ? "Đang tải..." : `Tải thêm (còn ${total - files.length})`}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -151,6 +262,31 @@ export function MediaLibraryClient() {
         folderName={folders.find((f) => f.id === selectedFolderId)?.name}
         onUploaded={handleUploaded}
       />
+
+      {/* Folder form modal — admin only */}
+      {isAdmin && (
+        <FolderFormModal
+          isOpen={folderFormOpen}
+          onClose={() => setFolderFormOpen(false)}
+          folder={editingFolder}
+          existingPaths={folders.map((f) => f.slug)}
+          onSubmit={handleFolderFormSubmit}
+        />
+      )}
+
+      {/* Confirm delete folder — admin only */}
+      {isAdmin && (
+        <ConfirmDialog
+          isOpen={deletingFolder != null}
+          onClose={() => setDeletingFolder(null)}
+          onConfirm={handleFolderDelete}
+          title="Xoá thư mục"
+          description={`Bạn có chắc chắn muốn xoá thư mục "${deletingFolder?.name}"? Hành động này không thể hoàn tác.`}
+          confirmLabel="Xoá thư mục"
+          variant="danger"
+          isConfirming={isFolderDeleting}
+        />
+      )}
     </div>
   );
 }

@@ -88,7 +88,7 @@ function SortableGroupRow({
         <Button variant="ghost" size="xs" onClick={(e) => { e.stopPropagation(); onEdit(); }}>
           <PencilIcon className="h-3.5 w-3.5" />
         </Button>
-        <Button variant="ghost" size="xs" className="text-error-500 hover:bg-error-50"
+        <Button variant="ghost" size="xs" color="danger"
           onClick={(e) => { e.stopPropagation(); onDelete(); }}>
           <TrashIcon className="h-3.5 w-3.5" />
         </Button>
@@ -163,7 +163,7 @@ function SortableItemRow({
             </Button>
           </Tooltip>
           <Tooltip content="Xóa" placement="top">
-            <Button variant="ghost" size="xs" className="text-error-500 hover:bg-error-50" onClick={onDelete}>
+            <Button variant="ghost" size="xs" color="danger" onClick={onDelete}>
               <TrashIcon className="h-3.5 w-3.5" />
             </Button>
           </Tooltip>
@@ -286,13 +286,17 @@ export function FAQClient() {
       await deleteFAQGroup(deleteGroupTarget.id);
       const remaining = groupsRef.current.filter((g) => g.id !== deleteGroupTarget.id);
       syncGroups(remaining);
-      // Remove orphaned items from allItems
       setAllItems((prev) => prev.filter((i) => i.groupId !== deleteGroupTarget.id));
       if (selectedGroupId === deleteGroupTarget.id) {
         selectGroup(remaining[0]?.id ?? null);
       }
       setDeleteGroupTarget(null);
-    } finally { setIsDeleting(false); }
+      showToast("Đã xóa nhóm FAQ", "success");
+    } catch {
+      showToast("Xóa thất bại, vui lòng thử lại", "error");
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   // ── CRUD: items ────────────────────────────────────────────────────────────
@@ -321,7 +325,12 @@ export function FAQClient() {
       setAllItems((prev) => prev.filter((i) => i.id !== deleteItemTarget.id));
       syncGroupItems(groupItemsRef.current.filter((i) => i.id !== deleteItemTarget.id));
       setDeleteItemTarget(null);
-    } finally { setIsDeleting(false); }
+      showToast("Đã xóa câu hỏi", "success");
+    } catch {
+      showToast("Xóa thất bại, vui lòng thử lại", "error");
+    } finally {
+      setIsDeleting(false);
+    }
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────

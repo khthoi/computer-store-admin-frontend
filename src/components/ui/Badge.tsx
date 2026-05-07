@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -14,6 +14,8 @@ export type BadgeVariant =
 
 export type BadgeSize = "sm" | "md" | "lg";
 
+export type BadgeShape = "pill" | "tag";
+
 export interface BadgeProps {
   /** Color / semantic variant
    * @default "default"
@@ -22,11 +24,26 @@ export interface BadgeProps {
   /** @default "md" */
   size?: BadgeSize;
   /**
+   * "pill" = rounded-full (default), "tag" = rounded-md
+   * @default "pill"
+   */
+  shape?: BadgeShape;
+  /**
    * Renders a small colored dot before the label.
    * Dot color matches the variant.
    * @default false
    */
   dot?: boolean;
+  /**
+   * Custom background color (hex). Overrides variant background.
+   * When provided, variant-based bg/text classes are skipped — use textColor too.
+   */
+  backgroundColor?: string;
+  /**
+   * Custom text color (hex). Overrides variant text color.
+   * Pair with backgroundColor for fully custom badges.
+   */
+  textColor?: string;
   /** Extra Tailwind classes */
   className?: string;
   children: ReactNode;
@@ -86,29 +103,42 @@ const DOT_SIZE: Record<BadgeSize, string> = {
  * <Badge variant="warning">Low Stock</Badge>
  * <Badge variant="error">Out of Stock</Badge>
  * <Badge variant="primary" size="lg">NEW</Badge>
+ *
+ * // Custom colors:
+ * <Badge shape="tag" backgroundColor="#ef4444" textColor="#ffffff">HOT</Badge>
  * ```
  */
 export function Badge({
   variant = "default",
   size = "md",
+  shape = "pill",
   dot = false,
+  backgroundColor,
+  textColor,
   className = "",
   children,
 }: BadgeProps) {
+  const hasCustomColor = Boolean(backgroundColor || textColor);
   const styles = VARIANT[variant];
+
+  const inlineStyle: CSSProperties = {};
+  if (backgroundColor) inlineStyle.backgroundColor = backgroundColor;
+  if (textColor) inlineStyle.color = textColor;
 
   return (
     <span
       className={[
-        "inline-flex items-center rounded-full font-medium",
+        "inline-flex items-center font-medium",
+        shape === "tag" ? "rounded-md" : "rounded-full",
         SIZE[size],
-        styles.badge,
+        hasCustomColor ? "" : styles.badge,
         className,
       ]
         .filter(Boolean)
         .join(" ")}
+      style={hasCustomColor ? inlineStyle : undefined}
     >
-      {dot && (
+      {dot && !hasCustomColor && (
         <span
           aria-hidden="true"
           className={`shrink-0 rounded-full ${DOT_SIZE[size]} ${styles.dot}`}
@@ -118,16 +148,3 @@ export function Badge({
     </span>
   );
 }
-
-/*
- * ─── Prop Table ───────────────────────────────────────────────────────────────
- *
- * Name      Type                                               Default    Description
- * ──────────────────────────────────────────────────────────────────────────────
- * variant   "default"|"primary"|"success"|"warning"|           "default"  Color variant
- *           "error"|"info"
- * size      "sm"|"md"|"lg"                                     "md"       Height + text
- * dot       boolean                                            false      Colored dot prefix
- * className string                                             ""         Extra Tailwind classes
- * children  ReactNode                                          required   Badge label
- */

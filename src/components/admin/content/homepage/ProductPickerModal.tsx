@@ -197,6 +197,7 @@ export function ProductPickerModal({
       const newItem: SectionItem = {
         id: 0,
         sectionId: 0,
+        sanPhamId: product.sanPhamId,
         phienBanId: product.phienBanId,
         sortOrder: selectedRef.current.length + 1,
         tenSanPham: product.tenSanPham,

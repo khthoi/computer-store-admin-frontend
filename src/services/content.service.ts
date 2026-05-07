@@ -1,6 +1,7 @@
 // ─── Content Management service ───────────────────────────────────────────────
 
 import { apiFetch } from "@/src/services/api";
+import { hasRenderableImageExtension } from "@/src/lib/media-file";
 import type {
   MediaFile,
   MediaFolder,
@@ -8,6 +9,7 @@ import type {
   MediaListResult,
   MediaUploadParams,
   Banner,
+  BannerPosition,
   BannerFormData,
   BannerListParams,
   BannerListResult,
@@ -26,7 +28,9 @@ import type {
   AnnouncementBar,
   AnnouncementBarFormData,
   Menu,
+  MenuLocation,
   MenuItem,
+  MenuItemType,
   MenuItemFormData,
   MenuListResult,
   FAQGroup,
@@ -80,18 +84,18 @@ const MEDIA_FOLDERS: MediaFolder[] = [
 // ─── Media Files ──────────────────────────────────────────────────────────────
 
 const MEDIA_FILES: MediaFile[] = [
-  { id: "m1", folderId: "f1", folderName: "Banners", filename: "hero-summer-sale.jpg", originalName: "hero-summer-sale.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://hacom.vn/_next/image?url=https%3A%2F%2Fcdn-files.hacom.vn%2Fhacom%2Fcdn%2FMedia%2FImage%2FBanner%2F20032026%2Ftrangchuuuu.jpg%3Fv%3D2026-03-20T09%3A07%3A50&w=1080&q=75", thumbnailUrl: "https://hacom.vn/_next/image?url=https%3A%2F%2Fcdn-files.hacom.vn%2Fhacom%2Fcdn%2FMedia%2FImage%2FBanner%2F20032026%2Ftrangchuuuu.jpg%3Fv%3D2026-03-20T09%3A07%3A50&w=1080&q=75", size: 245760, width: 1920, height: 600, altText: "Summer Sale Banner", status: "active", usageCount: 3, uploadedBy: "Admin", uploadedAt: "2025-03-01T08:00:00Z", updatedAt: "2025-03-01T08:00:00Z" },
-  { id: "m2", folderId: "f1", folderName: "Banners", filename: "hero-tech-week.jpg", originalName: "hero-tech-week.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1920x600/8b5cf6/white?text=Tech+Week", thumbnailUrl: "https://placehold.co/300x100/8b5cf6/white?text=Tech+Week", size: 312400, width: 1920, height: 600, altText: "Tech Week Banner", status: "active", usageCount: 1, uploadedBy: "Admin", uploadedAt: "2025-03-15T09:00:00Z", updatedAt: "2025-03-15T09:00:00Z" },
-  { id: "m3", folderId: "f2", folderName: "Sản phẩm", filename: "laptop-asus-01.jpg", originalName: "laptop-asus-01.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/800x600/f3f4f6/374151?text=Laptop+ASUS", thumbnailUrl: "https://placehold.co/200x150/f3f4f6/374151?text=ASUS", size: 98304, width: 800, height: 600, altText: "Laptop ASUS VivoBook", status: "active", usageCount: 12, uploadedBy: "Staff01", uploadedAt: "2025-02-10T10:00:00Z", updatedAt: "2025-02-10T10:00:00Z" },
-  { id: "m4", folderId: "f2", folderName: "Sản phẩm", filename: "macbook-pro-m3.jpg", originalName: "macbook-pro-m3.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/800x600/f3f4f6/374151?text=MacBook+Pro", thumbnailUrl: "https://placehold.co/200x150/f3f4f6/374151?text=MacBook", size: 124928, width: 800, height: 600, altText: "MacBook Pro M3", status: "active", usageCount: 8, uploadedBy: "Staff01", uploadedAt: "2025-02-12T11:00:00Z", updatedAt: "2025-02-12T11:00:00Z" },
-  { id: "m5", folderId: "f3", folderName: "Blog", filename: "blog-gaming-setup.jpg", originalName: "blog-gaming-setup.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1200x628/1e293b/e2e8f0?text=Gaming+Setup", thumbnailUrl: "https://placehold.co/300x157/1e293b/e2e8f0?text=Gaming", size: 187392, width: 1200, height: 628, altText: "Gaming Setup Guide", status: "active", usageCount: 2, uploadedBy: "Writer01", uploadedAt: "2025-03-05T14:00:00Z", updatedAt: "2025-03-05T14:00:00Z" },
-  { id: "m6", folderId: "f3", folderName: "Blog", filename: "blog-laptop-review.jpg", originalName: "blog-laptop-review.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1200x628/0f172a/f8fafc?text=Laptop+Review", thumbnailUrl: "https://placehold.co/300x157/0f172a/f8fafc?text=Review", size: 156672, width: 1200, height: 628, status: "active", usageCount: 1, uploadedBy: "Writer01", uploadedAt: "2025-03-20T09:00:00Z", updatedAt: "2025-03-20T09:00:00Z" },
-  { id: "m7", folderId: "f5", folderName: "Videos", filename: "product-demo-q1.mp4", originalName: "product-demo-q1.mp4", mimeType: "video/mp4", fileType: "video", url: "https://example.com/videos/product-demo-q1.mp4", thumbnailUrl: "https://placehold.co/300x200/0ea5e9/white?text=Video", size: 52428800, width: 1920, height: 1080, duration: 125, altText: "Product Demo Q1 2025", status: "active", usageCount: 1, uploadedBy: "Admin", uploadedAt: "2025-04-01T10:00:00Z", updatedAt: "2025-04-01T10:00:00Z" },
-  { id: "m8", folderId: "f6", folderName: "Tài liệu", filename: "warranty-policy.pdf", originalName: "warranty-policy.pdf", mimeType: "application/pdf", fileType: "document", url: "https://example.com/docs/warranty-policy.pdf", size: 204800, status: "active", usageCount: 5, uploadedBy: "Admin", uploadedAt: "2025-01-20T08:00:00Z", updatedAt: "2025-02-05T08:00:00Z" },
+  { id: "m1", folderId: "f1", folderName: "Banners", folderSlug: "banners", filename: "hero-summer-sale.jpg", originalName: "hero-summer-sale.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://hacom.vn/_next/image?url=https%3A%2F%2Fcdn-files.hacom.vn%2Fhacom%2Fcdn%2FMedia%2FImage%2FBanner%2F20032026%2Ftrangchuuuu.jpg%3Fv%3D2026-03-20T09%3A07%3A50&w=1080&q=75", thumbnailUrl: "https://hacom.vn/_next/image?url=https%3A%2F%2Fcdn-files.hacom.vn%2Fhacom%2Fcdn%2FMedia%2FImage%2FBanner%2F20032026%2Ftrangchuuuu.jpg%3Fv%3D2026-03-20T09%3A07%3A50&w=1080&q=75", size: 245760, width: 1920, height: 600, altText: "Summer Sale Banner", status: "active", usageCount: 3, uploadedBy: "Admin", uploadedAt: "2025-03-01T08:00:00Z", updatedAt: "2025-03-01T08:00:00Z" },
+  { id: "m2", folderId: "f1", folderName: "Banners", folderSlug: "banners", filename: "hero-tech-week.jpg", originalName: "hero-tech-week.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1920x600/8b5cf6/white?text=Tech+Week", thumbnailUrl: "https://placehold.co/300x100/8b5cf6/white?text=Tech+Week", size: 312400, width: 1920, height: 600, altText: "Tech Week Banner", status: "active", usageCount: 1, uploadedBy: "Admin", uploadedAt: "2025-03-15T09:00:00Z", updatedAt: "2025-03-15T09:00:00Z" },
+  { id: "m3", folderId: "f2", folderName: "Sản phẩm", folderSlug: "san-pham", filename: "laptop-asus-01.jpg", originalName: "laptop-asus-01.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/800x600/f3f4f6/374151?text=Laptop+ASUS", thumbnailUrl: "https://placehold.co/200x150/f3f4f6/374151?text=ASUS", size: 98304, width: 800, height: 600, altText: "Laptop ASUS VivoBook", status: "active", usageCount: 12, uploadedBy: "Staff01", uploadedAt: "2025-02-10T10:00:00Z", updatedAt: "2025-02-10T10:00:00Z" },
+  { id: "m4", folderId: "f2", folderName: "Sản phẩm", folderSlug: "san-pham", filename: "macbook-pro-m3.jpg", originalName: "macbook-pro-m3.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/800x600/f3f4f6/374151?text=MacBook+Pro", thumbnailUrl: "https://placehold.co/200x150/f3f4f6/374151?text=MacBook", size: 124928, width: 800, height: 600, altText: "MacBook Pro M3", status: "active", usageCount: 8, uploadedBy: "Staff01", uploadedAt: "2025-02-12T11:00:00Z", updatedAt: "2025-02-12T11:00:00Z" },
+  { id: "m5", folderId: "f3", folderName: "Blog", folderSlug: "blog", filename: "blog-gaming-setup.jpg", originalName: "blog-gaming-setup.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1200x628/1e293b/e2e8f0?text=Gaming+Setup", thumbnailUrl: "https://placehold.co/300x157/1e293b/e2e8f0?text=Gaming", size: 187392, width: 1200, height: 628, altText: "Gaming Setup Guide", status: "active", usageCount: 2, uploadedBy: "Writer01", uploadedAt: "2025-03-05T14:00:00Z", updatedAt: "2025-03-05T14:00:00Z" },
+  { id: "m6", folderId: "f3", folderName: "Blog", folderSlug: "blog", filename: "blog-laptop-review.jpg", originalName: "blog-laptop-review.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1200x628/0f172a/f8fafc?text=Laptop+Review", thumbnailUrl: "https://placehold.co/300x157/0f172a/f8fafc?text=Review", size: 156672, width: 1200, height: 628, status: "active", usageCount: 1, uploadedBy: "Writer01", uploadedAt: "2025-03-20T09:00:00Z", updatedAt: "2025-03-20T09:00:00Z" },
+  { id: "m7", folderId: "f5", folderName: "Videos", folderSlug: "videos", filename: "product-demo-q1.mp4", originalName: "product-demo-q1.mp4", mimeType: "video/mp4", fileType: "video", url: "https://example.com/videos/product-demo-q1.mp4", thumbnailUrl: "https://placehold.co/300x200/0ea5e9/white?text=Video", size: 52428800, width: 1920, height: 1080, duration: 125, altText: "Product Demo Q1 2025", status: "active", usageCount: 1, uploadedBy: "Admin", uploadedAt: "2025-04-01T10:00:00Z", updatedAt: "2025-04-01T10:00:00Z" },
+  { id: "m8", folderId: "f6", folderName: "Tài liệu", folderSlug: "tai-lieu", filename: "warranty-policy.pdf", originalName: "warranty-policy.pdf", mimeType: "application/pdf", fileType: "document", url: "https://example.com/docs/warranty-policy.pdf", size: 204800, status: "active", usageCount: 5, uploadedBy: "Admin", uploadedAt: "2025-01-20T08:00:00Z", updatedAt: "2025-02-05T08:00:00Z" },
   { id: "m9", folderId: null, folderName: undefined, filename: "favicon.png", originalName: "favicon.png", mimeType: "image/png", fileType: "image", url: "https://placehold.co/64x64/3b82f6/white?text=F", thumbnailUrl: "https://placehold.co/64x64/3b82f6/white?text=F", size: 4096, width: 64, height: 64, altText: "Favicon", status: "active", usageCount: 1, uploadedBy: "Admin", uploadedAt: "2025-01-10T08:00:00Z", updatedAt: "2025-01-10T08:00:00Z" },
-  { id: "m10", folderId: "f1", folderName: "Banners", filename: "flash-sale-banner.jpg", originalName: "flash-sale-banner.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1920x400/ef4444/white?text=Flash+Sale", thumbnailUrl: "https://placehold.co/300x63/ef4444/white?text=Flash+Sale", size: 189440, width: 1920, height: 400, altText: "Flash Sale Banner", status: "active", usageCount: 2, uploadedBy: "Staff02", uploadedAt: "2025-04-05T08:00:00Z", updatedAt: "2025-04-05T08:00:00Z" },
-  { id: "m11", folderId: "f2", folderName: "Sản phẩm", filename: "keyboard-keychron.jpg", originalName: "keyboard-keychron.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/800x600/f5f5f4/292524?text=Keyboard", thumbnailUrl: "https://placehold.co/200x150/f5f5f4/292524?text=Keyboard", size: 75776, width: 800, height: 600, altText: "Keychron K2 Keyboard", status: "unused", usageCount: 0, uploadedBy: "Staff01", uploadedAt: "2025-04-08T10:00:00Z", updatedAt: "2025-04-08T10:00:00Z" },
-  { id: "m12", folderId: "f4", folderName: "Avatars", filename: "avatar-nguyen-van-a.jpg", originalName: "avatar-nguyen-van-a.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/200x200/e0e7ff/4338ca?text=A", thumbnailUrl: "https://placehold.co/200x200/e0e7ff/4338ca?text=A", size: 32768, width: 200, height: 200, altText: "Avatar Nguyễn Văn A", status: "active", usageCount: 4, uploadedBy: "Admin", uploadedAt: "2025-02-20T08:00:00Z", updatedAt: "2025-02-20T08:00:00Z" },
+  { id: "m10", folderId: "f1", folderName: "Banners", folderSlug: "banners", filename: "flash-sale-banner.jpg", originalName: "flash-sale-banner.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/1920x400/ef4444/white?text=Flash+Sale", thumbnailUrl: "https://placehold.co/300x63/ef4444/white?text=Flash+Sale", size: 189440, width: 1920, height: 400, altText: "Flash Sale Banner", status: "active", usageCount: 2, uploadedBy: "Staff02", uploadedAt: "2025-04-05T08:00:00Z", updatedAt: "2025-04-05T08:00:00Z" },
+  { id: "m11", folderId: "f2", folderName: "Sản phẩm", folderSlug: "san-pham", filename: "keyboard-keychron.jpg", originalName: "keyboard-keychron.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/800x600/f5f5f4/292524?text=Keyboard", thumbnailUrl: "https://placehold.co/200x150/f5f5f4/292524?text=Keyboard", size: 75776, width: 800, height: 600, altText: "Keychron K2 Keyboard", status: "unused", usageCount: 0, uploadedBy: "Staff01", uploadedAt: "2025-04-08T10:00:00Z", updatedAt: "2025-04-08T10:00:00Z" },
+  { id: "m12", folderId: "f4", folderName: "Avatars", folderSlug: "avatars", filename: "avatar-nguyen-van-a.jpg", originalName: "avatar-nguyen-van-a.jpg", mimeType: "image/jpeg", fileType: "image", url: "https://placehold.co/200x200/e0e7ff/4338ca?text=A", thumbnailUrl: "https://placehold.co/200x200/e0e7ff/4338ca?text=A", size: 32768, width: 200, height: 200, altText: "Avatar Nguyễn Văn A", status: "active", usageCount: 4, uploadedBy: "Admin", uploadedAt: "2025-02-20T08:00:00Z", updatedAt: "2025-02-20T08:00:00Z" },
 ];
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
@@ -158,19 +162,7 @@ const ARTICLES: Article[] = [
 
 // ─── Popups ───────────────────────────────────────────────────────────────────
 
-const POPUPS: Popup[] = [
-  { id: "p1", name: "Popup đăng ký nhận tin", status: "active", position: "center", trigger: "on_delay", delaySeconds: 5, title: "Nhận ưu đãi độc quyền!", body: "<p>Đăng ký ngay để nhận <strong>mã giảm giá 10%</strong> cho đơn hàng đầu tiên và cập nhật tin khuyến mãi mới nhất.</p>", imageUrl: "https://placehold.co/400x300/6366f1/white?text=Newsletter", ctaLabel: "Đăng ký ngay", ctaUrl: "/newsletter", showCloseButton: true, showOnce: true, targetPages: [], startDate: null, endDate: null, viewCount: 4230, clickCount: 892, closeCount: 3338, createdBy: "Admin", createdAt: "2025-02-01T08:00:00Z", updatedAt: "2025-03-10T08:00:00Z" },
-  { id: "p2", name: "Popup flash sale cảnh báo", status: "scheduled", position: "bottom_right", trigger: "on_exit", title: "Đừng bỏ lỡ Flash Sale!", body: "<p>Ưu đãi kết thúc trong <strong>2 giờ nữa</strong>. Mua ngay trước khi hết!</p>", ctaLabel: "Xem ưu đãi", ctaUrl: "/promotions/flash-sales", showCloseButton: true, showOnce: false, targetPages: ["/", "/products/*"], startDate: "2025-05-01", endDate: "2025-05-31", viewCount: 0, clickCount: 0, closeCount: 0, createdBy: "Admin", createdAt: "2025-04-10T08:00:00Z", updatedAt: "2025-04-10T08:00:00Z" },
-  { id: "p3", name: "Popup khảo sát trải nghiệm", status: "ended", position: "center", trigger: "on_scroll", scrollPercent: 70, title: "Chia sẻ trải nghiệm của bạn", body: "<p>Bạn có hài lòng với trải nghiệm mua hàng tại PC Store không?</p>", ctaLabel: "Tham gia khảo sát", ctaUrl: "/survey", showCloseButton: true, showOnce: true, targetPages: ["/orders/*"], startDate: "2025-03-01", endDate: "2025-03-31", viewCount: 1890, clickCount: 340, closeCount: 1550, createdBy: "Staff01", createdAt: "2025-02-25T08:00:00Z", updatedAt: "2025-03-31T23:59:00Z" },
-];
-
 // ─── Announcement Bars ────────────────────────────────────────────────────────
-
-const ANNOUNCEMENT_BARS: AnnouncementBar[] = [
-  { id: "ab1", name: "Thông báo vận chuyển miễn phí", status: "active", position: "top", content: "🚚 Miễn phí vận chuyển cho đơn hàng từ 500.000đ — <a href='/policies/shipping' style='text-decoration:underline'>Xem chi tiết</a>", backgroundColor: "#1d4ed8", textColor: "#ffffff", showCloseButton: true, isScrolling: false, linkUrl: "/policies/shipping", linkLabel: "Xem chi tiết", priority: 1, viewCount: 28400, clickCount: 1230, createdBy: "Admin", createdAt: "2025-01-15T08:00:00Z", updatedAt: "2025-04-01T08:00:00Z" },
-  { id: "ab2", name: "Thông báo flash sale cuối tuần", status: "scheduled", position: "top", content: "⚡ FLASH SALE — Giảm đến 40% mọi laptop gaming! Kết thúc 23:59 Chủ nhật", backgroundColor: "#dc2626", textColor: "#ffffff", showCloseButton: true, isScrolling: true, linkUrl: "/promotions/flash-sales", linkLabel: "Mua ngay", startDate: "2025-05-03", endDate: "2025-05-04", priority: 2, viewCount: 0, clickCount: 0, createdBy: "Admin", createdAt: "2025-04-20T08:00:00Z", updatedAt: "2025-04-20T08:00:00Z" },
-  { id: "ab3", name: "Thông báo bảo trì hệ thống", status: "draft", position: "bottom", content: "⚠️ Hệ thống sẽ bảo trì từ 2:00 - 4:00 sáng ngày 20/05/2025", backgroundColor: "#f59e0b", textColor: "#1c1917", showCloseButton: false, isScrolling: false, priority: 10, viewCount: 0, clickCount: 0, createdBy: "Admin", createdAt: "2025-04-12T08:00:00Z", updatedAt: "2025-04-12T08:00:00Z" },
-];
 
 // ─── Navigation Menus ─────────────────────────────────────────────────────────
 // Header quick-links are a FLAT list — no nesting.
@@ -255,22 +247,6 @@ const MENUS: Menu[] = [
 
 // ─── FAQ Groups ───────────────────────────────────────────────────────────────
 
-const FAQ_GROUPS: FAQGroup[] = [
-  { id: "fg1", name: "Đặt hàng & Thanh toán", slug: "dat-hang-thanh-toan", description: "Các câu hỏi về quy trình đặt hàng và thanh toán", icon: "ShoppingCartIcon", sortOrder: 1, isVisible: true, itemCount: 6, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-03-20T10:00:00Z" },
-  { id: "fg2", name: "Vận chuyển & Giao hàng", slug: "van-chuyen-giao-hang", description: "Thông tin về phí và thời gian vận chuyển", icon: "TruckIcon", sortOrder: 2, isVisible: true, itemCount: 4, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-02-15T08:00:00Z" },
-  { id: "fg3", name: "Bảo hành & Đổi trả", slug: "bao-hanh-doi-tra", description: "Chính sách bảo hành và đổi trả sản phẩm", icon: "ShieldCheckIcon", sortOrder: 3, isVisible: true, itemCount: 5, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-03-10T08:00:00Z" },
-  { id: "fg4", name: "Tài khoản & Thành viên", slug: "tai-khoan-thanh-vien", description: "Hướng dẫn quản lý tài khoản và chương trình thành viên", icon: "UserIcon", sortOrder: 4, isVisible: true, itemCount: 4, createdAt: "2025-02-01T08:00:00Z", updatedAt: "2025-03-25T08:00:00Z" },
-  { id: "fg5", name: "Kỹ thuật & Hỗ trợ", slug: "ky-thuat-ho-tro", description: "Hỗ trợ kỹ thuật và cài đặt thiết bị", icon: "WrenchIcon", sortOrder: 5, isVisible: false, itemCount: 3, createdAt: "2025-03-01T08:00:00Z", updatedAt: "2025-03-01T08:00:00Z" },
-];
-
-const FAQ_ITEMS: FAQItem[] = [
-  { id: "fi1", groupId: "fg1", groupName: "Đặt hàng & Thanh toán", question: "Tôi có thể thanh toán bằng những hình thức nào?", answer: "<p>PC Store chấp nhận các hình thức thanh toán sau:</p><ul><li>Thẻ tín dụng/ghi nợ (Visa, Mastercard, JCB)</li><li>Chuyển khoản ngân hàng</li><li>Ví điện tử (MoMo, ZaloPay, VNPay)</li><li>Thanh toán khi nhận hàng (COD)</li><li>Trả góp qua các ngân hàng liên kết</li></ul>", sortOrder: 1, isVisible: true, viewCount: 2340, helpfulCount: 890, notHelpfulCount: 45, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-03-20T10:00:00Z" },
-  { id: "fi2", groupId: "fg1", groupName: "Đặt hàng & Thanh toán", question: "Đơn hàng của tôi sẽ được giao trong bao lâu?", answer: "<p>Thời gian giao hàng phụ thuộc vào địa chỉ nhận hàng:</p><ul><li><strong>Nội thành Hà Nội và TP.HCM:</strong> 1-2 ngày làm việc</li><li><strong>Các tỉnh thành khác:</strong> 3-5 ngày làm việc</li><li><strong>Vùng sâu vùng xa:</strong> 5-7 ngày làm việc</li></ul>", sortOrder: 2, isVisible: true, viewCount: 3120, helpfulCount: 1240, notHelpfulCount: 28, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-02-15T08:00:00Z" },
-  { id: "fi3", groupId: "fg2", groupName: "Vận chuyển & Giao hàng", question: "Phí vận chuyển được tính như thế nào?", answer: "<p>Phí vận chuyển tại PC Store:</p><ul><li><strong>Miễn phí</strong> cho đơn hàng từ 500.000đ</li><li><strong>15.000đ</strong> cho đơn hàng dưới 500.000đ tại nội thành</li><li><strong>25.000đ - 35.000đ</strong> cho các tỉnh thành khác</li></ul>", sortOrder: 1, isVisible: true, viewCount: 1890, helpfulCount: 780, notHelpfulCount: 32, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-02-15T08:00:00Z" },
-  { id: "fi4", groupId: "fg3", groupName: "Bảo hành & Đổi trả", question: "Chính sách đổi trả của PC Store như thế nào?", answer: "<p>PC Store hỗ trợ đổi trả trong <strong>7 ngày</strong> kể từ ngày mua với điều kiện:</p><ul><li>Sản phẩm còn nguyên vẹn, chưa qua sử dụng</li><li>Còn đầy đủ phụ kiện và hộp đựng</li><li>Có hóa đơn mua hàng</li></ul>", sortOrder: 1, isVisible: true, viewCount: 4560, helpfulCount: 1890, notHelpfulCount: 67, createdAt: "2025-01-10T08:00:00Z", updatedAt: "2025-03-10T08:00:00Z" },
-  { id: "fi5", groupId: "fg4", groupName: "Tài khoản & Thành viên", question: "Làm thế nào để tham gia chương trình thành viên?", answer: "<p>Để tham gia chương trình thành viên PC Store:</p><ol><li>Đăng ký tài khoản tại website</li><li>Xác nhận email</li><li>Tự động trở thành thành viên cơ bản</li><li>Tích điểm qua các giao dịch để nâng cấp hạng</li></ol>", sortOrder: 1, isVisible: true, viewCount: 1230, helpfulCount: 567, notHelpfulCount: 12, createdAt: "2025-02-01T08:00:00Z", updatedAt: "2025-03-25T08:00:00Z" },
-];
-
 // ─── Testimonials ──────────────────────────────────────────────────────────────
 
 const TESTIMONIALS: Testimonial[] = [
@@ -301,28 +277,47 @@ interface BackendAsset {
   altText: string | null;
   caption: string | null;
   thuMucId: number | null;
+  thuMucObj?: { id: number; tenHienThi: string; duongDan: string } | null;
   soLanSuDung: number;
   trangThai: string;
   nguoiUploadId: number;
+  nguoiUpload?: { id: number; hoTen: string } | null;
   ngayUpload: string;
+  ngayCapNhat: string | null;
 }
 
 interface BackendMediaFolder {
   id: number;
   tenHienThi: string;
   duongDan: string;
+  moTa: string | null;
+  loaiChoPhep: string;
+  thuTu: number;
   isActive: boolean;
   phamVi: string;
   ngayTao: string;
   ngayCapNhat: string;
+  fileCount?: number;
 }
 
 function mapAssetToMediaFile(asset: BackendAsset): MediaFile {
   const loaiFile = asset.loaiFile;
-  const fileType = loaiFile === "image" ? "image" : loaiFile === "video" ? "video" : "document";
+  const mime = asset.mimeType ?? "";
+  const isImageLike =
+    loaiFile === "image" ||
+    mime.toLowerCase().startsWith("image/") ||
+    hasRenderableImageExtension(asset.tenFileGoc) ||
+    hasRenderableImageExtension(asset.urlGoc);
+  const fileType: MediaFile["fileType"] =
+    isImageLike ? "image"
+    : loaiFile === "video" ? "video"
+    : loaiFile === "raw" && mime.startsWith("audio/") ? "audio"
+    : "document";
   return {
     id: String(asset.id),
     folderId: asset.thuMucId != null ? String(asset.thuMucId) : null,
+    folderName: asset.thuMucObj?.tenHienThi ?? undefined,
+    folderSlug: asset.thuMucObj?.duongDan ?? undefined,
     filename: asset.tenFileGoc,
     originalName: asset.tenFileGoc,
     mimeType: asset.mimeType,
@@ -336,9 +331,10 @@ function mapAssetToMediaFile(asset: BackendAsset): MediaFile {
     caption: asset.caption ?? undefined,
     status: asset.trangThai === "active" ? "active" : "unused",
     usageCount: asset.soLanSuDung,
-    uploadedBy: String(asset.nguoiUploadId),
+    uploadedBy: asset.nguoiUpload?.hoTen ?? String(asset.nguoiUploadId),
+    uploadedById: String(asset.nguoiUpload?.id ?? asset.nguoiUploadId),
     uploadedAt: asset.ngayUpload,
-    updatedAt: asset.ngayUpload,
+    updatedAt: asset.ngayCapNhat ?? asset.ngayUpload,
   };
 }
 
@@ -348,8 +344,12 @@ function mapFolderToMediaFolder(folder: BackendMediaFolder): MediaFolder {
     name: folder.tenHienThi,
     slug: folder.duongDan,
     parentId: null,
-    fileCount: 0,
+    fileCount: folder.fileCount ?? 0,
     visibility: folder.phamVi === "private" ? "private" : "public",
+    description: folder.moTa ?? undefined,
+    allowedTypes: folder.loaiChoPhep as MediaFolder["allowedTypes"],
+    sortOrder: folder.thuTu,
+    isActive: folder.isActive,
     createdAt: folder.ngayTao,
     updatedAt: folder.ngayCapNhat,
   };
@@ -363,7 +363,7 @@ export async function getMediaFiles(params: MediaListParams = {}): Promise<Media
   const qs = new URLSearchParams();
   if (q) qs.set("search", q);
   if (folderId != null) qs.set("thuMucId", folderId);
-  if (fileType.length === 1) {
+  if (fileType.length === 1 && fileType[0] !== "image") {
     const backendType = fileType[0] === "document" ? "raw" : fileType[0];
     qs.set("loaiFile", backendType);
   }
@@ -375,9 +375,12 @@ export async function getMediaFiles(params: MediaListParams = {}): Promise<Media
     apiFetch<BackendMediaFolder[]>("/admin/media/folders"),
   ]);
 
+  const mappedFiles = assetsRes.items.map(mapAssetToMediaFile);
+  const data = fileType.length ? mappedFiles.filter((file) => fileType.includes(file.fileType)) : mappedFiles;
+
   return {
-    data: assetsRes.items.map(mapAssetToMediaFile),
-    total: assetsRes.total,
+    data,
+    total: fileType.length && fileType[0] === "image" ? data.length : assetsRes.total,
     folders: foldersRes.map(mapFolderToMediaFolder),
   };
 }
@@ -405,52 +408,95 @@ export async function deleteMediaFile(id: string): Promise<void> {
   await apiFetch<void>(`/admin/media/${id}`, { method: "DELETE" });
 }
 
-export async function updateMediaFile(id: string, updates: Partial<Pick<MediaFile, "altText" | "caption" | "folderId">>): Promise<MediaFile> {
-  await delay(300);
-  const file = MEDIA_FILES.find((f) => f.id === id);
-  if (!file) throw new Error("Media file not found");
-  Object.assign(file, updates, { updatedAt: new Date().toISOString() });
-  return { ...file };
+export async function updateMediaFile(
+  id: string,
+  updates: Partial<Pick<MediaFile, "originalName" | "altText" | "caption">>,
+): Promise<MediaFile> {
+  const asset = await apiFetch<BackendAsset>(`/admin/media/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(updates),
+  });
+  return mapAssetToMediaFile(asset);
+}
+
+export async function createMediaFolder(data: {
+  tenHienThi: string;
+  duongDan: string;
+  moTa?: string;
+  loaiChoPhep?: "all" | "image" | "video" | "raw";
+  isActive?: boolean;
+  phamVi?: "public" | "private";
+}): Promise<MediaFolder> {
+  const folder = await apiFetch<BackendMediaFolder>("/admin/media/folders", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
+  return mapFolderToMediaFolder(folder);
+}
+
+export async function updateMediaFolder(
+  id: string,
+  data: Partial<{
+    tenHienThi: string;
+    duongDan: string;
+    moTa?: string;
+    loaiChoPhep?: "all" | "image" | "video" | "raw";
+    isActive?: boolean;
+    phamVi?: "public" | "private";
+  }>,
+): Promise<MediaFolder> {
+  const folder = await apiFetch<BackendMediaFolder>(`/admin/media/folders/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
+  return mapFolderToMediaFolder(folder);
+}
+
+export async function deleteMediaFolder(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/media/folders/${id}`, { method: "DELETE" });
 }
 
 // ─── Banners ──────────────────────────────────────────────────────────────────
 
 export async function getBanners(params: BannerListParams = {}): Promise<BannerListResult> {
-  await delay();
-  const { q = "", position = [], status = [], page = 1, pageSize = 20 } = params;
-
-  let list = [...BANNERS];
-  if (q) list = list.filter((b) => matchQ(b.title, q));
-  if (position.length) list = list.filter((b) => position.includes(b.position));
-  if (status.length) list = list.filter((b) => status.includes(b.status));
-
-  return paginate(list, page, pageSize);
+  const { q, position = [], status = [], page = 1, pageSize } = params;
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (pageSize) qs.set("limit", String(pageSize));
+  if (q) qs.set("q", q);
+  position.forEach((p) => qs.append("position", p));
+  status.forEach((s) => qs.append("status", s));
+  const res = await apiFetch<{ data: Banner[]; total: number }>(`/admin/banners?${qs}`);
+  return { data: res.data, total: res.total };
 }
 
 export async function getBannerById(id: string): Promise<Banner | null> {
-  await delay(200);
-  return BANNERS.find((b) => b.id === id) ?? null;
+  return apiFetch<Banner>(`/admin/banners/${id}`);
 }
 
 export async function createBanner(data: BannerFormData): Promise<Banner> {
-  await delay(500);
-  const banner: Banner = { id: `b${Date.now()}`, ...data, clickCount: 0, impressionCount: 0, createdBy: "Admin", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  BANNERS.push(banner);
-  return banner;
+  return apiFetch<Banner>("/admin/banners", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateBanner(id: string, data: Partial<BannerFormData>): Promise<Banner> {
-  await delay(400);
-  const banner = BANNERS.find((b) => b.id === id);
-  if (!banner) throw new Error("Banner not found");
-  Object.assign(banner, data, { updatedAt: new Date().toISOString() });
-  return { ...banner };
+  return apiFetch<Banner>(`/admin/banners/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteBanner(id: string): Promise<void> {
-  await delay(300);
-  const idx = BANNERS.findIndex((b) => b.id === id);
-  if (idx !== -1) BANNERS.splice(idx, 1);
+  await apiFetch<void>(`/admin/banners/${id}`, { method: "DELETE" });
+}
+
+export async function reorderBanners(position: BannerPosition, ids: string[]): Promise<void> {
+  await apiFetch<void>("/admin/banners/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({ position, ids }),
+  });
 }
 
 export interface BannerGridItem {
@@ -463,51 +509,78 @@ export interface BannerGridItem {
 
 /** Lưu lại toàn bộ layout grid của promotions_banner (x, y, w, h) */
 export async function saveBannersLayout(items: BannerGridItem[]): Promise<void> {
-  await delay(400);
-  items.forEach(({ id, gridX, gridY, gridW, gridH }) => {
-    const banner = BANNERS.find((b) => b.id === id);
-    if (banner) { banner.gridX = gridX; banner.gridY = gridY; banner.gridW = gridW; banner.gridH = gridH; }
+  await apiFetch<void>("/admin/banners/layout", {
+    method: "PATCH",
+    body: JSON.stringify({ items }),
   });
 }
 
 // ─── Static Pages ──────────────────────────────────────────────────────────────
 
+const STATUS_MAP = { draft: "nhap", published: "da_xuat_ban", archived: "an" } as const;
+
+function mapFormToApi(data: StaticPageFormData) {
+  return {
+    title: data.title,
+    slug: data.slug,
+    content: data.content,
+    status: STATUS_MAP[data.status],
+    template: data.template,
+    showInFooter: data.showInFooter,
+    showInHeader: data.showInHeader,
+    sortOrder: data.sortOrder,
+    metaTitle: data.seo.title,
+    metaDescription: data.seo.description,
+    metaKeywords: data.seo.keywords,
+    ogImage: data.seo.ogImage,
+    canonicalUrl: data.seo.canonicalUrl,
+    noIndex: data.seo.noIndex,
+  };
+}
+
 export async function getStaticPages(params: StaticPageListParams = {}): Promise<StaticPageListResult> {
-  await delay();
-  const { q = "", status = [], page = 1, pageSize = 20 } = params;
-
-  let list = [...STATIC_PAGES];
-  if (q) list = list.filter((p) => matchQ(p.title, q) || matchQ(p.slug, q));
-  if (status.length) list = list.filter((p) => status.includes(p.status));
-
-  return paginate(list, page, pageSize);
+  const { q = "", status = [], page = 1, pageSize } = params;
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (pageSize) qs.set("pageSize", String(pageSize));
+  if (q) qs.set("q", q);
+  status.forEach((s) => qs.append("status", s));
+  return apiFetch<StaticPageListResult>(`/admin/pages?${qs}`);
 }
 
 export async function getStaticPageById(id: string): Promise<StaticPage | null> {
-  await delay(200);
-  return STATIC_PAGES.find((p) => p.id === id) ?? null;
+  try {
+    return await apiFetch<StaticPage>(`/admin/pages/${id}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function createStaticPage(data: StaticPageFormData): Promise<StaticPage> {
-  await delay(500);
-  const page: StaticPage = { id: `sp${Date.now()}`, ...data, viewCount: 0, createdBy: "Admin", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(), publishedAt: data.status === "published" ? new Date().toISOString() : null };
-  STATIC_PAGES.push(page);
-  return page;
+  const payload = mapFormToApi(data);
+  return apiFetch<StaticPage>("/admin/pages", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function updateStaticPage(id: string, data: Partial<StaticPageFormData>): Promise<StaticPage> {
-  await delay(400);
-  const page = STATIC_PAGES.find((p) => p.id === id);
-  if (!page) throw new Error("Static page not found");
-  Object.assign(page, data, { updatedAt: new Date().toISOString() });
-  if (data.status === "published" && !page.publishedAt) page.publishedAt = new Date().toISOString();
-  return { ...page };
+  const payload = mapFormToApi(data as StaticPageFormData);
+  return apiFetch<StaticPage>(`/admin/pages/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(payload),
+  });
 }
 
 export async function deleteStaticPage(id: string): Promise<void> {
-  await delay(300);
-  const idx = STATIC_PAGES.findIndex((p) => p.id === id);
-  if (idx !== -1) STATIC_PAGES.splice(idx, 1);
+  await apiFetch<void>(`/admin/pages/${id}`, { method: "DELETE" });
+}
+
+export async function reorderPages(ids: string[]): Promise<void> {
+  await apiFetch<void>("/admin/pages/reorder", {
+    method: "PATCH",
+    body: JSON.stringify({ ids }),
+  });
 }
 
 // ─── Article Categories ───────────────────────────────────────────────────────
@@ -588,64 +661,113 @@ export async function deleteArticle(id: string): Promise<void> {
 // ─── Popups ───────────────────────────────────────────────────────────────────
 
 export async function getPopups(): Promise<Popup[]> {
-  await delay();
-  return [...POPUPS];
+  return apiFetch<Popup[]>("/admin/popups");
 }
 
 export async function createPopup(data: PopupFormData): Promise<Popup> {
-  await delay(500);
-  const popup: Popup = { id: `p${Date.now()}`, ...data, viewCount: 0, clickCount: 0, closeCount: 0, createdBy: "Admin", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  POPUPS.push(popup);
-  return popup;
+  return apiFetch<Popup>("/admin/popups", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updatePopup(id: string, data: Partial<PopupFormData>): Promise<Popup> {
-  await delay(400);
-  const popup = POPUPS.find((p) => p.id === id);
-  if (!popup) throw new Error("Popup not found");
-  Object.assign(popup, data, { updatedAt: new Date().toISOString() });
-  return { ...popup };
+  return apiFetch<Popup>(`/admin/popups/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deletePopup(id: string): Promise<void> {
-  await delay(300);
-  const idx = POPUPS.findIndex((p) => p.id === id);
-  if (idx !== -1) POPUPS.splice(idx, 1);
+  await apiFetch<void>(`/admin/popups/${id}`, { method: "DELETE" });
 }
 
 // ─── Announcement Bars ────────────────────────────────────────────────────────
 
 export async function getAnnouncementBars(): Promise<AnnouncementBar[]> {
-  await delay();
-  return [...ANNOUNCEMENT_BARS];
+  return apiFetch<AnnouncementBar[]>("/admin/announcement-bars");
 }
 
 export async function createAnnouncementBar(data: AnnouncementBarFormData): Promise<AnnouncementBar> {
-  await delay(500);
-  const bar: AnnouncementBar = { id: `ab${Date.now()}`, ...data, viewCount: 0, clickCount: 0, createdBy: "Admin", createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  ANNOUNCEMENT_BARS.push(bar);
-  return bar;
+  return apiFetch<AnnouncementBar>("/admin/announcement-bars", {
+    method: "POST",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function updateAnnouncementBar(id: string, data: Partial<AnnouncementBarFormData>): Promise<AnnouncementBar> {
-  await delay(400);
-  const bar = ANNOUNCEMENT_BARS.find((b) => b.id === id);
-  if (!bar) throw new Error("Announcement bar not found");
-  Object.assign(bar, data, { updatedAt: new Date().toISOString() });
-  return { ...bar };
+  return apiFetch<AnnouncementBar>(`/admin/announcement-bars/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(data),
+  });
 }
 
 export async function deleteAnnouncementBar(id: string): Promise<void> {
-  await delay(300);
-  const idx = ANNOUNCEMENT_BARS.findIndex((b) => b.id === id);
-  if (idx !== -1) ANNOUNCEMENT_BARS.splice(idx, 1);
+  await apiFetch<void>(`/admin/announcement-bars/${id}`, { method: "DELETE" });
 }
 
 // ─── Navigation Menus ─────────────────────────────────────────────────────────
 
+interface BackendMenuItem {
+  id: string;
+  menuId: string;
+  parentId: string | null;
+  label: string;
+  url: string | null;
+  type: string;
+  sortOrder: number;
+  isVisible: boolean;
+  target: "_self" | "_blank";
+  icon: string | null;
+  cssClass: string | null;
+  children: BackendMenuItem[];
+}
+
+interface BackendMenu {
+  id: string;
+  location: string;
+  name: string;
+  description: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  items: BackendMenuItem[];
+}
+
+function mapMenuItem(i: BackendMenuItem): MenuItem {
+  return {
+    id: String(i.id),
+    menuId: String(i.menuId),
+    parentId: i.parentId != null ? String(i.parentId) : null,
+    type: i.type as MenuItemType,
+    label: i.label,
+    url: i.url ?? undefined,
+    target: i.target ?? "_self",
+    icon: i.icon ?? undefined,
+    cssClass: i.cssClass ?? undefined,
+    sortOrder: i.sortOrder,
+    isVisible: i.isVisible,
+    children: (i.children ?? []).map(mapMenuItem),
+  };
+}
+
+function mapMenu(m: BackendMenu): Menu {
+  return {
+    id: String(m.id),
+    name: m.name,
+    location: m.location as MenuLocation,
+    description: m.description ?? undefined,
+    items: (m.items ?? []).map(mapMenuItem),
+    isActive: m.isActive ?? true,
+    createdAt: m.createdAt ?? m.updatedAt,
+    updatedAt: m.updatedAt,
+  };
+}
+
 export async function getMenus(): Promise<MenuListResult> {
-  await delay();
-  return { data: [...MENUS], total: MENUS.length };
+  const raw = await apiFetch<BackendMenu[]>("/admin/menus");
+  const data: Menu[] = raw.map(mapMenu);
+  return { data, total: data.length };
 }
 
 export async function getMenuById(id: string): Promise<Menu | null> {
@@ -654,118 +776,113 @@ export async function getMenuById(id: string): Promise<Menu | null> {
 }
 
 export async function addMenuItem(menuId: string, data: MenuItemFormData): Promise<MenuItem> {
-  await delay(400);
-  const menu = MENUS.find((m) => m.id === menuId);
-  if (!menu) throw new Error("Menu not found");
-  const item: MenuItem = { id: `mi${Date.now()}`, menuId, ...data };
-  menu.items.push(item);
-  return item;
+  const body = {
+    parentId: data.parentId ? parseInt(data.parentId) : undefined,
+    label: data.label,
+    url: data.url ?? "",
+    type: data.type,
+    sortOrder: data.sortOrder,
+    isVisible: data.isVisible,
+    openInNewTab: data.target === "_blank",
+  };
+  const raw = await apiFetch<BackendMenuItem>(`/admin/menus/${menuId}/items`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+  return mapMenuItem(raw);
 }
 
 export async function updateMenuItem(menuId: string, itemId: string, data: Partial<MenuItemFormData>): Promise<MenuItem> {
-  await delay(300);
-  const menu = MENUS.find((m) => m.id === menuId);
-  if (!menu) throw new Error("Menu not found");
-  const item = menu.items.find((i) => i.id === itemId);
-  if (!item) throw new Error("Menu item not found");
-  Object.assign(item, data);
-  return { ...item };
+  const body: Record<string, unknown> = {};
+  if (data.label !== undefined) body.label = data.label;
+  if (data.url !== undefined) body.url = data.url;
+  if (data.type !== undefined) body.type = data.type;
+  if (data.sortOrder !== undefined) body.sortOrder = data.sortOrder;
+  if (data.isVisible !== undefined) body.isVisible = data.isVisible;
+  if (data.target !== undefined) body.openInNewTab = data.target === "_blank";
+  if (data.parentId !== undefined) body.parentId = data.parentId ? parseInt(data.parentId) : null;
+
+  const raw = await apiFetch<BackendMenuItem>(`/admin/menus/${menuId}/items/${itemId}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+  return mapMenuItem(raw);
 }
 
 export async function deleteMenuItem(menuId: string, itemId: string): Promise<void> {
-  await delay(300);
-  const menu = MENUS.find((m) => m.id === menuId);
-  if (!menu) throw new Error("Menu not found");
-  menu.items = menu.items.filter((i) => i.id !== itemId);
+  await apiFetch<void>(`/admin/menus/${menuId}/items/${itemId}`, { method: "DELETE" });
 }
 
 export async function reorderMenuItems(menuId: string, itemIds: string[]): Promise<void> {
-  await delay(300);
-  const menu = MENUS.find((m) => m.id === menuId);
-  if (!menu) throw new Error("Menu not found");
-  menu.items.sort((a, b) => itemIds.indexOf(a.id) - itemIds.indexOf(b.id));
-  menu.items.forEach((item, idx) => { item.sortOrder = idx + 1; });
+  await apiFetch<void>(`/admin/menus/${menuId}/items/reorder`, {
+    method: "PATCH",
+    body: JSON.stringify({ itemIds: itemIds.map(Number) }),
+  });
 }
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
 
 export async function getFAQGroups(): Promise<FAQGroup[]> {
-  await delay(200);
-  return [...FAQ_GROUPS];
+  return apiFetch<FAQGroup[]>('/admin/faq/groups');
 }
 
 export async function getFAQItems(params: FAQListParams = {}): Promise<FAQListResult> {
-  await delay();
-  const { q = "", groupId = [], isVisible, page = 1, pageSize = 20 } = params;
-
-  let list = [...FAQ_ITEMS];
-  if (q) list = list.filter((f) => matchQ(f.question, q) || matchQ(f.answer, q));
-  if (groupId.length) list = list.filter((f) => groupId.includes(f.groupId));
-  if (isVisible !== undefined) list = list.filter((f) => f.isVisible === isVisible);
-
-  return paginate(list, page, pageSize);
+  const qs = new URLSearchParams();
+  if (params.page)     qs.set('page', String(params.page));
+  if (params.pageSize) qs.set('pageSize', String(params.pageSize));
+  if (params.q)        qs.set('q', params.q);
+  if (params.groupId?.length) qs.set('groupId', params.groupId[0]);
+  if (params.isVisible !== undefined) qs.set('isVisible', String(params.isVisible));
+  return apiFetch<FAQListResult>(`/admin/faq/items?${qs}`);
 }
 
 export async function createFAQGroup(data: FAQGroupFormData): Promise<FAQGroup> {
-  await delay(400);
-  const group: FAQGroup = { id: `fg${Date.now()}`, ...data, itemCount: 0, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString() };
-  FAQ_GROUPS.push(group);
-  return group;
-}
-
-export async function updateFAQGroup(id: string, data: Partial<FAQGroupFormData>): Promise<FAQGroup> {
-  await delay(300);
-  const group = FAQ_GROUPS.find((g) => g.id === id);
-  if (!group) throw new Error("FAQ group not found");
-  Object.assign(group, data, { updatedAt: new Date().toISOString() });
-  return { ...group };
-}
-
-export async function deleteFAQGroup(id: string): Promise<void> {
-  await delay(300);
-  const idx = FAQ_GROUPS.findIndex((g) => g.id === id);
-  if (idx !== -1) FAQ_GROUPS.splice(idx, 1);
-}
-
-export async function createFAQItem(data: FAQItemFormData): Promise<FAQItem> {
-  await delay(400);
-  const item: FAQItem = {
-    id: `fi${Date.now()}`, ...data,
-    groupName: FAQ_GROUPS.find((g) => g.id === data.groupId)?.name ?? "",
-    viewCount: 0, helpfulCount: 0, notHelpfulCount: 0,
-    createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-  };
-  FAQ_ITEMS.push(item);
-  return item;
-}
-
-export async function updateFAQItem(id: string, data: Partial<FAQItemFormData>): Promise<FAQItem> {
-  await delay(300);
-  const item = FAQ_ITEMS.find((f) => f.id === id);
-  if (!item) throw new Error("FAQ item not found");
-  Object.assign(item, data, { updatedAt: new Date().toISOString() });
-  return { ...item };
-}
-
-export async function deleteFAQItem(id: string): Promise<void> {
-  await delay(300);
-  const idx = FAQ_ITEMS.findIndex((f) => f.id === id);
-  if (idx !== -1) FAQ_ITEMS.splice(idx, 1);
-}
-
-export async function reorderFAQGroups(ids: string[]): Promise<void> {
-  await delay(200);
-  ids.forEach((id, idx) => {
-    const g = FAQ_GROUPS.find((g) => g.id === id);
-    if (g) g.sortOrder = idx + 1;
+  return apiFetch<FAQGroup>('/admin/faq/groups', {
+    method: 'POST',
+    body: JSON.stringify(data),
   });
 }
 
-export async function reorderFAQItems(groupId: string, ids: string[]): Promise<void> {
-  await delay(200);
-  ids.forEach((id, idx) => {
-    const item = FAQ_ITEMS.find((f) => f.id === id && f.groupId === groupId);
-    if (item) item.sortOrder = idx + 1;
+export async function updateFAQGroup(id: string, data: Partial<FAQGroupFormData>): Promise<FAQGroup> {
+  return apiFetch<FAQGroup>(`/admin/faq/groups/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteFAQGroup(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/faq/groups/${id}`, { method: 'DELETE' });
+}
+
+export async function createFAQItem(data: FAQItemFormData): Promise<FAQItem> {
+  return apiFetch<FAQItem>('/admin/faq/items', {
+    method: 'POST',
+    body: JSON.stringify({ ...data, groupId: Number(data.groupId) }),
+  });
+}
+
+export async function updateFAQItem(id: string, data: Partial<FAQItemFormData>): Promise<FAQItem> {
+  return apiFetch<FAQItem>(`/admin/faq/items/${id}`, {
+    method: 'PUT',
+    body: JSON.stringify(data),
+  });
+}
+
+export async function deleteFAQItem(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/faq/items/${id}`, { method: 'DELETE' });
+}
+
+export async function reorderFAQGroups(ids: string[]): Promise<void> {
+  await apiFetch<void>('/admin/faq/groups/reorder', {
+    method: 'PATCH',
+    body: JSON.stringify({ ids: ids.map(Number) }),
+  });
+}
+
+export async function reorderFAQItems(_groupId: string, ids: string[]): Promise<void> {
+  await apiFetch<void>('/admin/faq/items/reorder', {
+    method: 'PATCH',
+    body: JSON.stringify({ ids: ids.map(Number) }),
   });
 }
 
@@ -810,7 +927,17 @@ export async function deleteTestimonial(id: string): Promise<void> {
 // TRUST BADGES
 // ──────────────────────────────────────────────────────────────────────────────
 
-let TRUST_BADGES: TrustBadge[] = [
+// Module-level cache to avoid triple-fetching site-config on each navigation load
+let _siteConfigCache: Record<string, string> | null = null;
+async function _fetchSiteConfig(): Promise<Record<string, string>> {
+  if (!_siteConfigCache) {
+    _siteConfigCache = await apiFetch<Record<string, string>>("/admin/site-config");
+    setTimeout(() => { _siteConfigCache = null; }, 30_000);
+  }
+  return _siteConfigCache;
+}
+
+const TRUST_BADGES: TrustBadge[] = [
   { id: "tb1", icon: "TruckIcon",       title: "Miễn phí giao hàng",   subtitle: "Đơn từ 500.000đ trở lên",     active: true, sortOrder: 1 },
   { id: "tb2", icon: "ShieldCheckIcon", title: "Bảo hành chính hãng",  subtitle: "Sản phẩm chính hãng 100%",    active: true, sortOrder: 2 },
   { id: "tb3", icon: "ArrowPathIcon",   title: "Đổi trả 30 ngày",      subtitle: "Đổi trả nhanh chóng dễ dàng", active: true, sortOrder: 3 },
@@ -818,18 +945,25 @@ let TRUST_BADGES: TrustBadge[] = [
 ];
 
 export async function getTrustBadges(): Promise<TrustBadge[]> {
-  await delay(200);
-  return [...TRUST_BADGES].sort((a, b) => a.sortOrder - b.sortOrder);
+  const config = await _fetchSiteConfig();
+  const raw = config["trust_badges"];
+  if (!raw) return [];
+  try { return JSON.parse(raw) as TrustBadge[]; }
+  catch { return []; }
 }
 
 export async function saveTrustBadges(badges: TrustBadgeFormData[]): Promise<TrustBadge[]> {
-  await delay(500);
-  TRUST_BADGES = badges.map((b, idx) => ({
-    id: `tb${Date.now()}-${idx}`,
+  const withIds: TrustBadge[] = badges.map((b, idx) => ({
+    id: `tb-${idx + 1}`,
     ...b,
     sortOrder: idx + 1,
   }));
-  return [...TRUST_BADGES];
+  await apiFetch("/admin/site-config/trust_badges", {
+    method: "PUT",
+    body: JSON.stringify({ value: JSON.stringify(withIds) }),
+  });
+  _siteConfigCache = null;
+  return withIds;
 }
 
 export async function createTrustBadge(data: TrustBadgeFormData): Promise<TrustBadge> {
@@ -857,7 +991,7 @@ export async function deleteTrustBadge(id: string): Promise<void> {
 // CATEGORY SHORTCUTS
 // ──────────────────────────────────────────────────────────────────────────────
 
-let CATEGORY_SHORTCUTS: CategoryShortcut[] = [
+const CATEGORY_SHORTCUTS: CategoryShortcut[] = [
   { id: "cs1", emoji: "🖥️", label: "CPU",      url: "/products/linh-kien-may-tinh/cpu",          active: true, sortOrder: 1 },
   { id: "cs2", emoji: "🎮", label: "GPU",      url: "/products/linh-kien-may-tinh/gpu",          active: true, sortOrder: 2 },
   { id: "cs3", emoji: "⌨️", label: "Bàn phím", url: "/products/thiet-bi-ngoai-vi/ban-phim",      active: true, sortOrder: 3 },
@@ -869,18 +1003,25 @@ let CATEGORY_SHORTCUTS: CategoryShortcut[] = [
 ];
 
 export async function getCategoryShortcuts(): Promise<CategoryShortcut[]> {
-  await delay(200);
-  return [...CATEGORY_SHORTCUTS].sort((a, b) => a.sortOrder - b.sortOrder);
+  const config = await _fetchSiteConfig();
+  const raw = config["category_shortcuts"];
+  if (!raw) return [];
+  try { return JSON.parse(raw) as CategoryShortcut[]; }
+  catch { return []; }
 }
 
 export async function saveCategoryShortcuts(items: CategoryShortcutFormData[]): Promise<CategoryShortcut[]> {
-  await delay(500);
-  CATEGORY_SHORTCUTS = items.map((item, idx) => ({
-    id: `cs${Date.now()}-${idx}`,
+  const withIds: CategoryShortcut[] = items.map((item, idx) => ({
+    id: `cs-${idx + 1}`,
     ...item,
     sortOrder: idx + 1,
   }));
-  return [...CATEGORY_SHORTCUTS];
+  await apiFetch("/admin/site-config/category_shortcuts", {
+    method: "PUT",
+    body: JSON.stringify({ value: JSON.stringify(withIds) }),
+  });
+  _siteConfigCache = null;
+  return withIds;
 }
 
 export async function createCategoryShortcut(data: CategoryShortcutFormData): Promise<CategoryShortcut> {
@@ -908,7 +1049,7 @@ export async function deleteCategoryShortcut(id: string): Promise<void> {
 // FOOTER CONFIG
 // ──────────────────────────────────────────────────────────────────────────────
 
-let FOOTER_CONFIG: FooterConfig = {
+const FOOTER_CONFIG: FooterConfig = {
   brand: {
     logoUrl: "/logo.png",
     logoAlt: "PC TechStore",
@@ -941,12 +1082,31 @@ let FOOTER_CONFIG: FooterConfig = {
 };
 
 export async function getFooterConfig(): Promise<FooterConfig> {
-  await delay(200);
-  return { ...FOOTER_CONFIG };
+  const config = await _fetchSiteConfig();
+  const raw = config["footer_config"];
+  if (raw) {
+    try { return JSON.parse(raw) as FooterConfig; }
+    catch { /* fall through to default */ }
+  }
+  return {
+    brand: { logoUrl: "", logoAlt: "PC Store", storeName: "PC Store", description: "" },
+    contact: {},
+    linkColumns: [
+      { title: "Hỗ trợ khách hàng", location: "footer_column_1" },
+      { title: "Danh mục sản phẩm", location: "footer_column_2" },
+      { title: "Về PC Store",        location: "footer_column_3" },
+    ],
+    socialLinks: [],
+    copyright: `© ${new Date().getFullYear()} PC Store`,
+    bottomLinks: [],
+  };
 }
 
 export async function saveFooterConfig(data: FooterConfig): Promise<FooterConfig> {
-  await delay(600);
-  FOOTER_CONFIG = { ...data };
-  return { ...FOOTER_CONFIG };
+  await apiFetch("/admin/site-config/footer_config", {
+    method: "PUT",
+    body: JSON.stringify({ value: JSON.stringify(data) }),
+  });
+  _siteConfigCache = null;
+  return data;
 }

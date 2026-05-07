@@ -7,6 +7,7 @@ import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Select } from "@/src/components/ui/Select";
+import { useToast } from "@/src/components/ui/Toast";
 import { createFAQItem, updateFAQItem } from "@/src/services/content.service";
 import type { FAQItem, FAQItemFormData, FAQGroup } from "@/src/types/content.types";
 
@@ -22,6 +23,7 @@ export interface FAQItemFormModalProps {
 export function FAQItemFormModal({
   item, groups, defaultGroupId, defaultSortOrder = 1, onClose, onSaved,
 }: FAQItemFormModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<FAQItemFormData>({
     groupId: defaultGroupId ?? groups[0]?.id ?? "",
     question: "", answer: "",
@@ -67,8 +69,13 @@ export function FAQItemFormModal({
     try {
       const saved = item ? await updateFAQItem(item.id, form) : await createFAQItem(form);
       onSaved(saved);
+      showToast(item ? "Đã cập nhật câu hỏi" : "Đã thêm câu hỏi", "success");
       onClose();
-    } finally { setIsSaving(false); }
+    } catch {
+      showToast("Lưu thất bại, vui lòng thử lại", "error");
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   // Build options with slug as description
@@ -93,7 +100,8 @@ export function FAQItemFormModal({
 
         {/* Question */}
         <Input
-          label="Câu hỏi *"
+          label="Câu hỏi"
+          required
           value={form.question}
           onChange={(e) => set("question", e.target.value)}
           placeholder="Nhập câu hỏi thường gặp"
@@ -102,7 +110,8 @@ export function FAQItemFormModal({
 
         {/* Answer */}
         <Textarea
-          label="Câu trả lời *"
+          label="Câu trả lời"
+          required
           value={form.answer}
           onChange={(e) => set("answer", e.target.value)}
           placeholder="Viết câu trả lời chi tiết..."

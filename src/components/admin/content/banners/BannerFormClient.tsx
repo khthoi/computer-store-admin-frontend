@@ -2,11 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  PhotoIcon,
-  MapPinIcon,
-  SparklesIcon,
-} from "@heroicons/react/24/outline";
+import { useToast } from "@/src/components/ui/Toast";
+import { PhotoIcon } from "@heroicons/react/24/outline";
+import { Badge } from "@/src/components/ui/Badge";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
@@ -17,7 +15,7 @@ import { BannerPositionSelector } from "./BannerPositionSelector";
 import { BannerPreviewPanel } from "./BannerPreviewPanel";
 import { MediaPickerModal } from "@/src/components/admin/content/media/MediaPickerModal";
 import { getBannerById, createBanner, updateBanner } from "@/src/services/content.service";
-import type { Banner, BannerFormData } from "@/src/types/content.types";
+import type { BannerFormData } from "@/src/types/content.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -44,14 +42,17 @@ const DEFAULT_FORM: BannerFormData = {
 // ─── Image picker button ───────────────────────────────────────────────────────
 
 function ImagePickerButton({
-  url, label, aspectClass, onClick, onClear, error,
+  url, label, required, aspectClass, onClick, onClear, error,
 }: {
-  url?: string; label: string; aspectClass: string;
+  url?: string; label: string; required?: boolean; aspectClass: string;
   onClick: () => void; onClear: () => void; error?: string;
 }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <label className="text-sm font-medium text-secondary-700">{label}</label>
+      <label className="text-sm font-medium text-secondary-700">
+        {label}
+        {required && <span aria-hidden="true" className="ml-0.5 select-none text-error-600">*</span>}
+      </label>
       <div
         role="button" tabIndex={0}
         onClick={onClick}
@@ -87,6 +88,7 @@ function ImagePickerButton({
 
 export function BannerFormClient({ bannerId }: BannerFormClientProps) {
   const router = useRouter();
+  const { showToast } = useToast();
   const isEdit = Boolean(bannerId);
 
   const [form, setForm] = useState<BannerFormData>(DEFAULT_FORM);
@@ -114,7 +116,9 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
           ctaLabel: banner.ctaLabel, ctaUrl: banner.ctaUrl,
           badge: banner.badge, badgeColor: banner.badgeColor ?? "#ef4444",
           badgeTextColor: banner.badgeTextColor ?? "#ffffff",
-          sortOrder: banner.sortOrder, startDate: banner.startDate, endDate: banner.endDate,
+          sortOrder: banner.sortOrder,
+          startDate: banner.startDate ? banner.startDate.split("T")[0] : null,
+          endDate: banner.endDate ? banner.endDate.split("T")[0] : null,
         });
       }
       setIsLoading(false);
@@ -139,11 +143,21 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
     if (!validate()) return;
     setIsSaving(true);
     try {
-      if (isEdit && bannerId) { await updateBanner(bannerId, form); }
-      else { await createBanner(form); }
-      router.push("/content/banners");
-    } finally { setIsSaving(false); }
-  }, [form, isEdit, bannerId, router]);
+      if (isEdit && bannerId) {
+        await updateBanner(bannerId, form);
+        showToast("Đã lưu thay đổi banner", "success");
+      } else {
+        await createBanner(form);
+        showToast("Tạo banner thành công", "success");
+        router.push("/content/banners");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : undefined;
+      showToast(msg ?? "Có lỗi xảy ra, vui lòng thử lại", "error");
+    } finally {
+      setIsSaving(false);
+    }
+  }, [form, isEdit, bannerId, router, showToast]);
 
   const aspectPickerClass =
     form.position === "side_banner" ? "h-32" :
@@ -162,15 +176,23 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
         {/* 1. Basic info */}
         <section className="rounded-xl border border-secondary-200 bg-white p-5 space-y-4">
           <h2 className="text-sm font-semibold text-secondary-700">Thông tin cơ bản</h2>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-secondary-500">Thứ tự:</span>
+            <Badge variant="primary" size="sm">{form.sortOrder}</Badge>
+          </div>
           <Input
-            label="Tiêu đề banner *"
+            label="Tiêu đề banner"
+            required
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             placeholder="Tên nội bộ để phân biệt các banner"
             errorMessage={errors.title}
           />
           <div>
-            <p className="mb-2 text-sm font-medium text-secondary-700">Vị trí hiển thị *</p>
+            <p className="mb-2 text-sm font-medium text-secondary-700">
+              Vị trí hiển thị
+              <span aria-hidden="true" className="ml-0.5 select-none text-error-600">*</span>
+            </p>
             <BannerPositionSelector value={form.position} onChange={(pos) => set("position", pos)} />
           </div>
         </section>
@@ -180,7 +202,8 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
           <h2 className="text-sm font-semibold text-secondary-700">Hình ảnh</h2>
           <ImagePickerButton
             url={form.imageUrl}
-            label="Ảnh chính *"
+            label="Ảnh chính"
+            required
             aspectClass={aspectPickerClass}
             onClick={() => setPickerTarget("imageUrl")}
             onClear={() => set("imageUrl", "")}
@@ -196,7 +219,8 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
             />
           )}
           <Input
-            label="Alt text *"
+            label="Alt text"
+            required
             value={form.altText}
             onChange={(e) => set("altText", e.target.value)}
             placeholder="Mô tả ảnh cho SEO và accessibility"
@@ -343,31 +367,21 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
               placeholder="Chọn ngày kết thúc"
             />
           </div>
-          <div className="grid grid-cols-2 gap-3">
-            <Select
-              label="Trạng thái"
-              value={form.status}
-              onChange={(v) => set("status", v as BannerFormData["status"])}
-              options={[
-                { value: "draft",     label: "Nháp" },
-                { value: "active",    label: "Đang hiển thị" },
-                { value: "scheduled", label: "Lên lịch" },
-                { value: "ended",     label: "Kết thúc" },
-              ]}
-            />
-            <Input
-              type="number"
-              label="Thứ tự hiển thị"
-              value={String(form.sortOrder)}
-              onChange={(e) => set("sortOrder", Number(e.target.value))}
-              min="1"
-              helperText={isSmall ? "Vị trí 1–4 trong hàng 4 ô" : undefined}
-            />
-          </div>
+          <Select
+            label="Trạng thái"
+            value={form.status}
+            onChange={(v) => set("status", v as BannerFormData["status"])}
+            options={[
+              { value: "draft",     label: "Nháp" },
+              { value: "active",    label: "Đang hiển thị" },
+              { value: "scheduled", label: "Lên lịch" },
+              { value: "ended",     label: "Kết thúc" },
+            ]}
+          />
         </section>
 
         {/* Actions */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center justify-end gap-3">
           <Button variant="ghost" onClick={() => router.push("/content/banners")}>Hủy</Button>
           <Button onClick={handleSave} isLoading={isSaving}>
             {isEdit ? "Lưu thay đổi" : "Tạo banner"}
@@ -376,32 +390,7 @@ export function BannerFormClient({ bannerId }: BannerFormClientProps) {
       </div>
 
       {/* ── Sidebar preview ───────────────────────────────────────────────── */}
-      <div className="flex flex-col gap-4">
-        <div className="rounded-xl border border-secondary-200 bg-white p-5">
-          <BannerPreviewPanel data={form} />
-        </div>
-
-        {/* Small banner position note */}
-        {isSmall && (
-          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-800 space-y-1">
-            <p className="flex items-center gap-1.5 font-semibold">
-              <MapPinIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Banner nhỏ trang chủ
-            </p>
-            <p>4 banner được xếp ngang theo <strong>thứ tự (1→4)</strong>. Ảnh không có overlay hay nút CTA.</p>
-          </div>
-        )}
-
-        {isPromo && (
-          <div className="rounded-xl border border-primary-200 bg-primary-50 p-4 text-xs text-primary-800 space-y-1">
-            <p className="flex items-center gap-1.5 font-semibold">
-              <SparklesIcon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              Banner trang Khuyến mãi
-            </p>
-            <p>Có thể kéo thả để sắp xếp thứ tự và layout tại trang danh sách banners.</p>
-          </div>
-        )}
-      </div>
+      <BannerPreviewPanel data={form} />
 
       {/* Media picker */}
       <MediaPickerModal

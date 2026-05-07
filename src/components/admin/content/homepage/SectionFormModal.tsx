@@ -10,6 +10,7 @@ import { DateInput } from "@/src/components/ui/DateInput";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
 import { LayoutPicker } from "@/src/components/ui/LayoutPicker";
 import { SectionTypePicker } from "@/src/components/ui/SectionTypePicker";
+import { Badge } from "@/src/components/ui/Badge";
 import { SourceConfigEditor } from "./SourceConfigEditor";
 import { ManualItemsEditor } from "./ManualItemsEditor";
 import { SectionPreviewPane } from "./SectionPreviewPane";
@@ -22,7 +23,30 @@ import type {
   SectionItem,
 } from "@/src/types/homepage.types";
 
+// ─── Badge color presets (bg + text combos) ───────────────────────────────────
+
+const BADGE_COLOR_PRESETS = [
+  { bg: "#ef4444", text: "#ffffff", name: "Đỏ" },
+  { bg: "#f97316", text: "#ffffff", name: "Cam" },
+  { bg: "#f59e0b", text: "#000000", name: "Vàng" },
+  { bg: "#22c55e", text: "#ffffff", name: "Xanh lá" },
+  { bg: "#3b82f6", text: "#ffffff", name: "Xanh" },
+  { bg: "#8b5cf6", text: "#ffffff", name: "Tím" },
+  { bg: "#ec4899", text: "#ffffff", name: "Hồng" },
+  { bg: "#1f2937", text: "#ffffff", name: "Đen" },
+  { bg: "#fef3c7", text: "#92400e", name: "Vàng nhạt" },
+  { bg: "#dbeafe", text: "#1d4ed8", name: "Xanh nhạt" },
+  { bg: "#ffffff", text: "#ef4444", name: "Trắng" },
+  { bg: "#fee2e2", text: "#991b1b", name: "Hồng nhạt" },
+] as const;
+
 // ─── Default form ─────────────────────────────────────────────────────────────
+
+/** Extract "YYYY-MM-DD" from ISO datetime or ISO date string */
+function toDatePart(iso: string | undefined): string {
+  if (!iso) return "";
+  return iso.includes("T") ? iso.split("T")[0] : iso;
+}
 
 function defaultForm(section?: HomepageSection | null): HomepageSectionFormData {
   if (section) {
@@ -37,9 +61,10 @@ function defaultForm(section?: HomepageSection | null): HomepageSectionFormData 
       layout: section.layout,
       badgeLabel: section.badgeLabel ?? "",
       badgeColor: section.badgeColor ?? "#ef4444",
+      badgeTextColor: section.badgeTextColor ?? "#ffffff",
       isVisible: section.isVisible,
-      ngayBatDau: section.ngayBatDau ?? "",
-      ngayKetThuc: section.ngayKetThuc ?? "",
+      ngayBatDau: toDatePart(section.ngayBatDau),
+      ngayKetThuc: toDatePart(section.ngayKetThuc),
       manualItems: section.items ?? [],
     };
   }
@@ -54,6 +79,7 @@ function defaultForm(section?: HomepageSection | null): HomepageSectionFormData 
     layout: "carousel",
     badgeLabel: "",
     badgeColor: "#ef4444",
+    badgeTextColor: "#ffffff",
     isVisible: true,
     ngayBatDau: "",
     ngayKetThuc: "",
@@ -128,6 +154,7 @@ export function SectionFormModal({ section, onClose, onSave }: SectionFormModalP
       title={isEditing ? `Sửa: ${section!.title}` : "Thêm khối sản phẩm mới"}
       size="4xl"
       animated
+      closeOnBackdrop={false}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>Hủy</Button>
@@ -184,8 +211,8 @@ export function SectionFormModal({ section, onClose, onSave }: SectionFormModalP
                 Badge <span className="font-normal text-secondary-400">(tuỳ chọn)</span>
               </p>
               <div className="flex items-stretch gap-4">
-                {/* Left: inputs stacked */}
-                <div className="flex w-120 shrink-0 flex-col gap-3">
+                {/* Left: inputs */}
+                <div className="flex flex-1 flex-col gap-3">
                   <Input
                     label="Nhãn badge"
                     value={form.badgeLabel}
@@ -193,26 +220,73 @@ export function SectionFormModal({ section, onClose, onSave }: SectionFormModalP
                     placeholder="HOT / MỚI / SALE…"
                     helperText="Tối đa 12 ký tự"
                   />
-                  <div>
-                    <p className="mb-1.5 select-none text-sm font-medium text-secondary-700">Màu nền</p>
+                  <div className="grid grid-cols-2 gap-3">
                     <ColorSelect
+                      label="Màu nền"
+                      presets={[]}
                       value={form.badgeColor}
                       onChange={(v) => set("badgeColor", v)}
                     />
+                    <ColorSelect
+                      label="Màu chữ"
+                      presets={[]}
+                      value={form.badgeTextColor}
+                      onChange={(v) => set("badgeTextColor", v)}
+                    />
+                  </div>
+                  {/* Preset combinations */}
+                  <div>
+                    <p className="mb-1.5 select-none text-xs font-medium text-secondary-500">Mẫu có sẵn — nhấn để áp dụng</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {BADGE_COLOR_PRESETS.map((preset) => {
+                        const isActive =
+                          form.badgeColor === preset.bg &&
+                          form.badgeTextColor === preset.text;
+                        return (
+                          <button
+                            key={`${preset.bg}-${preset.text}`}
+                            type="button"
+                            title={preset.name}
+                            onClick={() => {
+                              set("badgeColor", preset.bg);
+                              set("badgeTextColor", preset.text);
+                            }}
+                            className="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase transition-all focus:outline-none focus-visible:outline-none"
+                            style={{
+                              backgroundColor: preset.bg,
+                              color: preset.text,
+                              boxShadow: isActive
+                                ? "0 0 0 1.5px white, 0 0 0 3px #6366f1"
+                                : preset.bg === "#ffffff"
+                                  ? "0 0 0 1px #e2e8f0"
+                                  : "none",
+                            }}
+                          >
+                            {form.badgeLabel || "HOT"}
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* Right: live preview — fixed width, không flex-1 */}
-                <div className="flex w-60 shrink-0 items-center justify-center rounded-xl border border-secondary-100 bg-secondary-50">
+                {/* Right: live preview */}
+                <div className="flex w-48 shrink-0 flex-col items-center justify-center gap-2 rounded-xl border border-secondary-100 bg-secondary-50 px-3">
+                  <p className="select-none text-[10px] text-secondary-400">Xem trước</p>
                   {form.badgeLabel ? (
-                    <span
-                      className="inline-flex items-center justify-center rounded-md px-3 py-1.5 text-sm font-bold tracking-wide text-white"
-                      style={{ backgroundColor: form.badgeColor || "#ef4444" }}
+                    <Badge
+                      shape="tag"
+                      size="lg"
+                      backgroundColor={form.badgeColor || "#ef4444"}
+                      textColor={form.badgeTextColor || "#ffffff"}
+                      className="uppercase tracking-wide"
                     >
                       {form.badgeLabel}
-                    </span>
+                    </Badge>
                   ) : (
-                    <p className="select-none text-center text-xs text-secondary-400">Xem trước</p>
+                    <Badge shape="tag" size="lg" variant="default" className="uppercase tracking-wide opacity-30">
+                      HOT
+                    </Badge>
                   )}
                 </div>
               </div>
@@ -295,6 +369,7 @@ export function SectionFormModal({ section, onClose, onSave }: SectionFormModalP
               title={form.title}
               badgeLabel={form.badgeLabel}
               badgeColor={form.badgeColor}
+              badgeTextColor={form.badgeTextColor}
               viewAllUrl={form.viewAllUrl}
               manualItems={form.manualItems}
             />

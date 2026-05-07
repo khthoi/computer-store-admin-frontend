@@ -1,6 +1,36 @@
 /* Puck visual editor */
 @import "@puckeditor/core/dist/index.css";
 
+/* ── react-tag-input-component — override with design tokens ─────────────── */
+.rti--container {
+  --rti-bg: #fff;
+  --rti-border: var(--color-secondary-300, #d1d5db);
+  --rti-main: var(--color-primary-600, #4f46e5);
+  --rti-radius: 0.5rem;
+  --rti-s: 0.375rem;
+  --rti-tag: var(--color-primary-100, #e0e7ff);
+  --rti-tag-remove: var(--color-error-600, #dc2626);
+  font-size: 0.875rem;
+  min-height: 2.5rem;
+}
+.rti--container:focus-within {
+  border-color: var(--color-primary-600, #4f46e5) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-600, #4f46e5) 15%, transparent) !important;
+}
+.rti--tag {
+  color: var(--color-primary-700, #3730a3);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 9999px;
+  padding: 0.125rem 0.5rem;
+}
+.rti--input {
+  min-width: 8rem;
+  font-size: 0.875rem;
+  color: var(--color-secondary-700, #374151);
+  outline: none !important;
+}
+
 /* CKEditor 5 — RichTextEditor wrapper + content styles */
 @import "../components/editor/styles/editor.css";
 

@@ -371,6 +371,11 @@ GET    /admin/popups/:id
 POST   /admin/popups
 PUT    /admin/popups/:id
 DELETE /admin/popups/:id
+GET    /admin/announcement-bars
+GET    /admin/announcement-bars/:id
+POST   /admin/announcement-bars
+PUT    /admin/announcement-bars/:id
+DELETE /admin/announcement-bars/:id
 ```
 
 **Pages & FAQ:**

@@ -60,8 +60,16 @@ export function SortableSectionRow({
   metaParts.push(LAYOUT_LABELS[section.layout] ?? section.layout);
   metaParts.push(`${section.maxProducts} SP`);
   if (section.ngayBatDau || section.ngayKetThuc) {
+    const fmt = (iso: string) => {
+      const date = iso.includes("T") ? iso.split("T")[0] : iso;
+      const [y, m, d] = date.split("-");
+      return y && m && d ? `${d}/${m}/${y}` : iso;
+    };
     metaParts.push(
-      [section.ngayBatDau, section.ngayKetThuc].filter(Boolean).join(" → ")
+      [section.ngayBatDau, section.ngayKetThuc]
+        .filter((x): x is string => !!x)
+        .map(fmt)
+        .join(" → ")
     );
   }
 
@@ -116,12 +124,15 @@ export function SortableSectionRow({
             {section.title}
           </p>
           {section.badgeLabel && (
-            <span
-              className="shrink-0 rounded-md px-1.5 py-0.5 text-[9px] font-bold uppercase text-white"
-              style={{ backgroundColor: section.badgeColor || "#ef4444" }}
+            <Badge
+              shape="tag"
+              size="sm"
+              backgroundColor={section.badgeColor || "#ef4444"}
+              textColor={section.badgeTextColor || "#ffffff"}
+              className="uppercase"
             >
               {section.badgeLabel}
-            </span>
+            </Badge>
           )}
         </div>
         <div className="mt-0.5 flex items-center gap-2">

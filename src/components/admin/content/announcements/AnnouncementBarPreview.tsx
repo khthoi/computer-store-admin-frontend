@@ -2,33 +2,19 @@
 
 import type { AnnouncementBarFormData } from "@/src/types/content.types";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 export interface AnnouncementBarPreviewProps {
   data: Partial<AnnouncementBarFormData>;
 }
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Strip HTML tags so plain text is safe to render inside the marquee */
 function stripHtml(html: string): string {
   return html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim();
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
-/**
- * AnnouncementBarPreview — live preview of the announcement bar.
- *
- * - Static mode: renders content via dangerouslySetInnerHTML (supports basic HTML)
- * - Marquee mode: strips HTML tags first so raw tag strings don't appear on screen
- */
 export function AnnouncementBarPreview({ data }: AnnouncementBarPreviewProps) {
   const { content = "", backgroundColor, textColor, showCloseButton, isScrolling } = data;
 
   const bg = backgroundColor || "#1d4ed8";
   const fg = textColor || "#ffffff";
-
   const plainText = stripHtml(content) || "Nội dung thông báo sẽ hiển thị ở đây...";
 
   return (
@@ -36,21 +22,42 @@ export function AnnouncementBarPreview({ data }: AnnouncementBarPreviewProps) {
       <p className="text-xs font-medium uppercase tracking-wide text-secondary-500">Xem trước</p>
 
       <div
-        className="relative flex w-full items-center justify-center overflow-hidden rounded-lg px-6 py-2.5 text-sm font-medium"
-        style={{ backgroundColor: bg, color: fg }}
+        className="relative flex w-full items-center overflow-hidden rounded-lg py-2.5 text-sm font-medium"
+        style={{
+          backgroundColor: bg,
+          color: fg,
+          paddingLeft: isScrolling ? 0 : "1.5rem",
+          paddingRight: isScrolling ? 0 : "1.5rem",
+        }}
       >
         {isScrolling ? (
-          /* Marquee — always plain text to avoid rendering raw HTML tags */
-          <div className="w-full overflow-hidden whitespace-nowrap">
-            <span
-              className="inline-block"
-              style={{ animation: "marquee 14s linear infinite" }}
+          /* Marquee — 6 copies in a 200%-wide container; each copy is exactly 1/3 of
+             the visible area so precisely 3 copies are on-screen at all times, evenly
+             spaced. The keyframe moves -50% (= 100% of visible area = 3 copy-widths)
+             for a seamless right-to-left loop. */
+          <div className="w-full overflow-hidden">
+            <div
+              style={{
+                display: "flex",
+                width: "200%",
+                animation: "marquee 16s linear infinite",
+                willChange: "transform",
+              }}
             >
-              {plainText}&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{plainText}
-            </span>
+              {Array.from({ length: 6 }, (_, i) => (
+                <span
+                  key={i}
+                  className="flex items-center justify-center whitespace-nowrap text-center"
+                  style={{ flex: "0 0 16.6667%" }}
+                  aria-hidden={i >= 3 ? "true" : undefined}
+                >
+                  {plainText}
+                </span>
+              ))}
+            </div>
           </div>
         ) : (
-          /* Static — renders basic HTML (bold, links) via innerHTML */
+          /* Static — renders basic HTML (bold, links) */
           <span
             className="bar-content text-center"
             dangerouslySetInnerHTML={{
@@ -59,7 +66,6 @@ export function AnnouncementBarPreview({ data }: AnnouncementBarPreviewProps) {
           />
         )}
 
-        {/* Close button */}
         {showCloseButton && (
           <button
             type="button"

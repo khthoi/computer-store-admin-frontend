@@ -32,7 +32,7 @@ const STATUS_OPTIONS = [
 const DEFAULT: AnnouncementBarFormData = {
   name: "", status: "draft", position: "top", content: "",
   backgroundColor: "#1d4ed8", textColor: "#ffffff",
-  showCloseButton: true, isScrolling: false, priority: 10,
+  showCloseButton: true, isScrolling: false,
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -52,9 +52,10 @@ export function AnnouncementBarFormModal({ bar, onClose, onSaved }: {
         name: bar.name, status: bar.status, position: bar.position,
         content: bar.content, backgroundColor: bar.backgroundColor,
         textColor: bar.textColor, showCloseButton: bar.showCloseButton,
-        isScrolling: bar.isScrolling, linkUrl: bar.linkUrl,
-        linkLabel: bar.linkLabel, startDate: bar.startDate,
-        endDate: bar.endDate, priority: bar.priority,
+        isScrolling: bar.isScrolling, linkUrl: bar.linkUrl ?? "",
+        linkLabel: bar.linkLabel ?? "",
+        startDate: bar.startDate ? bar.startDate.split("T")[0] : null,
+        endDate: bar.endDate ? bar.endDate.split("T")[0] : null,
       });
     } else {
       setForm(DEFAULT);

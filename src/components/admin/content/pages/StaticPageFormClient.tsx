@@ -3,12 +3,13 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/src/components/ui/Button";
+import { Badge } from "@/src/components/ui/Badge";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { RichTextEditor } from "@/src/components/editor/DynamicRichTextEditor";
 import { SeoPanel } from "./SeoPanel";
-import { getStaticPageById, createStaticPage, updateStaticPage } from "@/src/services/content.service";
+import { getStaticPages, getStaticPageById, createStaticPage, updateStaticPage } from "@/src/services/content.service";
 import type { StaticPageFormData, StaticPageStatus, SeoMeta } from "@/src/types/content.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -28,7 +29,7 @@ const DEFAULT: StaticPageFormData = {
   template: "default",
   showInFooter: false,
   showInHeader: false,
-  sortOrder: 10,
+  sortOrder: 1,
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -37,7 +38,7 @@ function toSlug(str: string) {
   return str
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[̀-ͯ]/g, "")
     .replace(/đ/g, "d")
     .replace(/[^a-z0-9\s-]/g, "")
     .trim()
@@ -82,19 +83,26 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
   const [errors, setErrors] = useState<Partial<Record<keyof StaticPageFormData, string>>>({});
   const [slugManual, setSlugManual] = useState(false);
 
+  // Load page data (edit) or compute next sortOrder (create)
   useEffect(() => {
-    if (!pageId) return;
-    getStaticPageById(pageId).then((p) => {
-      if (p) {
-        setForm({
-          title: p.title, slug: p.slug, status: p.status, content: p.content,
-          seo: p.seo, template: p.template, showInFooter: p.showInFooter,
-          showInHeader: p.showInHeader, sortOrder: p.sortOrder,
-        });
-        setSlugManual(true);
-      }
-      setIsLoading(false);
-    });
+    if (pageId) {
+      getStaticPageById(pageId).then((p) => {
+        if (p) {
+          setForm({
+            title: p.title, slug: p.slug, status: p.status, content: p.content,
+            seo: p.seo, template: p.template, showInFooter: p.showInFooter,
+            showInHeader: p.showInHeader, sortOrder: p.sortOrder,
+          });
+          setSlugManual(true);
+        }
+        setIsLoading(false);
+      });
+    } else {
+      getStaticPages({ pageSize: 200 }).then((res) => {
+        const maxOrder = res.data.reduce((max, p) => Math.max(max, p.sortOrder), 0);
+        setForm((prev) => ({ ...prev, sortOrder: maxOrder + 1 }));
+      });
+    }
   }, [pageId]);
 
   function set<K extends keyof StaticPageFormData>(key: K, value: StaticPageFormData[K]) {
@@ -141,8 +149,15 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
       <div className="flex flex-col gap-5 lg:col-span-2">
         {/* Title + slug */}
         <section className="rounded-xl border border-secondary-200 bg-white p-5 space-y-4">
+          {/* Sort order badge */}
+          <div className="flex items-center gap-2 text-sm text-secondary-600">
+            <span>Thứ tự của trang:</span>
+            <Badge variant="primary">{form.sortOrder}</Badge>
+          </div>
+
           <Input
-            label="Tiêu đề trang *"
+            label="Tiêu đề trang"
+            required
             value={form.title}
             onChange={(e) => set("title", e.target.value)}
             placeholder="Ví dụ: Chính sách bảo hành"
@@ -166,7 +181,8 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
         {/* Content editor */}
         <section className="rounded-xl border border-secondary-200 bg-white p-5">
           <RichTextEditor
-            label="Nội dung *"
+            label="Nội dung"
+            required
             value={form.content}
             onChange={(html) => set("content", html)}
             placeholder="Nhập nội dung trang..."
@@ -208,20 +224,12 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
 
         {/* Giao diện */}
         <div className="rounded-xl border border-secondary-200 bg-white p-4 space-y-3">
-          <h3 className="text-sm font-semibold text-secondary-700">Giao diện & sắp xếp</h3>
+          <h3 className="text-sm font-semibold text-secondary-700">Giao diện</h3>
           <Select
             label="Template bố cục"
             value={form.template}
             onChange={(v) => set("template", v as StaticPageFormData["template"])}
             options={TEMPLATE_OPTIONS}
-          />
-          <Input
-            type="number"
-            label="Thứ tự hiển thị"
-            value={String(form.sortOrder)}
-            onChange={(e) => set("sortOrder", Number(e.target.value))}
-            min="1"
-            helperText="Số nhỏ hơn hiển thị trước trong danh sách"
           />
         </div>
 

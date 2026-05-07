@@ -192,6 +192,9 @@ export function FlatNavEditor({
       await deleteMenuItem(menu.id, deleteTarget.id);
       onMenuChanged({ ...menu, items: menu.items.filter((i) => i.id !== deleteTarget.id) });
       setDeleteTarget(null);
+      showToast("Đã xóa mục menu", "success");
+    } catch {
+      showToast("Xóa thất bại", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -265,6 +268,7 @@ export function FlatNavEditor({
         <MenuItemFormModal
           menuId={menu.id}
           item={formTarget === "new" ? null : formTarget}
+          nextSortOrder={formTarget === "new" ? items.length + 1 : undefined}
           onClose={() => setFormTarget(null)}
           onSaved={handleSaved}
         />

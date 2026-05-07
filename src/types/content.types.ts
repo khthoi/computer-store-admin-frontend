@@ -14,7 +14,11 @@ export interface MediaFolder {
   slug: string;
   parentId: string | null;
   fileCount: number;
-  visibility: "public" | "private";
+  visibility?: "public" | "private";
+  description?: string;
+  allowedTypes?: "all" | "image" | "video" | "raw";
+  sortOrder?: number;
+  isActive?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -23,6 +27,7 @@ export interface MediaFile {
   id: string;
   folderId: string | null;
   folderName?: string;
+  folderSlug?: string;
   filename: string;
   originalName: string;
   mimeType: string;
@@ -38,6 +43,7 @@ export interface MediaFile {
   status: MediaStatus;
   usageCount: number;
   uploadedBy: string;
+  uploadedById: string;
   uploadedAt: string;
   updatedAt: string;
 }
@@ -381,7 +387,6 @@ export interface AnnouncementBar {
   linkLabel?: string;
   startDate?: string | null;
   endDate?: string | null;
-  priority: number;
   viewCount: number;
   clickCount: number;
   createdBy: string;
@@ -402,7 +407,6 @@ export interface AnnouncementBarFormData {
   linkLabel?: string;
   startDate?: string | null;
   endDate?: string | null;
-  priority: number;
 }
 
 // ══════════════════════════════════════════════════════════════════════════════

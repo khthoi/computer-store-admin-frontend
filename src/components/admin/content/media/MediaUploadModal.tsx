@@ -8,6 +8,7 @@ import { Input } from "@/src/components/ui/Input";
 import { Spinner } from "@/src/components/ui/Spinner";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { uploadMediaFile } from "@/src/services/content.service";
+import { useToast } from "@/src/components/ui/Toast";
 import type { MediaFile } from "@/src/types/content.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -39,7 +40,7 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1048576).toFixed(1)} MB`;
 }
 
-const ACCEPTED_TYPES = "image/*,video/*,application/pdf,.doc,.docx,.xls,.xlsx";
+const ACCEPTED_TYPES = "image/*,video/*,application/pdf,.svg,.svgz,.ico,.icon,.doc,.docx,.xls,.xlsx";
 const MAX_SIZE_MB = 50;
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -47,6 +48,7 @@ const MAX_SIZE_MB = 50;
 export function MediaUploadModal({ open, onClose, folderId, folderName, onUploaded }: MediaUploadModalProps) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [isDragOver, setIsDragOver] = useState(false);
+  const { showToast } = useToast();
 
   function addFiles(fileList: FileList | File[]) {
     const newItems: UploadItem[] = Array.from(fileList).map((file) => {
@@ -113,7 +115,17 @@ export function MediaUploadModal({ open, onClose, folderId, folderName, onUpload
       }
     }
 
-    if (results.length) onUploaded?.(results);
+    if (results.length) {
+      onUploaded?.(results);
+      showToast(
+        results.length === 1
+          ? "Tải lên 1 file thành công."
+          : `Tải lên ${results.length} file thành công.`,
+        "success",
+      );
+      setItems([]);
+      onClose();
+    }
   }
 
   function handleClose() {

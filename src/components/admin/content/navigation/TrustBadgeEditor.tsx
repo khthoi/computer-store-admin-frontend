@@ -297,8 +297,10 @@ export function TrustBadgeEditor({
     if (formTarget === "new") {
       const newBadge: TrustBadge = { id: `tb-${Date.now()}`, ...data, sortOrder: badges.length + 1 };
       syncRef([...badges, newBadge]);
+      showToast("Đã thêm badge", "success");
     } else if (formTarget) {
       syncRef(badges.map((b) => (b.id === formTarget.id ? { ...formTarget, ...data } : b)));
+      showToast("Đã cập nhật badge", "success");
     }
     setFormTarget(null);
     markDirty();
@@ -312,6 +314,7 @@ export function TrustBadgeEditor({
   function handleDelete() {
     if (!deleteTarget) return;
     syncRef(badges.filter((b) => b.id !== deleteTarget.id));
+    showToast("Đã xóa badge", "success");
     setDeleteTarget(null);
     markDirty();
   }

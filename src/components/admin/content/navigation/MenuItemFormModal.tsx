@@ -6,6 +6,7 @@ import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
 import { Toggle } from "@/src/components/ui/Toggle";
+import { useToast } from "@/src/components/ui/Toast";
 import { addMenuItem, updateMenuItem } from "@/src/services/content.service";
 import type { MenuItem, MenuItemFormData, MenuItemType } from "@/src/types/content.types";
 
@@ -14,6 +15,7 @@ import type { MenuItem, MenuItemFormData, MenuItemType } from "@/src/types/conte
 export interface MenuItemFormModalProps {
   menuId: string;
   item?: MenuItem | null;
+  nextSortOrder?: number;
   onClose: () => void;
   onSaved: (item: MenuItem) => void;
 }
@@ -45,7 +47,8 @@ const DEFAULT: MenuItemFormData = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function MenuItemFormModal({ menuId, item, onClose, onSaved }: MenuItemFormModalProps) {
+export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSaved }: MenuItemFormModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<MenuItemFormData>(DEFAULT);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof MenuItemFormData, string>>>({});
@@ -62,10 +65,10 @@ export function MenuItemFormModal({ menuId, item, onClose, onSaved }: MenuItemFo
         isVisible: item.isVisible,
       });
     } else {
-      setForm(DEFAULT);
+      setForm({ ...DEFAULT, sortOrder: nextSortOrder ?? 1 });
     }
     setErrors({});
-  }, [item]);
+  }, [item, nextSortOrder]);
 
   function set<K extends keyof MenuItemFormData>(key: K, value: MenuItemFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -89,6 +92,9 @@ export function MenuItemFormModal({ menuId, item, onClose, onSaved }: MenuItemFo
         : await addMenuItem(menuId, form);
       onSaved(saved);
       onClose();
+      showToast(item ? "Đã cập nhật mục menu" : "Đã thêm mục menu", "success");
+    } catch {
+      showToast("Lưu thất bại", "error");
     } finally {
       setIsSaving(false);
     }

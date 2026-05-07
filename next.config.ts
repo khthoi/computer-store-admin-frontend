@@ -18,6 +18,8 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "hacom.vn" },
       { protocol: "https", hostname: "kccshop.vn" },
     ],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
     qualities: [70, 75, 90],
     deviceSizes: [64, 128, 256, 384, 640],
     imageSizes: [64, 96, 128, 256],

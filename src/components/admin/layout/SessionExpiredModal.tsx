@@ -85,7 +85,7 @@ export function SessionExpiredModal() {
 
         <button
           onClick={handleLoginNow}
-          className="w-fit mt-1 w-full rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-700 active:bg-accent-800"
+          className="mt-1 w-fit rounded-lg bg-accent-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-accent-700 active:bg-accent-800"
         >
           Đăng nhập lại
         </button>

@@ -73,7 +73,8 @@ export function PopupFormModal({ popup, onClose, onSaved }: PopupFormModalProps)
         ctaLabel: popup.ctaLabel ?? "", ctaUrl: popup.ctaUrl ?? "",
         showCloseButton: popup.showCloseButton, showOnce: popup.showOnce,
         targetPages: popup.targetPages,
-        startDate: popup.startDate, endDate: popup.endDate,
+        startDate: popup.startDate ? popup.startDate.split("T")[0] : null,
+        endDate: popup.endDate ? popup.endDate.split("T")[0] : null,
       });
       setPopupImage(popup.imageUrl ? imageFieldFromUrl(popup.imageUrl) : emptyImageField());
     } else {

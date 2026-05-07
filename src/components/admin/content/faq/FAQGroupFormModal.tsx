@@ -6,6 +6,7 @@ import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Toggle } from "@/src/components/ui/Toggle";
+import { useToast } from "@/src/components/ui/Toast";
 import { createFAQGroup, updateFAQGroup } from "@/src/services/content.service";
 import type { FAQGroup, FAQGroupFormData } from "@/src/types/content.types";
 
@@ -25,6 +26,7 @@ function toSlug(str: string) {
 }
 
 export function FAQGroupFormModal({ group, onClose, onSaved }: FAQGroupFormModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<FAQGroupFormData>(DEFAULT);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof FAQGroupFormData, string>>>({});
@@ -67,15 +69,27 @@ export function FAQGroupFormModal({ group, onClose, onSaved }: FAQGroupFormModal
     try {
       const saved = group ? await updateFAQGroup(group.id, form) : await createFAQGroup(form);
       onSaved(saved);
+      showToast(group ? "Đã cập nhật nhóm FAQ" : "Đã tạo nhóm FAQ", "success");
       onClose();
-    } finally { setIsSaving(false); }
+    } catch (err) {
+      const e = err as Error & { status?: number };
+      if (e.status === 409) {
+        setErrors((prev) => ({ ...prev, slug: "Slug này đã được sử dụng, vui lòng chọn slug khác" }));
+        showToast("Slug đã tồn tại", "error");
+      } else {
+        showToast("Lưu thất bại, vui lòng thử lại", "error");
+      }
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   return (
     <Modal isOpen={true} onClose={onClose} title={group ? "Chỉnh sửa nhóm FAQ" : "Thêm nhóm FAQ"} size="xl" animated>
       <div className="p-5 space-y-4">
         <Input
-          label="Tên nhóm *"
+          label="Tên nhóm"
+          required
           value={form.name}
           onChange={(e) => set("name", e.target.value)}
           placeholder="Ví dụ: Đặt hàng & Thanh toán"

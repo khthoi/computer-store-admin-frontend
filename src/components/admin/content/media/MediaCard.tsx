@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import {
   DocumentIcon,
   FilmIcon,
@@ -7,6 +8,7 @@ import {
   DocumentTextIcon,
   CheckCircleIcon,
 } from "@heroicons/react/24/outline";
+import { getMediaPreviewUrl, isRenderableImageFile, shouldContainImage } from "@/src/lib/media-file";
 import type { MediaFile } from "@/src/types/content.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,18 +54,24 @@ export function MediaCard({
   onClick,
   onSelect,
 }: MediaCardProps) {
-  const isImage = file.fileType === "image";
+  const [imgError, setImgError] = useState(false);
+  const isImage = isRenderableImageFile(file) && !imgError;
+  const shouldContain = shouldContainImage(file);
 
   return (
     <div
       role={selectable ? "checkbox" : "button"}
       aria-checked={selectable ? selected : undefined}
       tabIndex={0}
-      onClick={() => selectable ? onSelect?.(file) : onClick?.(file)}
+      onClick={() => {
+        if (selectable) onSelect?.(file);
+        else onClick?.(file);
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
-          selectable ? onSelect?.(file) : onClick?.(file);
+          if (selectable) onSelect?.(file);
+          else onClick?.(file);
         }
       }}
       className={[
@@ -79,10 +87,11 @@ export function MediaCard({
         {isImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={file.thumbnailUrl ?? file.url}
+            src={getMediaPreviewUrl(file)}
             alt={file.altText ?? file.filename}
-            className="w-full h-full object-cover transition-transform duration-200 group-hover:scale-105"
+            className={`w-full h-full transition-transform duration-200 group-hover:scale-105 ${shouldContain ? "object-contain p-1" : "object-cover"}`}
             loading="lazy"
+            onError={() => setImgError(true)}
           />
         ) : (
           <FileIcon mimeType={file.mimeType} />

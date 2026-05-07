@@ -13,7 +13,7 @@ export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outl
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
 
 /**
- * Color theme for the `outline` variant.
+ * Color theme for the `outline` and `ghost` variants.
  * Has no effect on other variants.
  * @default "primary"
  */
@@ -25,7 +25,7 @@ interface ButtonBaseProps {
    */
   variant?: ButtonVariant;
   /**
-   * Color theme — only applies when `variant="outline"`.
+   * Color theme — applies when `variant="outline"` or `variant="ghost"`.
    * @default "primary"
    */
   color?: ButtonColor;
@@ -79,10 +79,7 @@ const VARIANT: Record<ButtonVariant, string> = {
     "hover:bg-secondary-200 active:bg-secondary-300 " +
     "focus-visible:ring-secondary-400",
 
-  ghost:
-    "bg-transparent text-secondary-600 " +
-    "hover:bg-secondary-100 active:bg-secondary-200 " +
-    "focus-visible:ring-secondary-400",
+  ghost: "bg-transparent",
 
   danger:
     "bg-error-600 text-white shadow-sm " +
@@ -104,6 +101,40 @@ const VARIANT: Record<ButtonVariant, string> = {
   // Base outline styles — color is injected via OUTLINE_COLOR
   outline: "bg-transparent border",
 };
+
+/** Color-specific styles for `ghost` variant — default (no explicit color) keeps secondary neutral style */
+const GHOST_COLOR: Record<ButtonColor, string> = {
+  primary:
+    "text-primary-600 " +
+    "hover:bg-primary-100 active:bg-primary-200 " +
+    "focus-visible:ring-primary-500",
+
+  secondary:
+    "text-secondary-600 " +
+    "hover:bg-secondary-100 active:bg-secondary-200 " +
+    "focus-visible:ring-secondary-400",
+
+  danger:
+    "text-error-600 " +
+    "hover:bg-error-100 active:bg-error-200 " +
+    "focus-visible:ring-error-500",
+
+  warning:
+    "text-warning-600 " +
+    "hover:bg-warning-100 active:bg-warning-200 " +
+    "focus-visible:ring-warning-500",
+
+  success:
+    "text-success-600 " +
+    "hover:bg-success-100 active:bg-success-200 " +
+    "focus-visible:ring-success-500",
+};
+
+/** Fallback ghost style when no explicit color prop is passed (preserves original secondary look) */
+const GHOST_DEFAULT =
+  "text-secondary-600 " +
+  "hover:bg-secondary-100 active:bg-secondary-200 " +
+  "focus-visible:ring-secondary-400";
 
 /** Color-specific styles applied on top of the base `outline` variant */
 const OUTLINE_COLOR: Record<ButtonColor, string> = {
@@ -213,6 +244,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProp
   props,
   ref
 ) {
+  const hasExplicitColor = "color" in props;
+
   const {
     variant = "primary",
     color = "primary",
@@ -231,6 +264,8 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps | ButtonLinkProp
   const variantClass =
     variant === "outline"
       ? `${VARIANT.outline} ${OUTLINE_COLOR[color]}`
+      : variant === "ghost"
+      ? `${VARIANT.ghost} ${hasExplicitColor ? GHOST_COLOR[color] : GHOST_DEFAULT}`
       : VARIANT[variant];
 
   const isDisabled = disabled || isLoading;

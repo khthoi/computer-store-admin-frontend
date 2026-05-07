@@ -63,6 +63,7 @@ export type SourceConfig =
 export interface SectionItem {
   id: number;
   sectionId: number;
+  sanPhamId?: number;
   phienBanId: number;
   sortOrder: number;
   // Joined fields from PhienBanSanPham + SanPham
@@ -86,6 +87,7 @@ export interface HomepageSection {
   layout: SectionLayout;
   badgeLabel?: string;
   badgeColor?: string;
+  badgeTextColor?: string;
   isVisible: boolean;
   sortOrder: number;
   ngayBatDau?: string;   // ISO date string
@@ -110,6 +112,7 @@ export interface HomepageSectionFormData {
   layout: SectionLayout;
   badgeLabel: string;
   badgeColor: string;
+  badgeTextColor: string;
   isVisible: boolean;
   ngayBatDau: string;
   ngayKetThuc: string;
@@ -120,6 +123,7 @@ export interface HomepageSectionFormData {
 
 /** Lightweight product card for the preview pane */
 export interface PreviewProduct {
+  sanPhamId?: number;
   phienBanId: number;
   tenSanPham: string;
   SKU: string;

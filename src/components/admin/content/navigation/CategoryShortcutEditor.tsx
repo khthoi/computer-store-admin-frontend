@@ -259,8 +259,10 @@ export function CategoryShortcutEditor({
         sortOrder: itemsRef.current.length + 1,
       };
       syncRef([...itemsRef.current, newItem]);
+      showToast("Đã thêm mục danh mục", "success");
     } else if (formTarget) {
       syncRef(itemsRef.current.map((c) => (c.id === formTarget.id ? { ...formTarget, ...data } : c)));
+      showToast("Đã cập nhật mục danh mục", "success");
     }
     setFormTarget(null);
     markDirty();
@@ -274,6 +276,7 @@ export function CategoryShortcutEditor({
   function handleDelete() {
     if (!deleteTarget) return;
     syncRef(itemsRef.current.filter((c) => c.id !== deleteTarget.id));
+    showToast("Đã xóa mục danh mục", "success");
     setDeleteTarget(null);
     markDirty();
   }

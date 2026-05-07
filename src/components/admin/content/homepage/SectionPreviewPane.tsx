@@ -1,8 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { PhotoIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
 import { Spinner } from "@/src/components/ui/Spinner";
+import { Badge } from "@/src/components/ui/Badge";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { getPreviewProducts } from "@/src/services/homepage.service";
 import type {
   HomepageSectionType,
@@ -36,31 +39,47 @@ function PreviewCard({ product }: { product: PreviewProduct }) {
           ? <img src={product.hinhAnh} alt={product.tenSanPham} className="h-full w-full object-cover" />
           : <PhotoIcon className="h-10 w-10 text-secondary-200" />}
         {product.badge && (
-          <span className="absolute left-2 top-2 rounded-md bg-error-500 px-1.5 py-0.5 text-[9px] font-bold uppercase text-white">
+          <Badge shape="tag" size="sm" backgroundColor="#ef4444" textColor="#ffffff" className="absolute left-2 top-2 uppercase">
             {product.badge}
-          </span>
+          </Badge>
         )}
         {pct && (
-          <span className="absolute right-2 top-2 rounded-md bg-primary-500 px-1.5 py-0.5 text-[9px] font-bold text-white">
+          <Badge shape="tag" size="sm" backgroundColor="#6366f1" textColor="#ffffff" className="absolute right-2 top-2">
             -{pct}%
-          </span>
+          </Badge>
         )}
       </div>
-      {/* Info */}
-      <div className="flex flex-1 flex-col gap-1 p-2.5">
-        {product.thuongHieu && (
-          <p className="text-[9px] font-semibold uppercase tracking-wide text-secondary-400">
-            {product.thuongHieu}
-          </p>
-        )}
-        <p className="line-clamp-2 text-[11px] font-medium leading-tight text-secondary-800">
-          {product.tenSanPham}
+      {/* Info — fixed-height rows so all cards align horizontally */}
+      <div className="flex flex-1 flex-col p-2.5">
+        {/* Row 1: brand — always occupies same height */}
+        <p className="h-[14px] text-[9px] font-semibold uppercase tracking-wide text-secondary-400 truncate">
+          {product.thuongHieu ?? ""}
         </p>
+        {/* Row 2: product name — always 2 lines */}
+        <div className="mt-1 h-[28px] overflow-hidden">
+          {product.sanPhamId ? (
+            <Tooltip content={product.tenSanPham} placement="top" multiline maxWidth="220px">
+              <Link
+                href={`/products/${product.sanPhamId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="block line-clamp-2 text-[11px] font-medium leading-[14px] text-secondary-800 transition-colors hover:text-primary-600 hover:underline"
+              >
+                {product.tenSanPham}
+              </Link>
+            </Tooltip>
+          ) : (
+            <p className="line-clamp-2 text-[11px] font-medium leading-[14px] text-secondary-800">
+              {product.tenSanPham}
+            </p>
+          )}
+        </div>
+        {/* Row 3: prices — sale price + original price always rendered */}
         <div className="mt-auto pt-1">
           <p className="text-xs font-bold text-primary-600">{formatPrice(product.giaBan)}</p>
-          {pct && (
-            <p className="text-[9px] text-secondary-400 line-through">{formatPrice(product.giaGoc)}</p>
-          )}
+          <p className={`text-[9px] line-through ${pct ? "text-secondary-400" : "invisible"}`}>
+            {formatPrice(product.giaGoc)}
+          </p>
         </div>
       </div>
     </div>
@@ -101,6 +120,7 @@ export interface SectionPreviewPaneProps {
   title: string;
   badgeLabel?: string;
   badgeColor?: string;
+  badgeTextColor?: string;
   viewAllUrl?: string;
   manualItems?: SectionItem[];
 }
@@ -113,6 +133,7 @@ export function SectionPreviewPane({
   title,
   badgeLabel,
   badgeColor,
+  badgeTextColor,
   viewAllUrl,
   manualItems = [],
 }: SectionPreviewPaneProps) {
@@ -120,11 +141,15 @@ export function SectionPreviewPane({
   const [isLoading, setIsLoading] = useState(false);
   const [key, setKey] = useState(0); // used to manually re-fetch
 
+  // Serialize to primitives so the effect re-runs when config/items content changes
+  const configKey = useMemo(() => JSON.stringify(sourceConfig), [sourceConfig]);
+  const itemsKey  = useMemo(() => JSON.stringify(manualItems),  [manualItems]);
+
   useEffect(() => {
     if (type === "manual") {
-      // Convert manual items to preview products
       setProducts(
         manualItems.slice(0, maxProducts).map((item) => ({
+          sanPhamId: item.sanPhamId,
           phienBanId: item.phienBanId,
           tenSanPham: item.tenSanPham,
           SKU: item.SKU,
@@ -144,8 +169,7 @@ export function SectionPreviewPane({
       }
     });
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, maxProducts, key]);
+  }, [type, maxProducts, key, configKey, itemsKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cardWidth = layout === "carousel" ? 160 : undefined;
 
@@ -175,12 +199,15 @@ export function SectionPreviewPane({
               {title || <span className="italic text-secondary-300">Tiêu đề section</span>}
             </h3>
             {badgeLabel && (
-              <span
-                className="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase text-white"
-                style={{ backgroundColor: badgeColor || "#ef4444" }}
+              <Badge
+                shape="tag"
+                size="sm"
+                backgroundColor={badgeColor || "#ef4444"}
+                textColor={badgeTextColor || "#ffffff"}
+                className="uppercase"
               >
                 {badgeLabel}
-              </span>
+              </Badge>
             )}
           </div>
           {viewAllUrl && (

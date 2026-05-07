@@ -16,6 +16,12 @@ import type { Popup, AnnouncementBar, PopupStatus, BarStatus } from "@/src/types
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function formatDate(iso: string | null | undefined): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+}
+
 const STATUS_POPUP: Record<PopupStatus, { label: string; variant: "success" | "warning" | "error" | "default" | "info" }> = {
   active:    { label: "Hoạt động", variant: "success" },
   scheduled: { label: "Lên lịch",  variant: "info" },
@@ -70,6 +76,9 @@ function PopupTab() {
           Tạo popup mới
         </Button>
       </div>
+      <p className="mb-4 text-xs text-secondary-500 italic">
+        Lưu ý: Chỉ cho phép 1 popup ở trạng thái &quot;Đang hoạt động&quot; tại cùng 1 thời điểm. Khi lên lịch, các popup phải tránh trùng thời gian nhau.
+      </p>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -93,7 +102,7 @@ function PopupTab() {
                     </div>
                     <p className="mt-0.5 text-xs text-secondary-500">
                       {popup.position} · Kích hoạt: {popup.trigger}
-                      {popup.startDate ? ` · ${popup.startDate}` : ""}
+                      {popup.startDate ? ` · ${formatDate(popup.startDate)}` : ""}
                     </p>
                     <div className="mt-1 flex items-center gap-3 text-xs text-secondary-400">
                       <span>{popup.viewCount.toLocaleString("vi-VN")} lượt xem</span>
@@ -119,7 +128,7 @@ function PopupTab() {
                       </Button>
                     </Tooltip>
                     <Tooltip content="Xóa" placement="top">
-                      <Button variant="ghost" size="xs" className="text-error-500 hover:bg-error-50"
+                      <Button variant="ghost" size="xs" color="danger"
                         onClick={() => setDeleteTarget(popup)}>
                         <TrashIcon className="h-3.5 w-3.5" />
                       </Button>
@@ -215,6 +224,9 @@ function AnnouncementBarTab() {
           Thêm thanh thông báo
         </Button>
       </div>
+      <p className="mb-4 text-xs text-secondary-500 italic">
+        Lưu ý: Chỉ cho phép 1 thanh thông báo đầu trang (Top) và 1 thanh thông báo cuối trang (Bottom) ở trạng thái &quot;Đang hoạt động&quot;. Khi lên lịch, các thanh cùng vị trí phải tránh trùng thời gian nhau.
+      </p>
 
       {isLoading ? (
         <div className="space-y-3">
@@ -231,7 +243,7 @@ function AnnouncementBarTab() {
                     <BellAlertIcon className="h-4 w-4 text-secondary-400 shrink-0" />
                     <span className="font-medium text-secondary-800 truncate">{bar.name}</span>
                     <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
-                    <span className="text-xs text-secondary-400">{bar.position === "top" ? "Đầu trang" : "Cuối trang"} · Ưu tiên {bar.priority}</span>
+                    <span className="text-xs text-secondary-400">{bar.position === "top" ? "Đầu trang" : "Cuối trang"}</span>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
                     <Tooltip content="Chỉnh sửa" placement="top">
@@ -240,7 +252,7 @@ function AnnouncementBarTab() {
                       </Button>
                     </Tooltip>
                     <Tooltip content="Xóa" placement="top">
-                      <Button variant="ghost" size="xs" className="text-error-500 hover:bg-error-50"
+                      <Button variant="ghost" size="xs" color="danger"
                         onClick={() => setDeleteTarget(bar)}>
                         <TrashIcon className="h-3.5 w-3.5" />
                       </Button>

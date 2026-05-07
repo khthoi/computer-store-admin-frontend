@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDownIcon, ChevronUpIcon } from "@heroicons/react/24/outline";
+import { TagsInput } from "react-tag-input-component";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Toggle } from "@/src/components/ui/Toggle";
@@ -12,6 +13,17 @@ import type { SeoMeta } from "@/src/types/content.types";
 export interface SeoPanelProps {
   value: SeoMeta;
   onChange: (seo: SeoMeta) => void;
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function keywordsToTags(kw: string | undefined): string[] {
+  if (!kw) return [];
+  return kw.split(",").map((k) => k.trim()).filter(Boolean);
+}
+
+function tagsToKeywords(tags: string[]): string {
+  return tags.join(", ");
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -84,17 +96,27 @@ export function SeoPanel({ value, onChange }: SeoPanelProps) {
             </p>
           </div>
 
-          {/* Keywords */}
-          <Input
-            label="Keywords"
-            value={value.keywords ?? ""}
-            onChange={(e) => set("keywords", e.target.value)}
-            placeholder="Từ khóa cách nhau bởi dấu phẩy"
-          />
+          {/* Keywords — tag input */}
+          <div>
+            <label className="mb-1.5 block select-none text-sm font-medium text-secondary-700">
+              Từ khóa (Keywords)
+            </label>
+            <TagsInput
+              value={keywordsToTags(value.keywords)}
+              onChange={(tags) => set("keywords", tagsToKeywords(tags))}
+              placeHolder="Nhập từ khóa rồi nhấn Enter"
+              separators={["Enter"]}
+              classNames={{
+                tag: "!bg-primary-100 !text-primary-700 !border !border-primary-200 !rounded-full !text-xs !font-medium",
+                input: "!text-sm !text-secondary-700 !placeholder-secondary-400 outline-none",
+              }}
+            />
+            <p className="mt-1 text-xs text-secondary-400">Nhấn Enter sau mỗi từ khóa để thêm</p>
+          </div>
 
           {/* Canonical URL */}
           <Input
-            label="Canonical URL"
+            label="URL Chuẩn tắc (Canonical URL)"
             value={value.canonicalUrl ?? ""}
             onChange={(e) => set("canonicalUrl", e.target.value)}
             placeholder="https://pcstore.vn/page"
@@ -102,7 +124,7 @@ export function SeoPanel({ value, onChange }: SeoPanelProps) {
 
           {/* OG Image */}
           <Input
-            label="OG Image URL"
+            label="Ảnh chia sẻ mạng xã hội (OG Image URL)"
             value={value.ogImage ?? ""}
             onChange={(e) => set("ogImage", e.target.value)}
             placeholder="URL ảnh chia sẻ mạng xã hội (1200×628px)"
