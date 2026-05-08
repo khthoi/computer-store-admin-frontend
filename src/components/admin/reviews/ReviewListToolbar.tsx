@@ -134,7 +134,7 @@ export function ReviewListToolbar({ value, onChange }: ReviewListToolbarProps) {
       {/* ── Row 1: primary filters ── */}
       <div className="flex items-center gap-2 flex-wrap">
         {/* Trạng thái */}
-        <div className="w-36 shrink-0">
+        <div className="w-46 shrink-0">
           <Select
             placeholder="Trạng thái"
             options={TRANG_THAI_OPTIONS}
@@ -146,7 +146,7 @@ export function ReviewListToolbar({ value, onChange }: ReviewListToolbarProps) {
         </div>
 
         {/* Rating */}
-        <div className="w-36 shrink-0">
+        <div className="w-46 shrink-0">
           <Select
             placeholder="Rating"
             options={RATING_OPTIONS}
@@ -203,34 +203,36 @@ export function ReviewListToolbar({ value, onChange }: ReviewListToolbarProps) {
             <>
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-secondary-500 shrink-0">Từ</span>
-                <DateInput
-                  size="sm"
-                  placeholder="DD/MM/YYYY"
-                  value={value.dateRange.from ? toIsoDate(value.dateRange.from) : ""}
-                  onChange={(iso) =>
-                    set("dateRange", {
-                      ...value.dateRange,
-                      from: iso ? new Date(iso + "T00:00:00") : null,
-                    })
-                  }
-                  className="w-36"
-                />
+                <div className="w-44 shrink-0">
+                  <DateInput
+                    size="sm"
+                    placeholder="DD/MM/YYYY"
+                    value={value.dateRange.from ? toIsoDate(value.dateRange.from) : ""}
+                    onChange={(iso) =>
+                      set("dateRange", {
+                        ...value.dateRange,
+                        from: iso ? new Date(iso + "T00:00:00") : null,
+                      })
+                    }
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-secondary-500 shrink-0">Đến</span>
-                <DateInput
-                  size="sm"
-                  placeholder="DD/MM/YYYY"
-                  value={value.dateRange.to ? toIsoDate(value.dateRange.to) : ""}
-                  onChange={(iso) =>
-                    set("dateRange", {
-                      ...value.dateRange,
-                      to: iso ? new Date(iso + "T23:59:59") : null,
-                    })
-                  }
-                  className="w-36"
-                />
+                <div className="w-44 shrink-0">
+                  <DateInput
+                    size="sm"
+                    placeholder="DD/MM/YYYY"
+                    value={value.dateRange.to ? toIsoDate(value.dateRange.to) : ""}
+                    onChange={(iso) =>
+                      set("dateRange", {
+                        ...value.dateRange,
+                        to: iso ? new Date(iso + "T23:59:59") : null,
+                      })
+                    }
+                  />
+                </div>
               </div>
             </>
           )}

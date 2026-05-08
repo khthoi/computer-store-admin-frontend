@@ -30,12 +30,8 @@ interface TicketDetailClientProps {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
-/**
- * TicketDetailClient — data-fetching shell for the ticket detail page.
- * Handles loading, error states, reply sending, and meta updates.
- */
 export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
-  const router     = useRouter();
+  const router        = useRouter();
   const { showToast } = useToast();
 
   const [ticket,       setTicket]       = useState<Ticket | null>(null);
@@ -43,8 +39,9 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
   const [isLoading,    setIsLoading]    = useState(true);
   const [notFound,     setNotFound]     = useState(false);
   const [isSending,    setIsSending]    = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  // ── Initial load (shows skeleton) ───────────────────────────────────────────
+  // ── Initial load ─────────────────────────────────────────────────────────────
   const loadTicket = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -62,19 +59,40 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
     }
   }, [ticketId]);
 
-  // ── Silent refresh — no skeleton, no loading state ───────────────────────────
+  // ── Manual refresh (button) ───────────────────────────────────────────────────
+  async function handleManualRefresh() {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const [t, staff] = await Promise.all([
+        getTicketById(ticketId),
+        getStaffOptions(),
+      ]);
+      if (t) {
+        setTicket(t);
+        setStaffOptions(staff);
+      }
+      showToast("Đã tải lại phiếu hỗ trợ", "success");
+    } catch {
+      showToast("Không thể tải lại", "error");
+    } finally {
+      setIsRefreshing(false);
+    }
+  }
+
+  // ── Silent refresh — no loading state ────────────────────────────────────────
   const silentRefresh = useCallback(async () => {
     try {
       const t = await getTicketById(ticketId);
       if (t) setTicket(t);
     } catch {
-      // silently ignore — user still sees current data
+      // silently ignore
     }
   }, [ticketId]);
 
   useEffect(() => { loadTicket(); }, [loadTicket]);
 
-  // ── Reply ───────────────────────────────────────────────────────────────────
+  // ── Reply ─────────────────────────────────────────────────────────────────────
   async function handleReply(
     text:        string,
     type:        "Reply" | "InternalNote",
@@ -91,8 +109,7 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
         trangThaiMoi:   nextStatus,
         files,
       });
-      showToast("Đã gửi", "success");
-      // Refresh data without triggering skeleton
+      showToast("Đã gửi tin nhắn", "success");
       await silentRefresh();
     } catch {
       showToast("Không thể gửi tin nhắn", "error");
@@ -101,11 +118,8 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
     }
   }
 
-  // ── Meta update ─────────────────────────────────────────────────────────────
-  async function handleMetaChange(
-    field: string,
-    value: string | string[] | null
-  ) {
+  // ── Meta update ───────────────────────────────────────────────────────────────
+  async function handleMetaChange(field: string, value: string | null) {
     if (!ticket) return;
     try {
       let updated: Ticket;
@@ -113,16 +127,22 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
         updated = await updateTicketMeta(ticket.ticketId, {
           trangThai: value as TicketStatus,
         });
+        const labels: Record<string, string> = {
+          DaGiaiQuyet: "Đã đánh dấu giải quyết",
+          DaDong:      "Đã đóng phiếu",
+          DangXuLy:    "Đã mở lại phiếu",
+        };
+        showToast(labels[value ?? ""] ?? "Đã cập nhật trạng thái", "success");
       } else if (field === "mucDoUuTien") {
         updated = await updateTicketMeta(ticket.ticketId, {
           mucDoUuTien: value as Ticket["mucDoUuTien"],
         });
+        showToast("Đã cập nhật mức ưu tiên", "success");
       } else if (field === "nhanVienPhuTrachId") {
         updated = await updateTicketMeta(ticket.ticketId, {
           nhanVienPhuTrachId: value ? Number(value) : null,
         });
-      } else if (field === "tags" && Array.isArray(value)) {
-        updated = await updateTicketMeta(ticket.ticketId, { tags: value });
+        showToast(value ? "Đã cập nhật phân công" : "Đã huỷ phân công", "success");
       } else {
         return;
       }
@@ -132,7 +152,7 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
     }
   }
 
-  // ── Render ──────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   if (isLoading) return <LoadingSkeleton />;
 
@@ -163,10 +183,14 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
         <button
           type="button"
           title="Tải lại"
-          onClick={silentRefresh}
-          className="ml-auto p-1.5 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-colors"
+          disabled={isRefreshing}
+          onClick={handleManualRefresh}
+          className="ml-auto p-1.5 rounded-lg text-secondary-400 hover:text-secondary-600 hover:bg-secondary-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <ArrowPathIcon className="w-4 h-4" aria-hidden="true" />
+          <ArrowPathIcon
+            className={["w-4 h-4", isRefreshing ? "animate-spin" : ""].join(" ")}
+            aria-hidden="true"
+          />
         </button>
       </div>
 

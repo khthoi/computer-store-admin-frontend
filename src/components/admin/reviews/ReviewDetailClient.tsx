@@ -75,6 +75,10 @@ export function ReviewDetailClient({ reviewId }: { reviewId: number }) {
     try {
       await addReviewMessage({ reviewId, noiDung: text, messageType: type });
       await silentRefresh();
+      showToast(
+        type === "InternalNote" ? "Đã thêm ghi chú nội bộ" : "Phản hồi đã được gửi",
+        "success"
+      );
     } catch {
       showToast("Không thể gửi phản hồi", "error");
     } finally {

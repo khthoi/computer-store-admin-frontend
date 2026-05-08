@@ -188,22 +188,31 @@ export function ReviewsListClient() {
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={row.anhPhienBan as string}
-              alt={row.tenPhienBan as string}
+              alt={row.tenSanPham as string}
               className="w-8 h-8 rounded object-cover shrink-0 border border-secondary-100"
             />
           )}
           <div className="min-w-0">
-            <Tooltip content={`${row.tenPhienBan as string} — ${row.tenSanPham as string}`} placement="top" anchorToContent>
+            <Tooltip
+              content={`${row.tenSanPham as string} — ${row.tenPhienBan as string}`}
+              placement="top"
+              anchorToContent
+            >
               <Link
-                href={`/products/${row.phienBanId}`}
+                href={`/products/${(row.sanPhamId ?? row.phienBanId) as number}`}
                 className="text-sm font-medium text-secondary-800 hover:text-primary-700 truncate max-w-[160px] block"
               >
-                {row.tenPhienBan as string}
+                {row.tenSanPham as string}
               </Link>
             </Tooltip>
-            <p className="text-xs text-secondary-400 truncate max-w-[160px]">
-              {row.tenSanPham as string}
+            <p className="text-xs text-secondary-500 truncate max-w-[160px]">
+              {row.tenPhienBan as string}
             </p>
+            {row.skuPhienBan && (
+              <p className="text-xs text-secondary-400 font-mono truncate max-w-[160px]">
+                {row.skuPhienBan as string}
+              </p>
+            )}
           </div>
         </div>
       ),
@@ -214,7 +223,13 @@ export function ReviewsListClient() {
       width:  "160px",
       render: (_, row) => (
         <div>
-          <Tooltip content={row.khachHangTen as string} placement="top">
+          <Tooltip
+            content={row.khachHangSdT
+              ? `${row.khachHangTen as string} — ${row.khachHangSdT as string}`
+              : (row.khachHangTen as string)
+            }
+            placement="top"
+          >
             <Link
               href={`/customers/${row.khachHangId}`}
               className="text-sm text-secondary-800 hover:text-primary-700"
@@ -242,7 +257,7 @@ export function ReviewsListClient() {
             </Tooltip>
           )}
           {row.noiDung && (
-            <Tooltip content={row.noiDung as string} placement="top" anchorToContent>
+            <Tooltip content={row.noiDung as string} placement="right" multiline maxWidth="300px">
               <p className="text-xs text-secondary-500 line-clamp-2 max-w-[240px]">
                 {row.noiDung as string}
               </p>

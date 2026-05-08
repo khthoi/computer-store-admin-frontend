@@ -27,10 +27,11 @@ export interface ReviewModerationModalProps {
   action:    ModerateReviewPayload["action"] | null;
   review:    Pick<
     ReviewSummary,
-    | "reviewId" | "phienBanId"
+    | "reviewId" | "phienBanId" | "sanPhamId"
     | "tieuDe"   | "noiDung"
     | "khachHangTen" | "rating"
-    | "tenSanPham"   | "tenPhienBan" | "anhPhienBan"
+    | "tenSanPham"   | "tenPhienBan" | "skuPhienBan" | "anhPhienBan"
+    | "trangThai"
   > | null;
   onConfirm: (reviewId: number, action: ModerateReviewPayload["action"], lyDo?: string) => Promise<void>;
 }
@@ -95,29 +96,44 @@ export function ReviewModerationModal({
   const config = currentAction ? ACTION_CONFIG[currentAction] : null;
 
   // ── DropdownAction items ───────────────────────────────────────────────────
+  // Pending   → approve ✓  reject ✓  hide ✗
+  // Approved  → approve ✗  reject ✗  hide ✓
+  // Hidden    → approve ✗  reject ✗  hide ✗  (chỉ unhide — không có trong dropdown)
+  // Rejected  → approve ✓  reject ✗  hide ✗
+  const status = review?.trangThai;
+
   const actionItems: DropdownActionItem[] = [
     {
       key:         "approve",
       label:       "Duyệt",
-      description: "Hiển thị công khai trên trang sản phẩm",
+      description: status === "Approved"
+        ? "Đánh giá đã được duyệt"
+        : "Hiển thị công khai trên trang sản phẩm",
       variant:     "success",
       icon:        <CheckCircleIcon className="w-4 h-4" />,
+      disabled:    status === "Approved" || status === "Hidden",
       onClick:     () => { setCurrentAction("approve"); setLyDo(""); setLyDoError(""); },
     },
     {
       key:         "hide",
       label:       "Ẩn",
-      description: "Ẩn khỏi trang sản phẩm, vẫn lưu trong hệ thống",
+      description: status !== "Approved"
+        ? "Chỉ có thể ẩn đánh giá đã duyệt"
+        : "Ẩn khỏi trang sản phẩm, vẫn lưu trong hệ thống",
       variant:     "warning",
       icon:        <EyeSlashIcon className="w-4 h-4" />,
+      disabled:    status !== "Approved",
       onClick:     () => { setCurrentAction("hide"); setLyDo(""); setLyDoError(""); },
     },
     {
       key:         "reject",
       label:       "Từ chối",
-      description: "Không hiển thị, yêu cầu nhập lý do",
+      description: status !== "Pending"
+        ? "Chỉ có thể từ chối đánh giá đang chờ duyệt"
+        : "Không hiển thị, yêu cầu nhập lý do",
       variant:     "danger",
       icon:        <XCircleIcon className="w-4 h-4" />,
+      disabled:    status !== "Pending",
       onClick:     () => { setCurrentAction("reject"); setLyDo(""); setLyDoError(""); },
     },
   ];
@@ -194,15 +210,16 @@ export function ReviewModerationModal({
               />
             )}
             <div className="min-w-0">
-              <Tooltip content={`${review.tenPhienBan} — ${review.tenSanPham}`} placement="top">
-                <Link
-                  href={`/products/${review.phienBanId}`}
-                  className="text-sm font-semibold text-secondary-800 hover:text-primary-700 truncate block"
-                >
-                  {review.tenPhienBan}
-                </Link>
-              </Tooltip>
-              <p className="text-xs text-secondary-400 truncate">{review.tenSanPham}</p>
+              <Link
+                href={`/products/${review.sanPhamId ?? review.phienBanId}`}
+                className="text-sm font-semibold text-secondary-800 hover:text-primary-700 truncate block"
+              >
+                {review.tenSanPham}
+              </Link>
+              <p className="text-xs text-secondary-500 truncate">{review.tenPhienBan}</p>
+              {review.skuPhienBan && (
+                <p className="text-xs text-secondary-400 font-mono truncate">{review.skuPhienBan}</p>
+              )}
             </div>
           </div>
 

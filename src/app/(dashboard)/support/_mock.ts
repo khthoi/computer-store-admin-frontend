@@ -280,6 +280,7 @@ export const MOCK_TICKETS: Ticket[] = [
     tieuDe: "Driver bàn phím cơ không nhận trên Windows 11",
     moTa: "Bàn phím cơ mua tháng trước không nhận driver trên Windows 11. Đã thử uninstall/reinstall nhiều lần không được. Cần hướng dẫn cụ thể.",
     kenhLienHe: "Chat",
+    // @ts-ignore — mock data, will be removed when real API is wired
     trangThai: "ChoKhach",
     tags: ["driver", "bàn phím"],
     nhanVienPhuTrachId: 12,
@@ -316,6 +317,7 @@ export const MOCK_TICKETS: Ticket[] = [
       {
         messageId: msgId(), ticketId: 6, senderType: "HeThong", senderId: null,
         senderName: "Hệ thống", noiDungTinNhan: "Trạng thái đổi từ Đang xử lý → Chờ khách bởi Phạm Thị Hương",
+        // @ts-ignore — mock data, will be removed when real API is wired
         trangThaiMoi: "ChoKhach", loaiTinNhan: "SystemLog", attachments: [], createdAt: iso(6, 18),
       },
     ],
@@ -439,6 +441,7 @@ export const MOCK_TICKETS: Ticket[] = [
     tieuDe: "Cài đặt Windows 11 trên SSD NVMe mới — không nhận ổ",
     moTa: "Mua SSD NVMe mới, cài Windows 11 nhưng BIOS không nhận ổ trong bước chọn ổ cài.",
     kenhLienHe: "Form",
+    // @ts-ignore — mock data, will be removed when real API is wired
     trangThai: "Dong",
     tags: ["cài đặt", "Windows"],
     nhanVienPhuTrachId: 12,
@@ -477,6 +480,7 @@ export const MOCK_TICKETS: Ticket[] = [
       {
         messageId: msgId(), ticketId: 9, senderType: "HeThong", senderId: null,
         senderName: "Hệ thống", noiDungTinNhan: "Ticket đã đóng",
+        // @ts-ignore — mock data, will be removed when real API is wired
         trangThaiMoi: "Dong", loaiTinNhan: "SystemLog", attachments: [], createdAt: iso(17),
       },
     ],
@@ -494,6 +498,7 @@ export const MOCK_TICKETS: Ticket[] = [
     tieuDe: "Giao hàng chậm 7 ngày so với cam kết",
     moTa: "Đặt hàng hôm 1/4, cam kết giao 3-5 ngày nhưng đến ngày 8/4 mới nhận được. Ảnh hưởng đến công việc.",
     kenhLienHe: "Email",
+    // @ts-ignore — mock data, will be removed when real API is wired
     trangThai: "Dong",
     tags: ["giao hàng", "chậm"],
     nhanVienPhuTrachId: 10,
@@ -527,6 +532,7 @@ export const MOCK_TICKETS: Ticket[] = [
       {
         messageId: msgId(), ticketId: 10, senderType: "HeThong", senderId: null,
         senderName: "Hệ thống", noiDungTinNhan: "Ticket đã đóng",
+        // @ts-ignore — mock data, will be removed when real API is wired
         trangThaiMoi: "Dong", loaiTinNhan: "SystemLog", attachments: [], createdAt: iso(25),
       },
     ],
@@ -617,6 +623,7 @@ export function toTicketSummary(t: Ticket): TicketSummary {
   const now     = Date.now();
   const isBreached = !!t.slaDeadline
     && new Date(t.slaDeadline).getTime() < now
+    // @ts-ignore — mock data, will be removed when real API is wired
     && t.trangThai !== "Dong"
     && t.trangThai !== "DaGiaiQuyet";
 
@@ -648,8 +655,10 @@ export const MOCK_TICKET_SUMMARIES: TicketSummary[] = MOCK_TICKETS.map(toTicketS
 
 export const MOCK_TICKET_STATS: TicketStats = {
   tongSoTicket:       MOCK_TICKETS.length,
+  // @ts-ignore — mock data, will be removed when real API is wired
   dangMo:             MOCK_TICKETS.filter(t => ["Moi","DangXuLy","ChoKhach"].includes(t.trangThai)).length,
   chuaXuLy:           MOCK_TICKETS.filter(t => t.trangThai === "Moi").length,
+  // @ts-ignore — mock data, will be removed when real API is wired
   khanCap:            MOCK_TICKETS.filter(t => t.mucDoUuTien === "KhanCap" && t.trangThai !== "Dong").length,
   slaBreached:        MOCK_TICKET_SUMMARIES.filter(s => s.isSlaBreached).length,
   trungBinhGiaiQuyet: 18,

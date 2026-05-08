@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Cog6ToothIcon, LockClosedIcon } from "@heroicons/react/24/outline";
 import type { ReviewMessage } from "@/src/types/review.types";
 
@@ -17,6 +18,27 @@ function getInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
   return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+// ─── Sender name link ─────────────────────────────────────────────────────────
+
+function SenderLink({
+  name,
+  href,
+  className = "",
+}: {
+  name: string;
+  href?: string;
+  className?: string;
+}) {
+  if (!href) {
+    return <span className={className}>{name}</span>;
+  }
+  return (
+    <Link href={href} className={["hover:underline", className].filter(Boolean).join(" ")}>
+      {name}
+    </Link>
+  );
 }
 
 // ─── Avatar ───────────────────────────────────────────────────────────────────
@@ -63,7 +85,11 @@ export function ReviewMessageBubble({ message }: { message: ReviewMessage }) {
       <div className="flex items-start gap-2 flex-row-reverse">
         <Avatar name={message.senderName} url={message.senderAvatar} />
         <div className="flex flex-col gap-1 max-w-[70%] items-end">
-          <p className="text-xs font-medium text-secondary-500">{message.senderName}</p>
+          <SenderLink
+            name={message.senderName}
+            href={message.senderCode ? `/employees/${message.senderCode}` : undefined}
+            className="text-xs font-medium text-secondary-500"
+          />
           <div className="px-4 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap rounded-2xl rounded-tr-sm bg-amber-50 border border-amber-200 text-amber-900">
             <div className="flex items-center gap-1.5 mb-1 text-amber-600 text-xs font-semibold">
               <LockClosedIcon className="w-3 h-3" aria-hidden="true" />
@@ -79,12 +105,19 @@ export function ReviewMessageBubble({ message }: { message: ReviewMessage }) {
 
   // ── Regular message (NhanVien / KhachHang) ───────────────────────────────────
   const isStaff = senderType === "NhanVien";
+  const senderHref = isStaff
+    ? (message.senderCode ? `/employees/${message.senderCode}` : undefined)
+    : (message.senderId   ? `/customers/${message.senderId}`   : undefined);
 
   return (
     <div className={["flex items-start gap-2", isStaff ? "flex-row-reverse" : "flex-row"].join(" ")}>
       <Avatar name={message.senderName} url={message.senderAvatar} />
       <div className={["flex flex-col gap-1 max-w-[70%]", isStaff ? "items-end" : "items-start"].join(" ")}>
-        <p className="text-xs font-medium text-secondary-500">{message.senderName}</p>
+        <SenderLink
+          name={message.senderName}
+          href={senderHref}
+          className="text-xs font-medium text-secondary-500"
+        />
         <div
           className={[
             "px-4 py-2.5 text-sm leading-relaxed break-words whitespace-pre-wrap",

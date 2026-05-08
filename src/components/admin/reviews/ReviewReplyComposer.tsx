@@ -35,7 +35,9 @@ export function ReviewReplyComposer({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const canSend = text.trim().length > 0 && !isSending;
+  const MIN_LENGTH = 6;
+  const trimmed   = text.trim();
+  const canSend   = trimmed.length >= MIN_LENGTH && !isSending;
 
   async function handleSend() {
     if (!canSend) return;
@@ -89,8 +91,15 @@ export function ReviewReplyComposer({
 
       {/* ── Footer ── */}
       <div className="flex items-center justify-between gap-2 px-4 py-3 border-t border-secondary-100">
-        <span className="text-xs text-secondary-400 tabular-nums">
-          {text.length} ký tự
+        <span className={[
+          "text-xs tabular-nums",
+          trimmed.length > 0 && trimmed.length < MIN_LENGTH
+            ? "text-amber-600"
+            : "text-secondary-400",
+        ].join(" ")}>
+          {trimmed.length > 0 && trimmed.length < MIN_LENGTH
+            ? `Cần ít nhất ${MIN_LENGTH} ký tự (còn thiếu ${MIN_LENGTH - trimmed.length})`
+            : `${text.length} ký tự`}
         </span>
 
         <Button

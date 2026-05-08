@@ -1,39 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Modal }     from "@/src/components/ui/Modal";
 import { Button }    from "@/src/components/ui/Button";
 import { Input }     from "@/src/components/ui/Input";
 import { Textarea }  from "@/src/components/ui/Textarea";
 import { Select }    from "@/src/components/ui/Select";
 import type { SelectOption } from "@/src/components/ui/Select";
+import {
+  getCustomerOptions,
+  getCustomerOrders,
+} from "@/src/services/ticket.service";
 import type {
   CreateTicketPayload,
   TicketIssueType,
   TicketPriority,
   TicketChannel,
 } from "@/src/types/ticket.types";
-
-// ─── Mock data ─────────────────────────────────────────────────────────────────
-
-const CUSTOMER_OPTIONS: SelectOption[] = [
-  { value: "1", label: "Lê Văn Hùng",        description: "lehung@gmail.com"    },
-  { value: "2", label: "Nguyễn Thị Mai",     description: "ntmai@outlook.com"   },
-  { value: "3", label: "Phạm Quốc Bảo",     description: "pqbao@yahoo.com"     },
-  { value: "4", label: "Trần Thị Kim Oanh",  description: "tkoanh@gmail.com"    },
-  { value: "5", label: "Đỗ Minh Tú",         description: "dominhtu@gmail.com"  },
-  { value: "6", label: "Vũ Thị Thu",         description: "vuthu@company.vn"    },
-  { value: "7", label: "Hoàng Văn Long",     description: "hvlong@hotmail.com"  },
-  { value: "8", label: "Bùi Thị Ngọc",       description: "btngoc@gmail.com"    },
-];
-
-const ORDER_OPTIONS: SelectOption[] = [
-  { value: "101", label: "DH-2025-0101", description: "2.450.000 ₫ — 03/01/2025" },
-  { value: "102", label: "DH-2025-0102", description: "890.000 ₫ — 07/01/2025"   },
-  { value: "103", label: "DH-2025-0103", description: "5.100.000 ₫ — 10/01/2025" },
-  { value: "104", label: "DH-2025-0104", description: "340.000 ₫ — 15/01/2025"   },
-  { value: "105", label: "DH-2025-0105", description: "1.230.000 ₫ — 18/01/2025" },
-];
 
 // ─── Dropdown options ──────────────────────────────────────────────────────────
 
@@ -110,6 +93,7 @@ interface TicketCreateModalProps {
 
 /**
  * TicketCreateModal — form modal to manually create a new support ticket.
+ * Customer list is loaded from the API; order list is filtered per selected customer.
  */
 export function TicketCreateModal({
   isOpen,
@@ -120,14 +104,49 @@ export function TicketCreateModal({
   const [form, setForm]     = useState<FormState>(EMPTY);
   const [errors, setErrors] = useState<FormErrors>({});
 
+  const [customerOptions, setCustomerOptions] = useState<SelectOption[]>([]);
+  const [orderOptions,    setOrderOptions]    = useState<SelectOption[]>([]);
+  const [isLoadingCustomers, setIsLoadingCustomers] = useState(false);
+  const [isLoadingOrders,    setIsLoadingOrders]    = useState(false);
+
+  // Load customers once when the modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    setIsLoadingCustomers(true);
+    getCustomerOptions()
+      .then(setCustomerOptions)
+      .catch(() => setCustomerOptions([]))
+      .finally(() => setIsLoadingCustomers(false));
+  }, [isOpen]);
+
+  // Load orders whenever the selected customer changes
+  useEffect(() => {
+    if (!form.khachHangId) {
+      setOrderOptions([]);
+      return;
+    }
+    setIsLoadingOrders(true);
+    getCustomerOrders(Number(form.khachHangId))
+      .then(setOrderOptions)
+      .catch(() => setOrderOptions([]))
+      .finally(() => setIsLoadingOrders(false));
+  }, [form.khachHangId]);
+
   function set<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
+  function handleCustomerChange(v: string | string[]) {
+    const id = v as string;
+    setForm((prev) => ({ ...prev, khachHangId: id, donHangId: "" }));
+    if (errors.khachHangId) setErrors((prev) => ({ ...prev, khachHangId: undefined }));
+  }
+
   function handleClose() {
     setForm(EMPTY);
     setErrors({});
+    setOrderOptions([]);
     onClose();
   }
 
@@ -148,6 +167,8 @@ export function TicketCreateModal({
     });
     handleClose();
   }
+
+  const orderDisabled = isSaving || !form.khachHangId || isLoadingOrders;
 
   return (
     <Modal
@@ -177,26 +198,34 @@ export function TicketCreateModal({
         <Select
           label="Khách hàng"
           required
-          placeholder="Tìm khách hàng..."
-          options={CUSTOMER_OPTIONS}
+          placeholder={isLoadingCustomers ? "Đang tải..." : "Tìm khách hàng..."}
+          options={customerOptions}
           value={form.khachHangId}
-          onChange={(v) => set("khachHangId", v as string)}
+          onChange={(v) => handleCustomerChange(v as string)}
           searchable
           clearable
           errorMessage={errors.khachHangId}
-          disabled={isSaving}
+          disabled={isSaving || isLoadingCustomers}
         />
 
         {/* Đơn hàng liên quan */}
         <Select
           label="Đơn hàng liên quan (tuỳ chọn)"
-          placeholder="Tìm theo mã đơn hàng..."
-          options={ORDER_OPTIONS}
+          placeholder={
+            !form.khachHangId
+              ? "Chọn khách hàng trước"
+              : isLoadingOrders
+                ? "Đang tải..."
+                : orderOptions.length === 0
+                  ? "Không có đơn hàng"
+                  : "Tìm theo mã đơn hàng..."
+          }
+          options={orderOptions}
           value={form.donHangId}
           onChange={(v) => set("donHangId", v as string)}
           searchable
           clearable
-          disabled={isSaving}
+          disabled={orderDisabled}
         />
 
         {/* Loại vấn đề + Mức độ ưu tiên */}

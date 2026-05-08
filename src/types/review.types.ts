@@ -10,11 +10,14 @@ export type MsgType       = "Reply" | "InternalNote" | "SystemLog";
 export interface ReviewSummary {
   reviewId:         number;
   phienBanId:       number;
+  sanPhamId?:       number;         // ID sản phẩm cha (để build link đúng)
   tenSanPham:       string;         // tên sản phẩm cha
   tenPhienBan:      string;         // tên biến thể (VD: "RAM 16GB / SSD 512GB")
+  skuPhienBan?:     string;         // SKU của phiên bản
   anhPhienBan?:     string;         // URL ảnh thumbnail phiên bản
   khachHangId:      number;
   khachHangTen:     string;
+  khachHangSdT?:    string;
   khachHangAvatar?: string;
   donHangId:        number;
   maDonHang:        string;         // VD: "DH-2024-001234"
@@ -27,6 +30,7 @@ export interface ReviewSummary {
   nguon:            ReviewSource;
   nguoiDuyetId?:    number;
   nguoiDuyetTen?:   string;
+  nguoiDuyetMa?:    string;
   lyDoTuChoi?:      string;
   duyetTai?:        string;         // ISO timestamp
   createdAt:        string;
@@ -46,6 +50,7 @@ export interface ReviewMessage {
   reviewId:            number;
   senderType:          MsgSenderType;
   senderId?:           number;
+  senderCode?:         string;
   senderName:          string;
   senderAvatar?:       string;
   noiDungTinNhan:      string;

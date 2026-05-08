@@ -1,13 +1,6 @@
-import {
-  MOCK_TICKETS,
-  MOCK_TICKET_SUMMARIES,
-  MOCK_TICKET_STATS,
-  MOCK_STAFF,
-  toTicketSummary,
-} from "@/src/app/(dashboard)/support/_mock";
+import { apiFetch } from "@/src/services/api";
 import type {
   Ticket,
-  TicketSummary,
   TicketStats,
   TicketStatus,
   TicketMessage,
@@ -19,308 +12,187 @@ import type {
   TicketMetaUpdatePayload,
 } from "@/src/types/ticket.types";
 
-// ─── In-memory store ───────────────────────────────────────────────────────────
+// ─── Internal list shapes ──────────────────────────────────────────────────────
 
-let ticketStore: Ticket[] = MOCK_TICKETS.map((t) => ({ ...t }));
-let nextTicketId = ticketStore.length + 1;
-let nextMessageId = 1000;
-
-function delay(ms = 400): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+interface EmployeeListItem {
+  id: number;
+  maNhanVien: string;
+  hoTen: string;
+  email: string;
+  soDienThoai: string | null;
+  anhDaiDien: string | null;
 }
 
-function now(): string {
-  return new Date().toISOString();
+interface EmployeeListResult {
+  items: EmployeeListItem[];
+  total: number;
 }
 
-function applyFilters(
-  tickets: Ticket[],
-  params: TicketListParams
-): Ticket[] {
-  let result = [...tickets];
+interface AssigneeStatsItem {
+  employeeId: number;
+  openCount: number;
+}
 
-  if (params.search) {
-    const q = params.search.toLowerCase();
-    result = result.filter(
-      (t) =>
-        t.tieuDe.toLowerCase().includes(q) ||
-        t.maTicket.toLowerCase().includes(q) ||
-        t.khachHangTen.toLowerCase().includes(q) ||
-        t.khachHangEmail.toLowerCase().includes(q)
-    );
-  }
+interface CustomerListItem {
+  id: number;
+  hoTen: string;
+  email: string;
+}
 
-  if (params.status) {
-    result = result.filter((t) => t.trangThai === params.status);
-  }
+interface OrderListItem {
+  numericId: number;
+  id: string;
+  grandTotal: number;
+  createdAt: string;
+}
 
-  if (params.priority) {
-    result = result.filter((t) => t.mucDoUuTien === params.priority);
-  }
+export interface CustomerSelectOption {
+  value: string;
+  label: string;
+  description: string;
+}
 
-  if (params.loaiVanDe) {
-    result = result.filter((t) => t.loaiVanDe === params.loaiVanDe);
-  }
-
-  if (params.assignedTo) {
-    result = result.filter(
-      (t) => t.nhanVienPhuTrachId === params.assignedTo
-    );
-  }
-
-  if (params.myOnly) {
-    // In real app, filter by current user id; here we use staff id 10
-    result = result.filter((t) => t.nhanVienPhuTrachId === 10);
-  }
-
-  if (params.dateFrom) {
-    const from = new Date(params.dateFrom).getTime();
-    result = result.filter((t) => new Date(t.ngayTao).getTime() >= from);
-  }
-
-  if (params.dateTo) {
-    const to = new Date(params.dateTo).getTime();
-    result = result.filter((t) => new Date(t.ngayTao).getTime() <= to);
-  }
-
-  return result;
+export interface OrderSelectOption {
+  value: string;
+  label: string;
+  description: string;
 }
 
 // ─── Service functions ─────────────────────────────────────────────────────────
 
-export async function getTickets(
-  params: TicketListParams
-): Promise<PaginatedTickets> {
-  await delay();
-  const filtered = applyFilters(ticketStore, params);
-  const total = filtered.length;
-  const totalPages = Math.ceil(total / params.limit) || 1;
-  const start = (params.page - 1) * params.limit;
-  const paged = filtered.slice(start, start + params.limit);
-  return {
-    data: paged.map(toTicketSummary),
-    total,
-    page: params.page,
-    limit: params.limit,
-    totalPages,
-  };
+export async function getTickets(params: TicketListParams): Promise<PaginatedTickets> {
+  const qs = new URLSearchParams();
+  qs.set("page", String(params.page));
+  if (params.limit)      qs.set("limit", String(params.limit));
+  if (params.status)     qs.set("status", params.status);
+  if (params.priority)   qs.set("priority", params.priority);
+  if (params.loaiVanDe)  qs.set("loaiVanDe", params.loaiVanDe);
+  if (params.assignedTo) qs.set("assignedTo", String(params.assignedTo));
+  if (params.myOnly)     qs.set("myOnly", "true");
+  if (params.dateFrom)   qs.set("dateFrom", params.dateFrom);
+  if (params.dateTo)     qs.set("dateTo", params.dateTo);
+  if (params.search)     qs.set("search", params.search);
+  return apiFetch<PaginatedTickets>(`/admin/tickets?${qs}`);
 }
 
 export async function getTicketById(id: number): Promise<Ticket | null> {
-  await delay(300);
-  return ticketStore.find((t) => t.ticketId === id) ?? null;
+  try {
+    return await apiFetch<Ticket>(`/admin/tickets/${id}`);
+  } catch {
+    return null;
+  }
 }
 
 export async function getTicketStats(): Promise<TicketStats> {
-  await delay(200);
-  return {
-    tongSoTicket: ticketStore.length,
-    dangMo: ticketStore.filter((t) =>
-      ["Moi", "DangXuLy", "ChoKhach"].includes(t.trangThai)
-    ).length,
-    chuaXuLy: ticketStore.filter((t) => t.trangThai === "Moi").length,
-    khanCap: ticketStore.filter(
-      (t) => t.mucDoUuTien === "KhanCap" && t.trangThai !== "Dong"
-    ).length,
-    slaBreached: ticketStore.filter(
-      (t) =>
-        t.slaDeadline != null &&
-        new Date(t.slaDeadline) < new Date() &&
-        t.trangThai !== "Dong"
-    ).length,
-    trungBinhGiaiQuyet: MOCK_TICKET_STATS.trungBinhGiaiQuyet,
-  };
+  return apiFetch<TicketStats>("/admin/tickets/stats");
 }
 
 export async function getStaffOptions(): Promise<StaffOption[]> {
-  await delay(200);
-  return MOCK_STAFF;
-}
-
-export async function createTicket(
-  payload: CreateTicketPayload
-): Promise<Ticket> {
-  await delay(500);
-  const id = nextTicketId++;
-  const ticket: Ticket = {
-    ticketId:       id,
-    maTicket:       `TK-${String(id).padStart(4, "0")}`,
-    khachHangId:    payload.khachHangId,
-    khachHangTen:   "Khách hàng mới",
-    khachHangEmail: "new@example.com",
-    donHangId:      payload.donHangId,
-    loaiVanDe:      payload.loaiVanDe,
-    mucDoUuTien:    payload.mucDoUuTien,
-    tieuDe:         payload.tieuDe,
-    moTa:           payload.moTa,
-    kenhLienHe:     payload.kenhLienHe,
-    trangThai:      "Moi",
-    tags:           [],
-    nhanVienPhuTrachId:     payload.assignedTo,
-    nhanVienPhuTrachTen:    payload.assignedTo
-      ? MOCK_STAFF.find((s) => s.value === String(payload.assignedTo))?.label
-      : undefined,
-    messages: [
-      {
-        messageId:      nextMessageId++,
-        ticketId:       id,
-        senderType:     "HeThong",
-        senderId:       null,
-        senderName:     "Hệ thống",
-        noiDungTinNhan: `Ticket được tạo qua ${payload.kenhLienHe}`,
-        loaiTinNhan:    "SystemLog",
-        attachments:    [],
-        createdAt:      now(),
-      },
-    ],
-    messageCount: 1,
-    ngayTao:      now(),
-    ngayCapNhat:  now(),
-    soLanMoLai:   0,
-  };
-  ticketStore = [ticket, ...ticketStore];
-  return ticket;
-}
-
-export async function updateTicketMeta(
-  id: number,
-  payload: TicketMetaUpdatePayload
-): Promise<Ticket> {
-  await delay(400);
-  const idx = ticketStore.findIndex((t) => t.ticketId === id);
-  if (idx === -1) throw new Error(`Ticket ${id} not found`);
-
-  const existing = ticketStore[idx];
-  const updated: Ticket = {
-    ...existing,
-    ...(payload.mucDoUuTien != null  && { mucDoUuTien:  payload.mucDoUuTien }),
-    ...(payload.trangThai   != null  && { trangThai:    payload.trangThai   }),
-    ...(payload.tags        != null  && { tags:         payload.tags        }),
-    ngayCapNhat: now(),
-  };
-
-  if (payload.nhanVienPhuTrachId !== undefined) {
-    if (payload.nhanVienPhuTrachId === null) {
-      updated.nhanVienPhuTrachId  = undefined;
-      updated.nhanVienPhuTrachMa  = undefined;
-      updated.nhanVienPhuTrachTen = undefined;
-      updated.nhanVienPhuTrachAvatar = undefined;
-    } else {
-      const staff = MOCK_STAFF.find(
-        (s) => s.value === String(payload.nhanVienPhuTrachId)
-      );
-      updated.nhanVienPhuTrachId  = payload.nhanVienPhuTrachId;
-      updated.nhanVienPhuTrachMa  = staff?.maNhanVien;
-      updated.nhanVienPhuTrachTen = staff?.label;
-    }
-  }
-
-  // Handle status transition side-effects
-  if (payload.trangThai === "Dong" && !existing.ngayDong) {
-    updated.ngayDong = now();
-    if (!existing.daGiaiQuyetLuc) updated.daGiaiQuyetLuc = now();
-  }
-  if (payload.trangThai === "DaGiaiQuyet" && !existing.daGiaiQuyetLuc) {
-    updated.daGiaiQuyetLuc = now();
-  }
-  if (
-    payload.trangThai === "DangXuLy" &&
-    existing.trangThai === "Dong"
-  ) {
-    updated.soLanMoLai = (existing.soLanMoLai ?? 0) + 1;
-    updated.ngayDong   = undefined;
-  }
-
-  ticketStore[idx] = updated;
-  return updated;
-}
-
-export async function addMessage(
-  ticketId: number,
-  payload: AddMessagePayload
-): Promise<TicketMessage> {
-  await delay(400);
-  const idx = ticketStore.findIndex((t) => t.ticketId === ticketId);
-  if (idx === -1) throw new Error(`Ticket ${ticketId} not found`);
-
-  const msgId = nextMessageId++;
-
-  // Mock: create fake TicketAttachment records from uploaded File objects
-  const fakeAttachments = (payload.files ?? []).map((file, i) => ({
-    attachmentId: msgId * 1000 + i,
-    messageId:    msgId,
-    fileName:     file.name,
-    fileUrl:      typeof URL !== "undefined" ? URL.createObjectURL(file) : "",
-    fileType:     file.type,
-    fileSize:     file.size,
-    uploadedAt:   now(),
+  const [empResult, stats] = await Promise.all([
+    apiFetch<EmployeeListResult>("/admin/employees?limit=100&trangThai=DangLam"),
+    apiFetch<AssigneeStatsItem[]>("/admin/tickets/assignee-stats").catch(() => [] as AssigneeStatsItem[]),
+  ]);
+  const statsMap = new Map(stats.map(s => [s.employeeId, s.openCount]));
+  return empResult.items.map(e => ({
+    value:           String(e.id),
+    maNhanVien:      e.maNhanVien,
+    label:           e.hoTen,
+    avatar:          e.anhDaiDien ?? undefined,
+    email:           e.email,
+    phone:           e.soDienThoai ?? undefined,
+    openTicketCount: statsMap.get(e.id) ?? 0,
   }));
+}
 
-  const msg: TicketMessage = {
-    messageId:      msgId,
-    ticketId,
-    senderType:     "NhanVien",
-    senderId:       10,   // current staff
-    senderName:     "Nguyễn Thị Lan",
-    noiDungTinNhan: payload.noiDungTinNhan,
-    loaiTinNhan:    payload.loaiTinNhan,
-    trangThaiMoi:   payload.trangThaiMoi,
-    attachments:    fakeAttachments,
-    createdAt:      now(),
-  };
+export async function getCustomerOptions(search?: string): Promise<CustomerSelectOption[]> {
+  const qs = new URLSearchParams({ limit: "100", trangThai: "HoatDong" });
+  if (search) qs.set("search", search);
+  const result = await apiFetch<{ items: CustomerListItem[] }>(`/admin/customers?${qs}`);
+  return result.items.map((c) => ({
+    value:       String(c.id),
+    label:       c.hoTen,
+    description: c.email,
+  }));
+}
 
-  const existing = ticketStore[idx];
-  const updatedMessages = [...existing.messages, msg];
-  const updates: Partial<Ticket> = {
-    messages:     updatedMessages,
-    messageCount: updatedMessages.length,
-    ngayCapNhat:  now(),
-  };
+export async function getCustomerOrders(customerId: number): Promise<OrderSelectOption[]> {
+  const result = await apiFetch<{ data: OrderListItem[] }>(
+    `/admin/orders?customerId=${customerId}&limit=50`,
+  );
+  return result.data.map((o) => ({
+    value:       String(o.numericId),
+    label:       o.id,
+    description: `${new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(o.grandTotal)} — ${new Date(o.createdAt).toLocaleDateString("vi-VN")}`,
+  }));
+}
 
-  // Auto status transitions
-  if (payload.loaiTinNhan === "Reply") {
-    if (existing.trangThai === "Moi") {
-      updates.trangThai = "DangXuLy";
-      if (!existing.phanHoiDauLuc) updates.phanHoiDauLuc = now();
-    } else if (payload.trangThaiMoi) {
-      updates.trangThai = payload.trangThaiMoi;
-    }
+export async function createTicket(payload: CreateTicketPayload): Promise<Ticket> {
+  return apiFetch<Ticket>("/admin/tickets", {
+    method: "POST",
+    body: JSON.stringify({
+      customerId:  payload.khachHangId,
+      orderId:     payload.donHangId,
+      issueType:   payload.loaiVanDe,
+      priority:    payload.mucDoUuTien,
+      title:       payload.tieuDe,
+      description: payload.moTa,
+      channel:     payload.kenhLienHe,
+    }),
+  });
+}
+
+export async function updateTicketMeta(id: number, payload: TicketMetaUpdatePayload): Promise<Ticket> {
+  if (payload.nhanVienPhuTrachId !== undefined) {
+    await apiFetch(`/admin/tickets/${id}/assign`, {
+      method: "PUT",
+      body: JSON.stringify({ employeeId: payload.nhanVienPhuTrachId }),
+    });
+  }
+  if (payload.trangThai === "DaDong")      return apiFetch<Ticket>(`/admin/tickets/${id}/close`,   { method: "PUT" });
+  if (payload.trangThai === "DaGiaiQuyet") return apiFetch<Ticket>(`/admin/tickets/${id}/resolve`, { method: "PUT" });
+
+  const metaUpdate: Record<string, unknown> = {};
+  if (payload.mucDoUuTien !== undefined) metaUpdate.priority = payload.mucDoUuTien;
+  if (Object.keys(metaUpdate).length > 0) {
+    return apiFetch<Ticket>(`/admin/tickets/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(metaUpdate),
+    });
   }
 
-  ticketStore[idx] = { ...existing, ...updates };
-  return msg;
+  return apiFetch<Ticket>(`/admin/tickets/${id}`);
 }
 
-export async function assignTicket(
-  ticketId: number,
-  staffId: number | null
-): Promise<Ticket> {
-  return updateTicketMeta(ticketId, { nhanVienPhuTrachId: staffId });
+export async function addMessage(ticketId: number, payload: AddMessagePayload): Promise<TicketMessage> {
+  return apiFetch<TicketMessage>(`/admin/tickets/${ticketId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({
+      content:     payload.noiDungTinNhan,
+      messageType: payload.loaiTinNhan,
+    }),
+  });
 }
 
-export async function changeStatus(
-  ticketId: number,
-  status: TicketStatus
-): Promise<Ticket> {
-  return updateTicketMeta(ticketId, { trangThai: status });
+export async function assignTicket(ticketId: number, staffId: number | null): Promise<Ticket> {
+  return apiFetch<Ticket>(`/admin/tickets/${ticketId}/assign`, {
+    method: "PUT",
+    body: JSON.stringify({ employeeId: staffId }),
+  });
 }
 
-export async function bulkAssign(
-  ticketIds: number[],
-  staffId: number
-): Promise<void> {
-  await delay(500);
-  for (const id of ticketIds) {
-    const idx = ticketStore.findIndex((t) => t.ticketId === id);
-    if (idx !== -1) {
-      const staff = MOCK_STAFF.find((s) => s.value === String(staffId));
-      ticketStore[idx] = {
-        ...ticketStore[idx],
-        nhanVienPhuTrachId:  staffId,
-        nhanVienPhuTrachMa:  staff?.maNhanVien,
-        nhanVienPhuTrachTen: staff?.label,
-        ngayCapNhat:         now(),
-      };
-    }
-  }
+export async function changeStatus(ticketId: number, status: TicketStatus): Promise<Ticket> {
+  if (status === "DaDong")       return apiFetch<Ticket>(`/admin/tickets/${ticketId}/close`,   { method: "PUT" });
+  if (status === "DaGiaiQuyet")  return apiFetch<Ticket>(`/admin/tickets/${ticketId}/resolve`, { method: "PUT" });
+  return apiFetch<Ticket>(`/admin/tickets/${ticketId}/reopen`, { method: "PUT" });
+}
+
+export async function bulkAssign(ticketIds: number[], staffId: number): Promise<void> {
+  await Promise.all(
+    ticketIds.map(id =>
+      apiFetch(`/admin/tickets/${id}/assign`, {
+        method: "PUT",
+        body: JSON.stringify({ employeeId: staffId }),
+      }),
+    ),
+  );
 }

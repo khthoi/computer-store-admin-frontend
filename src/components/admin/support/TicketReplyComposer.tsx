@@ -77,7 +77,7 @@ export function TicketReplyComposer({
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const isOpen  = ticketStatus !== "Dong";
+  const isOpen  = ticketStatus !== "DaDong";
   const canSend = (text.trim().length > 0 || attachments.length > 0) && !isSending;
 
   // ── File handling ────────────────────────────────────────────────────────────
@@ -262,7 +262,7 @@ export function TicketReplyComposer({
               <button
                 type="button"
                 disabled={!canSend}
-                onClick={() => handleSend("Dong")}
+                onClick={() => handleSend("DaDong")}
                 className="inline-flex items-center gap-1 text-xs text-secondary-500 hover:text-secondary-700 disabled:opacity-40 disabled:cursor-not-allowed"
               >
                 <XCircleIcon className="w-4 h-4" aria-hidden="true" />

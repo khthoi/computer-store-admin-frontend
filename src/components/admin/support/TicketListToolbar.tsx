@@ -35,10 +35,18 @@ export const DEFAULT_TICKET_FILTERS: TicketFilters = {
   myTicketsOnly: false,
 };
 
+interface StaffSelectOption {
+  value:        string;
+  label:        string;
+  subLabel?:    string;
+  description?: string;
+  badge?:       { text: string; variant?: "default" | "warning" | "success" | "error" | "info" } | string;
+}
+
 interface TicketListToolbarProps {
   value:         TicketFilters;
   onChange:      (v: TicketFilters) => void;
-  staffOptions?: { value: string; label: string }[];
+  staffOptions?: StaffSelectOption[];
 }
 
 // ─── Select option constants ──────────────────────────────────────────────────
@@ -46,9 +54,8 @@ interface TicketListToolbarProps {
 const STATUS_OPTIONS = [
   { value: "Moi",         label: "Mới"            },
   { value: "DangXuLy",    label: "Đang xử lý"    },
-  { value: "ChoKhach",    label: "Chờ khách"      },
   { value: "DaGiaiQuyet", label: "Đã giải quyết"  },
-  { value: "Dong",        label: "Đóng"           },
+  { value: "DaDong",      label: "Đã đóng"        },
 ];
 
 const PRIORITY_OPTIONS = [
@@ -356,6 +363,7 @@ export function TicketListToolbar({
         onChange={(v) => set({ assignedTo: v as string })}
         searchable
         clearable
+        boldLabel
         size="sm"
       />
 

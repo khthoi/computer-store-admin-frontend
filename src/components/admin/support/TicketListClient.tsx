@@ -11,6 +11,7 @@ import { TicketListToolbar, DEFAULT_TICKET_FILTERS } from "./TicketListToolbar";
 import type { TicketFilters } from "./TicketListToolbar";
 import { TicketStatusBadge } from "./TicketStatusBadge";
 import { TicketPriorityBadge } from "./TicketPriorityBadge";
+import { TicketIssueTypeBadge } from "./TicketIssueTypeBadge";
 import { TicketChannelIcon } from "./TicketChannelIcon";
 import { TicketSLATimer } from "./TicketSLATimer";
 import { TicketAssignModal } from "./TicketAssignModal";
@@ -52,6 +53,13 @@ function StatItem({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+function toLocalDateString(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleString("vi-VN", {
     day: "2-digit",
@@ -66,19 +74,6 @@ function formatDate(iso: string): string {
 
 function buildColumns(): ColumnDef<TicketSummary & Record<string, unknown>>[] {
   return [
-    {
-      key: "maTicket",
-      header: "Mã phiếu",
-      width: "120px",
-      render: (_, row) => (
-        <Link
-          href={`/support/${row.ticketId}`}
-          className="font-mono text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline"
-        >
-          {row.maTicket as string}
-        </Link>
-      ),
-    },
     {
       key: "tieuDe",
       header: "Tiêu đề",
@@ -98,12 +93,25 @@ function buildColumns(): ColumnDef<TicketSummary & Record<string, unknown>>[] {
       ),
     },
     {
+      key: "loaiVanDe",
+      header: "Loại vấn đề",
+      width: "140px",
+      align: "center",
+      render: (_, row) => (
+        <TicketIssueTypeBadge issueType={row.loaiVanDe as TicketSummary["loaiVanDe"]} size="sm" />
+      ),
+    },
+    {
       key: "trangThai",
       header: "Trạng thái",
       width: "140px",
       align: "center",
       render: (_, row) => (
-        <TicketStatusBadge status={row.trangThai as TicketSummary["trangThai"]} size="sm" />
+        <TicketStatusBadge
+          status={row.trangThai as TicketSummary["trangThai"]}
+          lastSenderType={row.lastSenderType as TicketSummary["lastSenderType"]}
+          size="sm"
+        />
       ),
     },
     {
@@ -158,7 +166,7 @@ function buildColumns(): ColumnDef<TicketSummary & Record<string, unknown>>[] {
         row.slaDeadline ? (
           <TicketSLATimer
             deadline={row.slaDeadline as string}
-            isClosed={row.trangThai === "Dong"}
+            isClosed={row.trangThai === "DaDong"}
           />
         ) : (
           <span className="text-xs text-secondary-300">—</span>
@@ -169,11 +177,14 @@ function buildColumns(): ColumnDef<TicketSummary & Record<string, unknown>>[] {
       header: "Hoạt động",
       width: "140px",
       align: "center",
-      render: (_, row) => (
-        <span className="text-xs text-secondary-500">
-          {formatDate(row.lastMessageAt as string)}
-        </span>
-      ),
+      render: (_, row) => {
+        const at = row.lastMessageAt as string | undefined;
+        return at ? (
+          <span className="text-xs text-secondary-500">{formatDate(at)}</span>
+        ) : (
+          <span className="text-xs text-secondary-300">—</span>
+        );
+      },
     },
   ];
 }
@@ -223,8 +234,12 @@ export function TicketListClient() {
           loaiVanDe: filters.loaiVanDe || undefined,
           assignedTo: filters.assignedTo ? Number(filters.assignedTo) : undefined,
           myOnly: filters.myTicketsOnly || undefined,
-          dateFrom: filters.dateRange.from?.toISOString() || undefined,
-          dateTo: filters.dateRange.to?.toISOString() || undefined,
+          dateFrom: filters.dateRange.from
+            ? toLocalDateString(filters.dateRange.from)
+            : undefined,
+          dateTo: filters.dateRange.to
+            ? toLocalDateString(filters.dateRange.to)
+            : undefined,
         }),
         getTicketStats(),
         getStaffOptions(),
@@ -286,9 +301,11 @@ export function TicketListClient() {
   }
 
   const staffSelectOptions = staffOptions.map((s) => ({
-    value: s.value,
-    label: s.label,
-    openTicketCount: s.openTicketCount,
+    value:       s.value,
+    label:       s.label,
+    subLabel:    s.email,
+    description: s.phone,
+    badge:       { text: `${s.openTicketCount} mở`, variant: s.openTicketCount > 0 ? "warning" as const : "default" as const },
   }));
 
   return (

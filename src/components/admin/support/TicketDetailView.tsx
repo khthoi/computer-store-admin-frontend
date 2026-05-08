@@ -32,7 +32,7 @@ interface TicketDetailViewProps {
     nextStatus?: TicketStatus,
     files?:      File[]
   ) => Promise<void>;
-  onMetaChange:  (field: string, value: string | string[] | null) => void;
+  onMetaChange:  (field: string, value: string | null) => void;
   isSending?:    boolean;
 }
 
@@ -49,7 +49,7 @@ export function TicketDetailView({
   onMetaChange,
   isSending = false,
 }: TicketDetailViewProps) {
-  const isClosed = ticket.trangThai === "Dong";
+  const isClosed = ticket.trangThai === "DaDong";
 
   // ── Conversation image gallery ────────────────────────────────────────────
   const allConversationImages = useMemo((): GalleryMedia[] => {
@@ -73,25 +73,28 @@ export function TicketDetailView({
 
   // ── TicketMeta ────────────────────────────────────────────────────────────
   const meta: TicketMeta = {
-    trangThai:           ticket.trangThai,
-    mucDoUuTien:         ticket.mucDoUuTien,
-    nhanVienPhuTrachId:  ticket.nhanVienPhuTrachId
+    trangThai:              ticket.trangThai,
+    lastSenderType:         ticket.lastSenderType,
+    mucDoUuTien:            ticket.mucDoUuTien,
+    nhanVienPhuTrachId:     ticket.nhanVienPhuTrachId
       ? String(ticket.nhanVienPhuTrachId)
       : undefined,
-    nhanVienPhuTrachTen: ticket.nhanVienPhuTrachTen,
-    khachHangTen:        ticket.khachHangTen,
-    khachHangEmail:      ticket.khachHangEmail,
-    donHangId:           ticket.donHangId ? String(ticket.donHangId) : undefined,
-    ngayTao:             ticket.ngayTao,
-    ngayCapNhat:         ticket.ngayCapNhat,
-    tags:                ticket.tags,
+    nhanVienPhuTrachTen:    ticket.nhanVienPhuTrachTen,
+    nhanVienPhuTrachMa:     ticket.nhanVienPhuTrachMa,
+    khachHangId:            ticket.khachHangId,
+    khachHangTen:           ticket.khachHangTen,
+    khachHangEmail:         ticket.khachHangEmail,
+    donHangId:              ticket.donHangId ? String(ticket.donHangId) : undefined,
+    donHangMa:              ticket.donHangMa,
+    ngayTao:                ticket.ngayTao,
+    ngayCapNhat:            ticket.ngayCapNhat,
   };
 
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
         {/* ── Left: chat panel ─────────────────────────────────────────────── */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 h-[100vh]">
           {/* Header */}
           <div className="flex items-start gap-3">
             <div className="flex-1 min-w-0">
@@ -105,7 +108,7 @@ export function TicketDetailView({
 
             <div className="flex items-center gap-2 shrink-0">
               <TicketPriorityBadge priority={ticket.mucDoUuTien} />
-              <TicketStatusBadge   status={ticket.trangThai}     />
+              <TicketStatusBadge status={ticket.trangThai} lastSenderType={ticket.lastSenderType} />
             </div>
           </div>
 
@@ -116,8 +119,16 @@ export function TicketDetailView({
             </div>
           )}
 
+          {/* Description */}
+          {ticket.moTa && (
+            <div className="rounded-xl border border-secondary-100 bg-secondary-50 px-4 py-3 text-sm">
+              <p className="text-xs font-semibold text-secondary-500 mb-1.5">Mô tả vấn đề</p>
+              <p className="text-secondary-700 whitespace-pre-wrap">{ticket.moTa}</p>
+            </div>
+          )}
+
           {/* Message thread */}
-          <div className="flex-1 overflow-y-auto max-h-[55vh] border border-secondary-100 rounded-2xl px-3 py-3 bg-secondary-50/30">
+          <div className="flex-1 min-h-0 overflow-y-auto border border-secondary-100 rounded-2xl px-3 py-3 bg-secondary-50/30">
             <TicketTimeline
               messages={ticket.messages}
               onImageClick={(key) => setLightboxKey(key)}

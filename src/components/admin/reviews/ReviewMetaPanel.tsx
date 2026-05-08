@@ -10,6 +10,7 @@ import {
   CalendarDaysIcon,
 } from "@heroicons/react/24/outline";
 import { Button }            from "@/src/components/ui/Button";
+import { Tooltip }           from "@/src/components/ui/Tooltip";
 import { ReviewStatusBadge } from "./ReviewStatusBadge";
 import { StarRating }        from "@/src/components/ui/StarRating";
 import type { ReviewSummary, ModerateReviewPayload } from "@/src/types/review.types";
@@ -78,28 +79,27 @@ export function ReviewMetaPanel({ review, onModerate, className = "" }: ReviewMe
 
         {/* ── Moderation actions ── */}
         <div className="flex flex-col gap-2">
-          {trangThai !== "Approved" && (
-            <Button
-              variant="primary"
-              size="sm"
-              className="w-full justify-center"
-              leftIcon={<CheckCircleIcon className="w-4 h-4" aria-hidden="true" />}
-              onClick={() => onModerate(review, "approve")}
-            >
-              Duyệt đánh giá
-            </Button>
-          )}
-
-          {trangThai !== "Rejected" && (
-            <Button
-              variant="danger"
-              size="sm"
-              className="w-full justify-center"
-              leftIcon={<XCircleIcon className="w-4 h-4" aria-hidden="true" />}
-              onClick={() => onModerate(review, "reject")}
-            >
-              Từ chối
-            </Button>
+          {trangThai === "Pending" && (
+            <>
+              <Button
+                variant="primary"
+                size="sm"
+                className="w-full justify-center"
+                leftIcon={<CheckCircleIcon className="w-4 h-4" aria-hidden="true" />}
+                onClick={() => onModerate(review, "approve")}
+              >
+                Duyệt đánh giá
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                className="w-full justify-center"
+                leftIcon={<XCircleIcon className="w-4 h-4" aria-hidden="true" />}
+                onClick={() => onModerate(review, "reject")}
+              >
+                Từ chối
+              </Button>
+            </>
           )}
 
           {trangThai === "Approved" && (
@@ -125,6 +125,18 @@ export function ReviewMetaPanel({ review, onModerate, className = "" }: ReviewMe
               Hiện lại
             </Button>
           )}
+
+          {trangThai === "Rejected" && (
+            <Button
+              variant="primary"
+              size="sm"
+              className="w-full justify-center"
+              leftIcon={<CheckCircleIcon className="w-4 h-4" aria-hidden="true" />}
+              onClick={() => onModerate(review, "approve")}
+            >
+              Duyệt lại
+            </Button>
+          )}
         </div>
       </div>
 
@@ -143,13 +155,22 @@ export function ReviewMetaPanel({ review, onModerate, className = "" }: ReviewMe
             />
           )}
           <div className="min-w-0">
-            <Link
-              href={`/products/${review.phienBanId}`}
-              className="text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline block truncate"
+            <Tooltip
+              content={`${review.tenSanPham} — ${review.tenPhienBan}`}
+              placement="top"
+              anchorToContent
             >
-              {review.tenPhienBan}
-            </Link>
-            <p className="text-xs text-secondary-400 truncate mt-0.5">{review.tenSanPham}</p>
+              <Link
+                href={`/products/${review.sanPhamId ?? review.phienBanId}`}
+                className="text-xs font-semibold text-primary-700 hover:text-primary-800 hover:underline block truncate"
+              >
+                {review.tenSanPham}
+              </Link>
+            </Tooltip>
+            <p className="text-xs text-secondary-500 truncate mt-0.5">{review.tenPhienBan}</p>
+            {review.skuPhienBan && (
+              <p className="text-xs text-secondary-400 font-mono truncate">{review.skuPhienBan}</p>
+            )}
           </div>
         </div>
       </div>
@@ -175,12 +196,14 @@ export function ReviewMetaPanel({ review, onModerate, className = "" }: ReviewMe
           <ShieldCheckIcon className="w-3.5 h-3.5 text-green-500" aria-hidden="true" />
           <span className="text-xs font-medium text-green-700">Mua hàng đã xác nhận</span>
         </div>
-        <Link
-          href={`/orders/${review.donHangId}`}
-          className="font-mono text-xs text-primary-600 hover:text-primary-700 hover:underline"
-        >
-          {review.maDonHang}
-        </Link>
+        <Tooltip content={`Xem đơn hàng ${review.maDonHang}`} placement="top">
+          <Link
+            href={`/orders/${review.maDonHang}`}
+            className="font-mono text-xs text-primary-600 hover:text-primary-700 hover:underline"
+          >
+            {review.maDonHang}
+          </Link>
+        </Tooltip>
       </div>
 
       <Divider />
@@ -218,7 +241,16 @@ export function ReviewMetaPanel({ review, onModerate, className = "" }: ReviewMe
             <p className="text-xs font-medium text-secondary-600">Lịch sử kiểm duyệt</p>
             {review.nguoiDuyetTen && (
               <MetaRow label="Duyệt bởi">
-                <span className="font-medium">{review.nguoiDuyetTen}</span>
+                {review.nguoiDuyetMa ? (
+                  <Link
+                    href={`/employees/${review.nguoiDuyetMa}`}
+                    className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
+                  >
+                    {review.nguoiDuyetTen}
+                  </Link>
+                ) : (
+                  <span className="font-medium">{review.nguoiDuyetTen}</span>
+                )}
               </MetaRow>
             )}
             {review.duyetTai && (

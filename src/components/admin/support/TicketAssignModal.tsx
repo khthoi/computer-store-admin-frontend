@@ -32,6 +32,8 @@ type ResultFilter = "all" | "success" | "failed";
 interface StaffOption {
   value:            string;
   label:            string;
+  email?:           string;
+  phone?:           string;
   openTicketCount?: number;
 }
 
@@ -125,10 +127,13 @@ export function TicketAssignModal({
 
   const selectedStaff   = staffOptions.find((s) => s.value === selectedStaffId);
   const enrichedOptions = staffOptions.map((s) => ({
-    value: s.value,
-    label: s.openTicketCount !== undefined
-      ? `${s.label} (${s.openTicketCount} phiếu đang mở)`
-      : s.label,
+    value:       s.value,
+    label:       s.label,
+    subLabel:    s.email,
+    description: s.phone,
+    badge:       s.openTicketCount !== undefined
+      ? { text: `${s.openTicketCount} phiếu đang mở`, variant: s.openTicketCount > 0 ? "warning" as const : "default" as const }
+      : undefined,
   }));
 
   const total      = items.length;
@@ -236,6 +241,7 @@ export function TicketAssignModal({
               onChange={(v) => setSelectedStaffId(v as string)}
               searchable
               clearable
+              boldLabel
             />
 
             {selectedStaff && (

@@ -1,11 +1,10 @@
 // ─── Enums ─────────────────────────────────────────────────────────────────────
 
 export type TicketStatus =
-  | "Moi"           // Mới — chưa ai nhận
-  | "DangXuLy"      // Đang xử lý
-  | "ChoKhach"      // Chờ phản hồi từ khách
-  | "DaGiaiQuyet"   // Đã giải quyết
-  | "Dong";         // Đóng hoàn toàn
+  | "Moi"         // Mới — chưa ai nhận
+  | "DangXuLy"    // Đang xử lý (auto sau 1 ngày hoặc khi NV nhận)
+  | "DaGiaiQuyet" // Đã giải quyết
+  | "DaDong";     // Đã đóng
 
 export type TicketPriority = "Thap" | "TrungBinh" | "Cao" | "KhanCap";
 
@@ -56,14 +55,14 @@ export interface Ticket {
   khachHangEmail:          string;
   khachHangAvatar?:        string;
   donHangId?:              number;
-  donHangMa?:              string;
+  donHangMa?:              string;  // mã đơn hàng hiển thị
   loaiVanDe:               TicketIssueType;
   mucDoUuTien:             TicketPriority;
   tieuDe:                  string;
   moTa:                    string;
   kenhLienHe:              TicketChannel;
   trangThai:               TicketStatus;
-  tags:                    string[];
+  lastSenderType?:         MessageSenderType;
   nhanVienPhuTrachId?:     number;
   nhanVienPhuTrachMa?:     string;   // e.g. "nv-010"
   nhanVienPhuTrachTen?:    string;
@@ -90,12 +89,12 @@ export interface TicketSummary {
   tieuDe:                  string;
   kenhLienHe:              TicketChannel;
   trangThai:               TicketStatus;
-  tags:                    string[];
+  lastSenderType?:         MessageSenderType;
   nhanVienPhuTrachTen?:    string;
-  nhanVienPhuTrachMa?:     string;   // e.g. "nv-010"
+  nhanVienPhuTrachMa?:     string;
   nhanVienPhuTrachAvatar?: string;
   messageCount:            number;
-  lastMessageAt:           string;
+  lastMessageAt?:          string;
   ngayTao:                 string;
   slaDeadline?:            string;
   isSlaBreached:           boolean;
@@ -105,7 +104,7 @@ export interface TicketSummary {
 
 export interface TicketStats {
   tongSoTicket:       number;
-  dangMo:             number;  // Moi + DangXuLy + ChoKhach
+  dangMo:             number;  // Moi + DangXuLy
   chuaXuLy:           number;  // Moi, không ai nhận
   khanCap:            number;  // KhanCap && chưa Dong
   slaBreached:        number;
@@ -140,6 +139,8 @@ export interface StaffOption {
   maNhanVien:      string;  // e.g. "nv-010" — used for /employees/{maNhanVien}
   label:           string;
   avatar?:         string;
+  email?:          string;
+  phone?:          string;
   openTicketCount: number;
 }
 
@@ -166,5 +167,4 @@ export interface TicketMetaUpdatePayload {
   mucDoUuTien?:        TicketPriority;
   trangThai?:          TicketStatus;
   nhanVienPhuTrachId?: number | null;
-  tags?:               string[];
 }

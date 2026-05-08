@@ -153,6 +153,7 @@ export interface Order {
 }
 
 export interface OrderSummary {
+  numericId: number;
   id: string;
   createdAt: string;
   status: OrderStatus;

@@ -1,3 +1,4 @@
+import Link               from "next/link";
 import { StarRating }       from "@/src/components/ui/StarRating";
 import { ReviewStatusBadge } from "./ReviewStatusBadge";
 import type { ReviewDetail } from "@/src/types/review.types";
@@ -52,7 +53,12 @@ export function ReviewContentCard({ review }: { review: ReviewDetail }) {
       <div className="pt-2 border-t border-secondary-100 flex items-center justify-between text-xs text-secondary-400">
         <span>
           Khách hàng:{" "}
-          <span className="font-medium text-secondary-600">{review.khachHangTen}</span>
+          <Link
+            href={`/customers/${review.khachHangId}`}
+            className="font-medium text-primary-600 hover:text-primary-700 hover:underline"
+          >
+            {review.khachHangTen}
+          </Link>
         </span>
         <span>{formatDate(review.createdAt)}</span>
       </div>

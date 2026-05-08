@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, type KeyboardEvent } from "react";
 import Link from "next/link";
-import { UserCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { Select } from "@/src/components/ui/Select";
-import { Input } from "@/src/components/ui/Input";
+import { Button } from "@/src/components/ui/Button";
+import { TicketStatusBadge } from "./TicketStatusBadge";
 import type {
+  MessageSenderType,
   TicketStatus,
   TicketPriority,
   StaffOption,
@@ -15,33 +16,28 @@ import type {
 
 export interface TicketMeta {
   trangThai:               TicketStatus;
+  lastSenderType?:         MessageSenderType;
   mucDoUuTien:             TicketPriority;
   nhanVienPhuTrachId?:     string;
   nhanVienPhuTrachTen?:    string;
+  nhanVienPhuTrachMa?:     string;
+  khachHangId:             number;
   khachHangTen:            string;
   khachHangEmail:          string;
   donHangId?:              string;
+  donHangMa?:              string;
   ngayTao:                 string;
   ngayCapNhat:             string;
-  tags:                    string[];
 }
 
 interface TicketMetaPanelProps {
   meta:          TicketMeta;
-  onMetaChange:  (field: string, value: string | string[] | null) => void;
+  onMetaChange:  (field: string, value: string | null) => void;
   staffOptions?: StaffOption[];
   isReadonly?:   boolean;
 }
 
 // ─── Constants ────────────────────────────────────────────────────────────────
-
-const STATUS_OPTIONS: { value: TicketStatus; label: string }[] = [
-  { value: "Moi",         label: "Mới"            },
-  { value: "DangXuLy",    label: "Đang xử lý"    },
-  { value: "ChoKhach",    label: "Chờ khách"      },
-  { value: "DaGiaiQuyet", label: "Đã giải quyết"  },
-  { value: "Dong",        label: "Đóng"           },
-];
 
 const PRIORITY_OPTIONS: { value: TicketPriority; label: string }[] = [
   { value: "Thap",      label: "Thấp"       },
@@ -68,40 +64,18 @@ function Divider() {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-/**
- * TicketMetaPanel — sidebar card with ticket metadata, assignment,
- * customer info, and tags. Uses real TicketStatus / TicketPriority enums.
- */
 export function TicketMetaPanel({
   meta,
   onMetaChange,
   staffOptions = [],
   isReadonly = false,
 }: TicketMetaPanelProps) {
-  const tagInputRef = useRef<HTMLInputElement>(null);
-
-  function handleTagKeyDown(e: KeyboardEvent<HTMLInputElement>) {
-    if (e.key === "Enter") {
-      e.preventDefault();
-      const raw = tagInputRef.current?.value.trim();
-      if (!raw) return;
-      const newTag = raw.toLowerCase();
-      if (!meta.tags.includes(newTag)) {
-        onMetaChange("tags", [...meta.tags, newTag]);
-      }
-      if (tagInputRef.current) tagInputRef.current.value = "";
-    }
-  }
-
-  function removeTag(tag: string) {
-    onMetaChange("tags", meta.tags.filter((t) => t !== tag));
-  }
-
   const staffSelectOptions = staffOptions.map((s) => ({
-    value: s.value,
-    label: s.openTicketCount !== undefined
-      ? `${s.label} (${s.openTicketCount} mở)`
-      : s.label,
+    value:       s.value,
+    label:       s.label,
+    subLabel:    s.email,
+    description: s.phone,
+    badge:       { text: `${s.openTicketCount} mở`, variant: s.openTicketCount > 0 ? "warning" as const : "default" as const },
   }));
 
   return (
@@ -112,14 +86,40 @@ export function TicketMetaPanel({
 
       {/* Status + Priority + Assignment */}
       <div className="space-y-3">
-        <Select
-          label="Trạng thái"
-          options={STATUS_OPTIONS}
-          value={meta.trangThai}
-          onChange={(v) => onMetaChange("trangThai", v as string)}
-          size="sm"
-          disabled={isReadonly}
-        />
+        {/* Status */}
+        <div className="space-y-2">
+          <p className="text-xs font-medium text-secondary-600">Trạng thái</p>
+          <TicketStatusBadge status={meta.trangThai} lastSenderType={meta.lastSenderType} size="sm" />
+          {!isReadonly && meta.trangThai !== "DaDong" && (
+            <div className="flex gap-2 flex-wrap">
+              {meta.trangThai !== "DaGiaiQuyet" && (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={() => onMetaChange("trangThai", "DaGiaiQuyet")}
+                >
+                  Đánh dấu giải quyết
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onMetaChange("trangThai", "DaDong")}
+              >
+                Đóng phiếu
+              </Button>
+            </div>
+          )}
+          {!isReadonly && meta.trangThai === "DaGiaiQuyet" && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => onMetaChange("trangThai", "DaDong")}
+            >
+              Đóng phiếu
+            </Button>
+          )}
+        </div>
 
         <Select
           label="Ưu tiên"
@@ -140,6 +140,7 @@ export function TicketMetaPanel({
           }
           searchable
           clearable
+          boldLabel
           size="sm"
           disabled={isReadonly}
         />
@@ -151,18 +152,32 @@ export function TicketMetaPanel({
       <div className="space-y-1.5">
         <div className="flex items-center gap-2">
           <UserCircleIcon className="w-4 h-4 text-secondary-400 shrink-0" aria-hidden="true" />
-          <span className="font-medium text-sm text-secondary-800">
+          <Link
+            href={`/customers/${meta.khachHangId}`}
+            className="font-medium text-sm text-primary-700 hover:underline"
+          >
             {meta.khachHangTen}
-          </span>
+          </Link>
         </div>
         <p className="text-xs text-secondary-400 pl-6">{meta.khachHangEmail}</p>
+        {meta.nhanVienPhuTrachMa && meta.nhanVienPhuTrachTen && (
+          <div className="flex items-center gap-1 pl-6">
+            <span className="text-xs text-secondary-400">Phụ trách:</span>
+            <Link
+              href={`/employees/${meta.nhanVienPhuTrachMa}`}
+              className="text-xs text-primary-600 hover:underline"
+            >
+              {meta.nhanVienPhuTrachTen}
+            </Link>
+          </div>
+        )}
         {meta.donHangId && (
           <div className="pl-6">
             <Link
-              href={`/admin/orders/${meta.donHangId}`}
+              href={`/orders/${meta.donHangId}`}
               className="text-xs text-primary-600 hover:underline"
             >
-              Đơn hàng #{meta.donHangId}
+              Đơn hàng #{meta.donHangMa ?? meta.donHangId}
             </Link>
           </div>
         )}
@@ -180,46 +195,6 @@ export function TicketMetaPanel({
           <span className="text-xs text-secondary-400 shrink-0">Cập nhật</span>
           <span className="text-xs text-secondary-600 text-right">{formatDate(meta.ngayCapNhat)}</span>
         </div>
-      </div>
-
-      <Divider />
-
-      {/* Tags */}
-      <div className="space-y-2">
-        <p className="text-xs font-medium text-secondary-600">Nhãn</p>
-
-        {meta.tags.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {meta.tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-100 text-secondary-700 text-xs font-medium"
-              >
-                {tag}
-                {!isReadonly && (
-                  <button
-                    type="button"
-                    aria-label={`Xóa nhãn ${tag}`}
-                    onClick={() => removeTag(tag)}
-                    className="rounded-full hover:bg-secondary-200 p-0.5 transition-colors"
-                  >
-                    <XMarkIcon className="w-3 h-3" aria-hidden="true" />
-                  </button>
-                )}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {!isReadonly && (
-          <input
-            ref={tagInputRef}
-            type="text"
-            placeholder="Thêm nhãn (Enter)..."
-            onKeyDown={handleTagKeyDown}
-            className="w-full h-8 px-2.5 text-xs rounded-lg border border-secondary-200 bg-white text-secondary-700 placeholder:text-secondary-400 focus:outline-none focus:ring-2 focus:border-primary-400 focus:ring-primary-500/15"
-          />
-        )}
       </div>
     </div>
   );
