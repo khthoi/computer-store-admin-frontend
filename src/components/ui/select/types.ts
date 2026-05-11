@@ -132,4 +132,12 @@ export interface SelectProps {
    * @default false
    */
   boldLabel?: boolean;
+  /**
+   * When `false`, the trigger shows only the option label even if the selected
+   * option has `description` or `subLabel`. Descriptions still appear in the
+   * dropdown list. Useful when placing two selects side-by-side and one option
+   * set has descriptions while the other doesn't — prevents height misalignment.
+   * @default true
+   */
+  showDescriptionInTrigger?: boolean;
 }

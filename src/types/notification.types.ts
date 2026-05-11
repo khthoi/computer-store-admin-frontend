@@ -56,6 +56,10 @@ export interface ThongBao {
 export interface ThongBaoRow extends ThongBao {
   tenKhachHang: string;
   emailKhachHang: string;
+  /** mã đơn hàng — có khi entityLienQuan = 'DonHang' */
+  maDonHang?: string | null;
+  /** mã giao dịch ngoài từ cổng thanh toán — có khi entityLienQuan = 'GiaoDich' */
+  maGiaoDichNgoai?: string | null;
 }
 
 // ─── Stats for KPI cards ──────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
 import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { EmployeeFormModal } from "@/src/components/admin/employees/EmployeeFormModal";
@@ -13,19 +14,16 @@ export interface EmployeeDetailActionsProps {
   allRoles: VaiTro[];
 }
 
-/**
- * Client wrapper that provides the Edit button and EmployeeFormModal
- * on the server-rendered Employee Detail page.
- */
 export function EmployeeDetailActions({ employee, allRoles }: EmployeeDetailActionsProps) {
   const { showToast } = useToast();
+  const router = useRouter();
   const [modalOpen, setModalOpen] = useState(false);
 
   const handleSaved = useCallback(() => {
-    showToast("Đã cập nhật thông tin nhân viên.", "success");
-    // The server page will re-render on next navigation; for now, just close.
     setModalOpen(false);
-  }, [showToast]);
+    showToast("Đã cập nhật thông tin nhân viên.", "success");
+    router.refresh();
+  }, [showToast, router]);
 
   return (
     <>

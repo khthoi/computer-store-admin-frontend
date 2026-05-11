@@ -143,13 +143,19 @@ export interface AuditEntityBadgeProps {
  * <AuditEntityBadge entityType="DonHang" entityId="DH-001" linkable />
  * ```
  */
+const FALLBACK_CONFIG: EntityConfig = {
+  label: "Khác",
+  icon: <Cog6ToothIcon className="w-3 h-3" />,
+  colorClass: "bg-secondary-100 text-secondary-600 border-secondary-200",
+};
+
 export function AuditEntityBadge({
   entityType,
   entityId,
   linkable = false,
   className = "",
 }: AuditEntityBadgeProps) {
-  const config = ENTITY_CONFIG[entityType];
+  const config = ENTITY_CONFIG[entityType] ?? FALLBACK_CONFIG;
   const isLinkable = linkable && Boolean(config.basePath) && Boolean(entityId);
 
   // Classes are applied directly to the rendered element (Link or span)

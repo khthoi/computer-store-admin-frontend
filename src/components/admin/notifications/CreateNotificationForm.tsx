@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
   UsersIcon,
   UserGroupIcon,
@@ -13,8 +13,24 @@ import {
   PaperAirplaneIcon,
   CalendarDaysIcon,
   InformationCircleIcon,
+  ExclamationTriangleIcon,
+  ArrowPathIcon,
+  SparklesIcon,
+  ShieldCheckIcon,
+  ClockIcon,
+  TagIcon,
+  ShoppingCartIcon,
+  CreditCardIcon,
+  ArrowUturnLeftIcon,
+  StarIcon,
+  MegaphoneIcon,
 } from "@heroicons/react/24/outline";
 import { createNotification } from "@/src/services/notification.service";
+import { getCustomers } from "@/src/services/customer.service";
+import { getOrders } from "@/src/services/order.service";
+import { getTransactions } from "@/src/services/transaction.service";
+import { getReturns } from "@/src/services/returns.service";
+import { getPromotionList } from "@/src/services/promotion.service";
 import { useToast } from "@/src/components/ui/Toast";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { Select } from "@/src/components/ui/Select";
@@ -28,76 +44,24 @@ import type {
   NotificationLoai,
   CreateNotificationPayload,
 } from "@/src/types/notification.types";
-
-// ─── Mock data for selects ────────────────────────────────────────────────────
-
-const MOCK_CUSTOMERS: SelectOption[] = [
-  { value: "101", label: "Nguyễn Quốc Bảo",      description: "ID: 101 · bao.nguyen@gmail.com" },
-  { value: "102", label: "Trần Văn Khoa",          description: "ID: 102 · khoa.tran@techsv.vn" },
-  { value: "103", label: "Lê Thị Phương Anh",      description: "ID: 103 · anh.le@outlook.com" },
-  { value: "104", label: "Phạm Đức Minh",           description: "ID: 104 · minh.pham@gamer.vn" },
-  { value: "105", label: "Hoàng Thị Bích Ngọc",    description: "ID: 105 · ngoc.hoang@gmail.com" },
-  { value: "106", label: "Vũ Văn Thắng",            description: "ID: 106 · thang.vu@gmail.com" },
-  { value: "107", label: "Ngô Thanh Tùng",          description: "ID: 107 · tung.ngo@gmail.com" },
-  { value: "108", label: "Đinh Thị Cẩm Tú",        description: "ID: 108 · tu.dinh@gmail.com" },
-  { value: "109", label: "Bùi Thị Lan",             description: "ID: 109 · lan.bui@gmail.com" },
-  { value: "110", label: "Lý Văn Hòa",              description: "ID: 110 · hoa.ly@gmail.com" },
-  { value: "111", label: "Đặng Quốc Trung",         description: "ID: 111 · trung.dang@gmail.com" },
-  { value: "112", label: "Phùng Thị Mai Anh",       description: "ID: 112 · maianh.phung@gmail.com" },
-];
-
-/** Mock entity options keyed by entityLienQuan type */
-const MOCK_ENTITIES: Record<string, SelectOption[]> = {
-  DonHang: [
-    { value: "1",  label: "ORD-2024-0001", description: "ID: 1 · 25.990.000 ₫ · Nguyễn Quốc Bảo" },
-    { value: "2",  label: "ORD-2024-0002", description: "ID: 2 · 8.500.000 ₫ · Trần Văn Khoa" },
-    { value: "3",  label: "ORD-2024-0003", description: "ID: 3 · 4.200.000 ₫ · Lê Thị Phương Anh" },
-    { value: "4",  label: "ORD-2024-0004", description: "ID: 4 · 15.750.000 ₫ · Phạm Đức Minh" },
-    { value: "5",  label: "ORD-2024-0005", description: "ID: 5 · 6.300.000 ₫ · Hoàng Thị Bích Ngọc" },
-    { value: "6",  label: "ORD-2024-0006", description: "ID: 6 · 5.600.000 ₫ · Vũ Văn Thắng" },
-    { value: "10", label: "ORD-2024-0010", description: "ID: 10 · 12.100.000 ₫ · Lý Văn Hòa" },
-  ],
-  GiaoDich: [
-    { value: "1001", label: "VNP20240417143201001", description: "ID: 1001 · 25.990.000 ₫ · VNPAY" },
-    { value: "1002", label: "ZALO20240416080012",   description: "ID: 1002 · 8.500.000 ₫ · ZaloPay" },
-    { value: "1003", label: "MOMO20240415110023",   description: "ID: 1003 · 4.200.000 ₫ · MoMo" },
-    { value: "1004", label: "VNP20240416220110004", description: "ID: 1004 · 15.750.000 ₫ · VNPAY" },
-    { value: "1006", label: "ZALO20240415160023",   description: "ID: 1006 · 5.600.000 ₫ · ZaloPay" },
-  ],
-  HoanHang: [
-    { value: "6",  label: "RET-2024-006", description: "ID: 6 · ORD-2024-0006 · Vũ Văn Thắng" },
-    { value: "7",  label: "RET-2024-007", description: "ID: 7 · ORD-2024-0007 · Ngô Thanh Tùng" },
-  ],
-  KhuyenMai: [
-    { value: "5",  label: "Flash Sale tháng 4",     description: "ID: 5 · Giảm đến 40% linh kiện PC" },
-    { value: "8",  label: "TECH20",                 description: "ID: 8 · Giảm 20% tối đa 500k" },
-    { value: "12", label: "LOYAL15",                description: "ID: 12 · Giảm 15% tối đa 1.000.000 ₫" },
-  ],
-};
+import type { MembershipTier } from "@/src/types/loyalty.types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const LOAI_OPTIONS: { value: NotificationLoai; label: string; desc: string }[] = [
-  { value: "DonHang",   label: "Đơn hàng",   desc: "Liên quan đến đơn hàng cụ thể" },
-  { value: "GiaoDich",  label: "Giao dịch",  desc: "Thanh toán / hoàn tiền" },
-  { value: "HoanHang",  label: "Hoàn trả",   desc: "Yêu cầu hoàn trả, đổi hàng" },
-  { value: "KhuyenMai", label: "Khuyến mãi", desc: "Flash sale, coupon, deal" },
-  { value: "Loyalty",   label: "Loyalty",    desc: "Điểm thưởng, thăng hạng" },
-  { value: "NhacNho",   label: "Nhắc nhở",   desc: "Giỏ bỏ quên, sản phẩm có hàng" },
-  { value: "HeThong",   label: "Hệ thống",   desc: "Thông báo broadcast từ admin" },
+const LOAI_OPTIONS: { value: NotificationLoai; label: string; desc: string; icon: React.ReactNode }[] = [
+  { value: "DonHang",   label: "Đơn hàng",   desc: "Cập nhật đơn hàng",       icon: <ShoppingCartIcon className="h-4 w-4" /> },
+  { value: "GiaoDich",  label: "Giao dịch",  desc: "Thanh toán / hoàn tiền",  icon: <CreditCardIcon className="h-4 w-4" /> },
+  { value: "HoanHang",  label: "Hoàn trả",   desc: "Đổi hàng, hoàn trả",      icon: <ArrowUturnLeftIcon className="h-4 w-4" /> },
+  { value: "KhuyenMai", label: "Khuyến mãi", desc: "Flash sale, coupon",       icon: <TagIcon className="h-4 w-4" /> },
+  { value: "Loyalty",   label: "Loyalty",    desc: "Điểm thưởng, thăng hạng", icon: <StarIcon className="h-4 w-4" /> },
+  { value: "NhacNho",   label: "Nhắc nhở",   desc: "Giỏ bỏ quên, hàng về",    icon: <BellIcon className="h-4 w-4" /> },
+  { value: "HeThong",   label: "Hệ thống",   desc: "Broadcast từ admin",       icon: <MegaphoneIcon className="h-4 w-4" /> },
 ];
 
 const STATUS_SELECT_OPTIONS: SelectOption[] = [
-  { value: "active",   label: "Đang hoạt động" },
-  { value: "inactive", label: "Không hoạt động" },
-  { value: "banned",   label: "Bị khóa" },
-];
-
-const TIER_SELECT_OPTIONS: SelectOption[] = [
-  { value: "Bronze",   label: "Bronze",   description: "Hạng đồng — khách mới" },
-  { value: "Silver",   label: "Silver",   description: "Hạng bạc" },
-  { value: "Gold",     label: "Gold",     description: "Hạng vàng" },
-  { value: "Platinum", label: "Platinum", description: "Hạng bạch kim — VIP" },
+  { value: "active",  label: "Đang hoạt động" },
+  { value: "pending", label: "Chờ xác minh" },
+  { value: "banned",  label: "Bị khóa" },
 ];
 
 const ENTITY_TYPE_SELECT_OPTIONS: SelectOption[] = [
@@ -106,6 +70,40 @@ const ENTITY_TYPE_SELECT_OPTIONS: SelectOption[] = [
   { value: "HoanHang",  label: "Hoàn trả",   description: "Liên kết tới yêu cầu hoàn trả" },
   { value: "KhuyenMai", label: "Khuyến mãi", description: "Liên kết tới chương trình khuyến mãi" },
 ];
+
+const CHANNEL_CONFIG: Record<NotificationChannel, {
+  icon: React.ReactNode;
+  color: string;
+  activeCls: string;
+  previewBg: string;
+  previewBorder: string;
+  label: string;
+}> = {
+  Push: {
+    icon: <BellIcon className="h-4 w-4" />,
+    color: "text-amber-600",
+    activeCls: "border-amber-300 bg-amber-50 text-amber-700",
+    previewBg: "bg-secondary-50",
+    previewBorder: "border-secondary-200",
+    label: "Push Notification",
+  },
+  Email: {
+    icon: <EnvelopeIcon className="h-4 w-4" />,
+    color: "text-primary-600",
+    activeCls: "border-primary-300 bg-primary-50 text-primary-700",
+    previewBg: "bg-primary-50/50",
+    previewBorder: "border-primary-200",
+    label: "Email",
+  },
+  SMS: {
+    icon: <DevicePhoneMobileIcon className="h-4 w-4" />,
+    color: "text-violet-600",
+    activeCls: "border-violet-300 bg-violet-50 text-violet-700",
+    previewBg: "bg-violet-50/50",
+    previewBorder: "border-violet-200",
+    label: "SMS",
+  },
+};
 
 // ─── Step indicator ───────────────────────────────────────────────────────────
 
@@ -170,22 +168,11 @@ function ChannelCheckbox({
   checked: boolean;
   onChange: (ch: NotificationChannel, val: boolean) => void;
 }) {
-  const ICONS: Record<NotificationChannel, React.ReactNode> = {
-    Email: <EnvelopeIcon className="h-4 w-4" />,
-    SMS:   <DevicePhoneMobileIcon className="h-4 w-4" />,
-    Push:  <BellIcon className="h-4 w-4" />,
-  };
-  const COLORS: Record<NotificationChannel, string> = {
-    Email: "border-primary-300 bg-primary-50 text-primary-600",
-    SMS:   "border-violet-300 bg-violet-50 text-violet-600",
-    Push:  "border-amber-300 bg-amber-50 text-amber-600",
-  };
+  const cfg = CHANNEL_CONFIG[channel];
   return (
     <label className={[
       "flex cursor-pointer items-center gap-2 rounded-xl border px-4 py-3 transition-all select-none",
-      checked
-        ? COLORS[channel]
-        : "border-secondary-200 bg-white text-secondary-500 hover:border-secondary-300",
+      checked ? cfg.activeCls : "border-secondary-200 bg-white text-secondary-500 hover:border-secondary-300",
     ].join(" ")}>
       <input
         type="checkbox"
@@ -193,9 +180,143 @@ function ChannelCheckbox({
         checked={checked}
         onChange={(e) => onChange(channel, e.target.checked)}
       />
-      {ICONS[channel]}
+      {cfg.icon}
       <span className="text-sm font-medium">{channel}</span>
     </label>
+  );
+}
+
+// ─── Group preview card ───────────────────────────────────────────────────────
+
+function GroupPreviewCard({
+  groupStatus,
+  groupTier,
+  tierOptions,
+}: {
+  groupStatus: string;
+  groupTier: string;
+  tierOptions: SelectOption[];
+}) {
+  const statusLabel = STATUS_SELECT_OPTIONS.find((o) => o.value === groupStatus)?.label;
+  const tierLabel   = tierOptions.find((o) => o.value === groupTier)?.label;
+  const tierDesc    = tierOptions.find((o) => o.value === groupTier)?.description;
+  const hasFilter   = !!(groupStatus || groupTier);
+
+  return (
+    <div className={[
+      "rounded-xl border p-4 space-y-3 transition-colors",
+      hasFilter
+        ? "border-primary-100 bg-primary-50/60"
+        : "border-secondary-100 bg-secondary-50/40",
+    ].join(" ")}>
+      <div className="flex items-center gap-2">
+        <UserGroupIcon className={["h-4 w-4", hasFilter ? "text-primary-600" : "text-secondary-400"].join(" ")} />
+        <span className={["text-xs font-semibold", hasFilter ? "text-primary-700" : "text-secondary-500"].join(" ")}>
+          Nhóm đối tượng nhận
+        </span>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {statusLabel ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-primary-200 bg-white px-3 py-1 text-xs font-medium text-primary-700">
+            <ShieldCheckIcon className="h-3 w-3" />
+            {statusLabel}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary-200 bg-white px-3 py-1 text-[11px] text-secondary-400">
+            Mọi trạng thái
+          </span>
+        )}
+        {tierLabel ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-700">
+            <SparklesIcon className="h-3 w-3" />
+            {tierLabel}
+            {tierDesc && <span className="text-amber-500 font-normal">· {tierDesc}</span>}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-secondary-200 bg-white px-3 py-1 text-[11px] text-secondary-400">
+            Mọi hạng thành viên
+          </span>
+        )}
+      </div>
+
+      <p className="text-[11px] text-secondary-500 leading-relaxed">
+        {hasFilter
+          ? "Thông báo sẽ gửi đến khách hàng thỏa mãn tất cả điều kiện trên."
+          : "Chưa áp dụng bộ lọc — thông báo sẽ gửi đến toàn bộ nhóm khách hàng."}
+      </p>
+    </div>
+  );
+}
+
+// ─── Notification preview card (Step 3) ──────────────────────────────────────
+
+function NotificationPreviewCard({
+  channels,
+  tieuDe,
+  noiDung,
+}: {
+  channels: NotificationChannel[];
+  tieuDe: string;
+  noiDung: string;
+}) {
+  const title   = tieuDe  || "Tiêu đề thông báo";
+  const content = noiDung || "Nội dung thông báo sẽ hiển thị tại đây...";
+  const short   = content.length > 90 ? content.slice(0, 90) + "…" : content;
+
+  return (
+    <div className="space-y-2">
+      {channels.includes("Push") && (
+        <div className="rounded-xl border border-secondary-200 bg-secondary-50 p-3">
+          <div className="flex items-start gap-3">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary-600 text-white shadow-sm">
+              <BellIcon className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-0.5">
+                <span className="text-[11px] font-semibold text-secondary-500 uppercase tracking-wide">Online PC Store</span>
+                <span className="text-[10px] text-secondary-400 shrink-0">Vừa xong</span>
+              </div>
+              <p className="text-xs font-semibold text-secondary-900 truncate">{title}</p>
+              <p className="text-xs text-secondary-500 line-clamp-2 leading-relaxed mt-0.5">{short}</p>
+            </div>
+          </div>
+          <p className="mt-2 text-right text-[10px] font-medium text-amber-600">Push Notification</p>
+        </div>
+      )}
+
+      {channels.includes("Email") && (
+        <div className="rounded-xl border border-primary-200 bg-primary-50/50 p-3 space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1.5">
+              <EnvelopeIcon className="h-3.5 w-3.5 text-primary-500" />
+              <span className="text-[10px] font-semibold text-primary-600 uppercase tracking-wide">Email Preview</span>
+            </div>
+          </div>
+          <div className="space-y-0.5 text-[11px]">
+            <p className="text-secondary-400">Từ: <span className="text-secondary-600">noreply@online-pc-store.vn</span></p>
+            <p className="text-secondary-400">Chủ đề: <span className="font-medium text-secondary-800">{title}</span></p>
+          </div>
+          <div className="border-t border-primary-100 pt-2 text-xs text-secondary-600 line-clamp-3 leading-relaxed whitespace-pre-line">
+            {content}
+          </div>
+        </div>
+      )}
+
+      {channels.includes("SMS") && (
+        <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3 space-y-2">
+          <div className="flex items-center gap-1.5">
+            <DevicePhoneMobileIcon className="h-3.5 w-3.5 text-violet-500" />
+            <span className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide">SMS Preview</span>
+          </div>
+          <div className="rounded-lg border border-violet-100 bg-white px-3 py-2">
+            <p className="text-xs text-secondary-700 leading-relaxed">
+              {tieuDe ? `[${tieuDe}] ` : ""}{short}
+            </p>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -206,7 +327,7 @@ interface FormState {
   targetType: TargetType;
   groupStatus: string;
   groupTier: string;
-  specificCustomerIds: string[];   // selected customer IDs (string values from Select)
+  specificCustomerIds: string[];
   // Step 2
   loaiThongBao: NotificationLoai | "";
   channels: NotificationChannel[];
@@ -227,23 +348,159 @@ const INITIAL: FormState = {
   guiNgay: true, thoiGianGui: "",
 };
 
-// ─── Preview count (mock) ─────────────────────────────────────────────────────
+// ─── Preview count ────────────────────────────────────────────────────────────
 
-function estimateCount(form: FormState): number {
+function estimateCount(form: FormState, totalCustomers: number): number {
   const base =
-    form.targetType === "all"      ? 1243 :
-    form.targetType === "group"    ? 312  :
+    form.targetType === "all"      ? totalCustomers :
+    form.targetType === "group"    ? Math.round(totalCustomers * 0.25) :
     form.specificCustomerIds.length;
   return Math.max(base, 0) * form.channels.length;
 }
 
+// ─── Review row helper ────────────────────────────────────────────────────────
+
+function ReviewRow({
+  icon,
+  label,
+  children,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-start gap-4 px-4 py-3">
+      <div className="mt-0.5 shrink-0 text-secondary-400">{icon}</div>
+      <span className="w-32 shrink-0 text-xs font-medium text-secondary-400">{label}</span>
+      <div className="flex-1 text-sm text-secondary-800">{children}</div>
+    </div>
+  );
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function CreateNotificationForm() {
+export function CreateNotificationForm({ membershipTiers }: { membershipTiers: MembershipTier[] }) {
+  const tierSelectOptions: SelectOption[] = membershipTiers.map((t) => ({
+    value: t.name,
+    label: t.displayName,
+    description: t.maxPoints !== null
+      ? `${t.minPoints.toLocaleString("vi-VN")} – ${t.maxPoints.toLocaleString("vi-VN")} điểm`
+      : `Từ ${t.minPoints.toLocaleString("vi-VN")} điểm trở lên`,
+  }));
+
   const { showToast } = useToast();
   const [step, setStep] = useState(1);
   const [form, setForm] = useState<FormState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
+
+  // ── Customer data ─────────────────────────────────────────────────────────
+  const [customers, setCustomers]               = useState<SelectOption[]>([]);
+  const [customersLoading, setCustomersLoading] = useState(false);
+  const [customersError, setCustomersError]     = useState(false);
+  const [customersTotal, setCustomersTotal]     = useState(0);
+
+  const loadCustomers = useCallback(() => {
+    setCustomersLoading(true);
+    setCustomersError(false);
+    // backend PaginationDto has @Max(100) — fetch 2 pages in parallel for up to 200 customers
+    Promise.all([
+      getCustomers({ limit: 100, page: 1 }),
+      getCustomers({ limit: 100, page: 2 }),
+    ])
+      .then(([p1, p2]) => {
+        const merged = [
+          ...p1.data,
+          ...(p2.data.length > 0 ? p2.data : []),
+        ];
+        setCustomers(
+          merged.map((c) => ({
+            value: String(c.id),
+            label: c.fullName,
+            description: `${c.phone ?? ""} · ${c.email}`,
+          }))
+        );
+        setCustomersTotal(p1.total);
+      })
+      .catch(() => {
+        setCustomers([]);
+        setCustomersError(true);
+      })
+      .finally(() => setCustomersLoading(false));
+  }, []);
+
+  useEffect(() => { loadCustomers(); }, [loadCustomers]);
+
+  // ── Entity options ────────────────────────────────────────────────────────
+  const [entityOptions, setEntityOptions]               = useState<SelectOption[]>([]);
+  const [entityOptionsLoading, setEntityOptionsLoading] = useState(false);
+
+  const isSingleSpecific =
+    form.targetType === "specific" && form.specificCustomerIds.length === 1;
+
+  const allowedEntityTypeOptions = isSingleSpecific
+    ? ENTITY_TYPE_SELECT_OPTIONS
+    : ENTITY_TYPE_SELECT_OPTIONS.filter((o) => o.value === "KhuyenMai");
+
+  const entityLinkRestricted = !isSingleSpecific;
+
+  const effectiveEntityType =
+    allowedEntityTypeOptions.some((o) => o.value === form.entityType)
+      ? form.entityType
+      : "";
+
+  useEffect(() => {
+    if (!effectiveEntityType) {
+      setEntityOptions([]);
+      return;
+    }
+    setEntityOptionsLoading(true);
+    setEntityOptions([]);
+
+    async function load() {
+      try {
+        let opts: SelectOption[] = [];
+
+        if (effectiveEntityType === "DonHang") {
+          const result = await getOrders({ pageSize: 100 });
+          opts = result.data.map((o) => ({
+            value: String(o.numericId),
+            label: o.id,
+            description: `ID: ${o.numericId} · ${o.grandTotal.toLocaleString("vi-VN")} ₫ · ${o.customerName}`,
+          }));
+        } else if (effectiveEntityType === "GiaoDich") {
+          const result = await getTransactions({ pageSize: 100 });
+          opts = result.data.map((row) => ({
+            value: String(row.giaoDichId),
+            label: row.maGiaoDichNgoai ?? `TX-${row.giaoDichId}`,
+            description: `ID: ${row.giaoDichId} · ${row.soTien.toLocaleString("vi-VN")} ₫ · ${row.tenKhachHang}`,
+          }));
+        } else if (effectiveEntityType === "HoanHang") {
+          const result = await getReturns({ limit: 100 });
+          opts = result.items.map((r) => ({
+            value: r.id,
+            label: r.orderCode ?? `RET-${r.id}`,
+            description: `ID: ${r.id} · ${r.customerName ?? ""}`,
+          }));
+        } else if (effectiveEntityType === "KhuyenMai") {
+          const result = await getPromotionList({ limit: 100 });
+          opts = result.data.map((p) => ({
+            value: p.id,
+            label: p.name,
+            description: `ID: ${p.id}${p.code ? ` · Mã: ${p.code}` : ""}`,
+          }));
+        }
+
+        setEntityOptions(opts);
+      } catch {
+        setEntityOptions([]);
+      } finally {
+        setEntityOptionsLoading(false);
+      }
+    }
+
+    load();
+  }, [effectiveEntityType]);
 
   function set<K extends keyof FormState>(key: K, val: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -308,31 +565,29 @@ export function CreateNotificationForm() {
     }
   }
 
-  const estimatedCount = estimateCount(form);
+  const estimatedCount   = estimateCount(form, customersTotal);
+  const loaiInfo         = LOAI_OPTIONS.find((o) => o.value === form.loaiThongBao);
+  const entityTypelabel  = ENTITY_TYPE_SELECT_OPTIONS.find((o) => o.value === effectiveEntityType)?.label;
+  const entityName       = entityOptions.find((o) => o.value === form.entityId)?.label;
 
-  // ── Entity type constraints ───────────────────────────────────────────────
-  // DonHang/GiaoDich/HoanHang thuộc về 1 khách cụ thể → chỉ cho phép khi
-  // targetType=specific VÀ đúng 1 khách được chọn.
-  // KhuyenMai có thể broadcast hợp lệ cho nhiều/tất cả khách.
-  const isSingleSpecific =
-    form.targetType === "specific" && form.specificCustomerIds.length === 1;
+  // ── Helpers for step 3 audience description ──────────────────────────────
+  const audienceDescription = (() => {
+    if (form.targetType === "all") return "Tất cả khách hàng";
+    if (form.targetType === "group") {
+      const parts: string[] = [];
+      const statusLbl = STATUS_SELECT_OPTIONS.find((o) => o.value === form.groupStatus)?.label;
+      const tierLbl   = tierSelectOptions.find((o) => o.value === form.groupTier)?.label;
+      if (statusLbl) parts.push(statusLbl);
+      if (tierLbl)   parts.push(`Hạng ${tierLbl}`);
+      return parts.length ? `Nhóm: ${parts.join(" · ")}` : "Theo nhóm (tất cả)";
+    }
+    return `${form.specificCustomerIds.length} khách hàng được chọn`;
+  })();
 
-  const allowedEntityTypeOptions = isSingleSpecific
-    ? ENTITY_TYPE_SELECT_OPTIONS
-    : ENTITY_TYPE_SELECT_OPTIONS.filter((o) => o.value === "KhuyenMai");
-
-  const entityLinkRestricted = !isSingleSpecific;
-
-  // Reset entityType/entityId nếu loại hiện tại không còn được phép
-  const effectiveEntityType =
-    allowedEntityTypeOptions.some((o) => o.value === form.entityType)
-      ? form.entityType
-      : "";
-
-  // Entity record options based on selected type
-  const entityOptions = effectiveEntityType
-    ? (MOCK_ENTITIES[effectiveEntityType] ?? [])
-    : [];
+  const audienceBase =
+    form.targetType === "all"      ? customersTotal :
+    form.targetType === "group"    ? Math.round(customersTotal * 0.25) :
+    form.specificCustomerIds.length;
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
@@ -349,7 +604,7 @@ export function CreateNotificationForm() {
                 const cfg = {
                   all:      { icon: <UsersIcon className="h-5 w-5" />,      label: "Tất cả KH",    desc: "Gửi đến toàn bộ khách hàng" },
                   group:    { icon: <UserGroupIcon className="h-5 w-5" />,   label: "Theo nhóm",    desc: "Lọc theo trạng thái, hạng" },
-                  specific: { icon: <UserIcon className="h-5 w-5" />,        label: "Khách cụ thể", desc: "Chọn khách hàng từ danh sách" },
+                  specific: { icon: <UserIcon className="h-5 w-5" />,        label: "Khách cụ thể", desc: "Chọn từ danh sách" },
                 }[t];
                 return (
                   <button
@@ -371,45 +626,75 @@ export function CreateNotificationForm() {
               })}
             </div>
 
-            {/* Group filter options */}
+            {/* Group filter options + preview */}
             {form.targetType === "group" && (
-              <div className="grid grid-cols-2 gap-4 rounded-xl border border-secondary-100 bg-secondary-50/60 p-4">
-                <Select
-                  label="Trạng thái tài khoản"
-                  placeholder="— Tất cả —"
-                  options={STATUS_SELECT_OPTIONS}
-                  value={form.groupStatus}
-                  onChange={(v) => set("groupStatus", v as string)}
-                  clearable
-                  size="sm"
-                />
-                <Select
-                  label="Hạng thành viên"
-                  placeholder="— Tất cả hạng —"
-                  options={TIER_SELECT_OPTIONS}
-                  value={form.groupTier}
-                  onChange={(v) => set("groupTier", v as string)}
-                  clearable
-                  boldLabel
-                  size="sm"
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 items-start gap-4 rounded-xl border border-secondary-100 bg-secondary-50/60 p-4">
+                  <Select
+                    label="Trạng thái tài khoản"
+                    placeholder="— Tất cả —"
+                    options={STATUS_SELECT_OPTIONS}
+                    value={form.groupStatus}
+                    onChange={(v) => set("groupStatus", v as string)}
+                    clearable
+                    size="sm"
+                  />
+                  <Select
+                    label="Hạng thành viên"
+                    placeholder="— Tất cả hạng —"
+                    options={tierSelectOptions}
+                    value={form.groupTier}
+                    onChange={(v) => set("groupTier", v as string)}
+                    clearable
+                    boldLabel
+                    showDescriptionInTrigger={false}
+                    size="sm"
+                  />
+                </div>
+
+                {/* Group preview card */}
+                <GroupPreviewCard
+                  groupStatus={form.groupStatus}
+                  groupTier={form.groupTier}
+                  tierOptions={tierSelectOptions}
                 />
               </div>
             )}
 
             {/* Specific customers — multi select */}
             {form.targetType === "specific" && (
-              <div className="space-y-1.5">
-                <Select
-                  label="Chọn khách hàng *"
-                  placeholder="Tìm kiếm theo tên hoặc email..."
-                  options={MOCK_CUSTOMERS}
-                  value={form.specificCustomerIds}
-                  onChange={(v) => set("specificCustomerIds", v as string[])}
-                  multiple
-                  searchable
-                  clearable
-                  boldLabel
-                />
+              <div className="space-y-2">
+                {customersError ? (
+                  <div className="flex items-start gap-3 rounded-xl border border-error-200 bg-error-50 px-4 py-3">
+                    <ExclamationTriangleIcon className="h-4 w-4 shrink-0 mt-0.5 text-error-500" />
+                    <div className="flex-1">
+                      <p className="text-xs font-medium text-error-700">Không thể tải danh sách khách hàng</p>
+                      <p className="text-[11px] text-error-500 mt-0.5">Kiểm tra kết nối và đảm bảo bạn đã đăng nhập.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={loadCustomers}
+                      className="inline-flex items-center gap-1 rounded-lg border border-error-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-error-600 hover:bg-error-50 transition-colors"
+                    >
+                      <ArrowPathIcon className="h-3 w-3" />
+                      Thử lại
+                    </button>
+                  </div>
+                ) : (
+                  <Select
+                    label="Chọn khách hàng"
+                    required
+                    placeholder={customersLoading ? "Đang tải..." : "Tìm kiếm theo tên hoặc email..."}
+                    options={customers}
+                    value={form.specificCustomerIds}
+                    onChange={(v) => set("specificCustomerIds", v as string[])}
+                    multiple
+                    searchable
+                    clearable
+                    boldLabel
+                    disabled={customersLoading}
+                  />
+                )}
                 {form.specificCustomerIds.length > 0 && (
                   <p className="text-[11px] text-secondary-400">
                     Đã chọn {form.specificCustomerIds.length} khách hàng ·{" "}
@@ -451,6 +736,7 @@ export function CreateNotificationForm() {
                       : "border-secondary-200 bg-white text-secondary-600 hover:border-secondary-300",
                   ].join(" ")}
                 >
+                  <span className="mb-0.5 text-current opacity-70">{opt.icon}</span>
                   <span className="text-xs font-semibold">{opt.label}</span>
                   <span className="text-[11px] text-secondary-400">{opt.desc}</span>
                 </button>
@@ -513,32 +799,34 @@ export function CreateNotificationForm() {
                 </span>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 items-start gap-4">
               <Select
                 label="Loại thực thể"
                 placeholder="— Không liên kết —"
                 options={allowedEntityTypeOptions}
                 value={effectiveEntityType}
                 onChange={(v) => {
-                  setForm((prev) => ({
-                    ...prev,
-                    entityType: v as string,
-                    entityId: "",
-                  }));
+                  setForm((prev) => ({ ...prev, entityType: v as string, entityId: "" }));
                 }}
                 clearable
                 boldLabel
+                showDescriptionInTrigger={false}
               />
               <Select
                 label="Thực thể liên kết"
-                placeholder={effectiveEntityType ? "Tìm kiếm..." : "— Chọn loại trước —"}
+                placeholder={
+                  !effectiveEntityType ? "— Chọn loại trước —" :
+                  entityOptionsLoading  ? "Đang tải..."          :
+                  "Tìm kiếm..."
+                }
                 options={entityOptions}
                 value={effectiveEntityType === form.entityType ? form.entityId : ""}
                 onChange={(v) => set("entityId", v as string)}
                 searchable
                 clearable
                 boldLabel
-                disabled={!effectiveEntityType}
+                showDescriptionInTrigger={false}
+                disabled={!effectiveEntityType || entityOptionsLoading}
               />
             </div>
           </Section>
@@ -577,58 +865,147 @@ export function CreateNotificationForm() {
 
       {/* ── Step 3: Xem lại & Gửi ── */}
       {step === 3 && (
-        <div className="space-y-4">
+        <div className="space-y-5">
           <h3 className="text-sm font-semibold text-secondary-700">Xem lại trước khi gửi</h3>
 
+          {/* Audience + Delivery summary */}
           <div className="rounded-xl border border-secondary-200 bg-white divide-y divide-secondary-100">
-            {[
-              {
-                label: "Đối tượng",
-                value:
-                  form.targetType === "all"
-                    ? "Tất cả khách hàng"
-                    : form.targetType === "group"
-                    ? [
-                        "Theo nhóm",
-                        form.groupStatus && `· Trạng thái: ${STATUS_SELECT_OPTIONS.find((o) => o.value === form.groupStatus)?.label}`,
-                        form.groupTier   && `· Hạng: ${form.groupTier}`,
-                      ].filter(Boolean).join(" ")
-                    : `Khách cụ thể (${form.specificCustomerIds.length} KH): ${
-                        form.specificCustomerIds
-                          .map((id) => MOCK_CUSTOMERS.find((c) => c.value === id)?.label ?? `#${id}`)
-                          .join(", ")
-                      }`,
-              },
-              { label: "Loại thông báo", value: LOAI_OPTIONS.find((o) => o.value === form.loaiThongBao)?.label ?? "—" },
-              { label: "Kênh gửi", value: form.channels.join(", ") },
-              { label: "Tiêu đề", value: form.tieuDe },
-              {
-                label: "Liên kết",
-                value: effectiveEntityType
-                  ? `${ENTITY_TYPE_SELECT_OPTIONS.find((o) => o.value === effectiveEntityType)?.label} #${form.entityId || "—"}`
-                  : "Không liên kết",
-              },
-              { label: "Thời gian", value: form.guiNgay ? "Gửi ngay" : `Lên lịch: ${form.thoiGianGui}` },
-            ].map(({ label, value }) => (
-              <div key={label} className="flex items-start gap-4 px-4 py-3">
-                <span className="w-36 shrink-0 text-xs font-medium text-secondary-400">{label}</span>
-                <span className="flex-1 text-sm text-secondary-800">{value}</span>
+            <ReviewRow icon={<UsersIcon className="h-4 w-4" />} label="Đối tượng">
+              <div className="space-y-1">
+                <span>{audienceDescription}</span>
+                {form.targetType === "group" && (form.groupStatus || form.groupTier) && (
+                  <div className="flex flex-wrap gap-1.5 mt-1">
+                    {form.groupStatus && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-primary-50 border border-primary-100 px-2 py-0.5 text-[11px] text-primary-600">
+                        <ShieldCheckIcon className="h-3 w-3" />
+                        {STATUS_SELECT_OPTIONS.find((o) => o.value === form.groupStatus)?.label}
+                      </span>
+                    )}
+                    {form.groupTier && (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 border border-amber-100 px-2 py-0.5 text-[11px] text-amber-600">
+                        <SparklesIcon className="h-3 w-3" />
+                        {tierSelectOptions.find((o) => o.value === form.groupTier)?.label}
+                      </span>
+                    )}
+                  </div>
+                )}
+                {form.targetType === "specific" && form.specificCustomerIds.length > 0 && (
+                  <p className="text-xs text-secondary-500 mt-0.5">
+                    {form.specificCustomerIds
+                      .slice(0, 3)
+                      .map((id) => customers.find((c) => c.value === id)?.label ?? `#${id}`)
+                      .join(", ")}
+                    {form.specificCustomerIds.length > 3 && ` và ${form.specificCustomerIds.length - 3} người khác`}
+                  </p>
+                )}
               </div>
-            ))}
+            </ReviewRow>
+
+            <ReviewRow icon={<TagIcon className="h-4 w-4" />} label="Loại thông báo">
+              {loaiInfo ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="text-secondary-500">{loaiInfo.icon}</span>
+                  <span>{loaiInfo.label}</span>
+                  <span className="text-secondary-400 text-xs">— {loaiInfo.desc}</span>
+                </span>
+              ) : "—"}
+            </ReviewRow>
+
+            <ReviewRow icon={<BellIcon className="h-4 w-4" />} label="Kênh gửi">
+              <div className="flex flex-wrap gap-1.5">
+                {form.channels.map((ch) => {
+                  const cfg = CHANNEL_CONFIG[ch];
+                  return (
+                    <span
+                      key={ch}
+                      className={[
+                        "inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-xs font-medium",
+                        cfg.activeCls,
+                      ].join(" ")}
+                    >
+                      {cfg.icon}
+                      {ch}
+                    </span>
+                  );
+                })}
+              </div>
+            </ReviewRow>
+
+            <ReviewRow icon={<ClockIcon className="h-4 w-4" />} label="Thời gian gửi">
+              {form.guiNgay ? (
+                <span className="inline-flex items-center gap-1.5 text-success-600 font-medium text-xs">
+                  <span className="h-1.5 w-1.5 rounded-full bg-success-500 animate-pulse" />
+                  Gửi ngay sau khi xác nhận
+                </span>
+              ) : (
+                <span className="text-secondary-700">
+                  {form.thoiGianGui
+                    ? new Date(form.thoiGianGui).toLocaleString("vi-VN", { dateStyle: "medium", timeStyle: "short" })
+                    : "—"}
+                </span>
+              )}
+            </ReviewRow>
+
+            {effectiveEntityType && (
+              <ReviewRow icon={<TagIcon className="h-4 w-4" />} label="Liên kết">
+                <span>
+                  {entityTypelabel} {entityName ? `— ${entityName}` : form.entityId ? `#${form.entityId}` : "—"}
+                </span>
+              </ReviewRow>
+            )}
+
             <div className="flex items-start gap-4 px-4 py-3">
-              <span className="w-36 shrink-0 text-xs font-medium text-secondary-400">Nội dung</span>
-              <p className="flex-1 text-sm text-secondary-700 whitespace-pre-line leading-relaxed">
-                {form.noiDung}
-              </p>
+              <div className="mt-0.5 shrink-0 text-secondary-400">
+                <EnvelopeIcon className="h-4 w-4" />
+              </div>
+              <span className="w-32 shrink-0 text-xs font-medium text-secondary-400">Nội dung</span>
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-semibold text-secondary-800">{form.tieuDe}</p>
+                <p className="text-sm text-secondary-600 whitespace-pre-line leading-relaxed">{form.noiDung}</p>
+              </div>
             </div>
           </div>
 
-          {/* Estimated count */}
-          <div className="flex items-center gap-2 rounded-xl border border-primary-100 bg-primary-50 px-4 py-3 text-sm text-primary-700">
-            <InformationCircleIcon className="h-4 w-4 shrink-0" />
-            Sẽ tạo{" "}
-            <strong>{estimatedCount.toLocaleString("vi-VN")}</strong>{" "}
-            thông báo vào hàng đợi.
+          {/* Notification preview */}
+          <div className="space-y-2">
+            <p className="text-xs font-medium text-secondary-500 uppercase tracking-wide">Preview thông báo</p>
+            <NotificationPreviewCard
+              channels={form.channels}
+              tieuDe={form.tieuDe}
+              noiDung={form.noiDung}
+            />
+          </div>
+
+          {/* Impact breakdown */}
+          <div className="rounded-xl border border-primary-100 bg-primary-50 px-4 py-3 space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-primary-700">
+              <PaperAirplaneIcon className="h-4 w-4" />
+              Tổng kết lần gửi
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div className="rounded-lg bg-white border border-primary-100 px-3 py-2">
+                <p className="text-lg font-bold text-secondary-800">{audienceBase.toLocaleString("vi-VN")}</p>
+                <p className="text-[11px] text-secondary-400 mt-0.5">Đối tượng nhận</p>
+              </div>
+              <div className="flex items-center justify-center text-secondary-300">
+                <span className="text-lg font-light">×</span>
+              </div>
+              <div className="rounded-lg bg-white border border-primary-100 px-3 py-2">
+                <p className="text-lg font-bold text-secondary-800">{form.channels.length}</p>
+                <p className="text-[11px] text-secondary-400 mt-0.5">
+                  {form.channels.length === 1 ? "Kênh gửi" : "Kênh gửi"}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center justify-center gap-2 border-t border-primary-100 pt-2">
+              <InformationCircleIcon className="h-3.5 w-3.5 text-primary-400" />
+              <span className="text-xs text-primary-600">
+                Ước tính{" "}
+                <strong className="text-primary-800">{estimatedCount.toLocaleString("vi-VN")}</strong>{" "}
+                thông báo sẽ được đưa vào hàng đợi gửi
+                {form.guiNgay ? " ngay lập tức" : ""}.
+              </span>
+            </div>
           </div>
         </div>
       )}

@@ -3,12 +3,14 @@
 import { useEffect, useState } from "react";
 import { Modal } from "@/src/components/ui/Modal";
 import { Input } from "@/src/components/ui/Input";
-import { Select } from "@/src/components/ui/Select";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Button } from "@/src/components/ui/Button";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Alert } from "@/src/components/ui/Alert";
-import { CATEGORY_OPTIONS } from "@/src/services/buildpc.service";
+import { Badge } from "@/src/components/ui/Badge";
+import { CategoryTreeSelect } from "@/src/components/admin/CategoryTreeSelect";
+import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect/types";
+import { getAdminCategoryNodeTree } from "@/src/services/category.service";
 import type { BuildPCSlot, BuildPCSlotFormData } from "@/src/types/buildpc.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -37,12 +39,6 @@ function slotToForm(s: BuildPCSlot): BuildPCSlotFormData {
   };
 }
 
-const CATEGORY_SELECT_OPTIONS = CATEGORY_OPTIONS.map((c) => ({
-  value: String(c.value),
-  label: c.label,
-  description: c.description,
-}));
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface SlotFormModalProps {
@@ -63,6 +59,11 @@ export function SlotFormModal({
   const [form, setForm] = useState<BuildPCSlotFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof BuildPCSlotFormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
+
+  useEffect(() => {
+    getAdminCategoryNodeTree().then(setCategoryTree).catch(() => {});
+  }, []);
 
   // Populate form when opening for edit
   useEffect(() => {
@@ -127,6 +128,11 @@ export function SlotFormModal({
           duy nhất và không thay đổi sau khi có quy tắc tương thích trỏ vào.
         </Alert>
 
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-secondary-500">Thứ tự:</span>
+          <Badge variant="primary" size="sm">{form.thuTu}</Badge>
+        </div>
+
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Tên khe"
@@ -147,35 +153,26 @@ export function SlotFormModal({
           />
         </div>
 
-        <Select
+        <CategoryTreeSelect
           label="Danh mục sản phẩm"
           placeholder="Chọn danh mục…"
-          options={CATEGORY_SELECT_OPTIONS}
-          value={form.danhMucId !== "" ? String(form.danhMucId) : ""}
-          onChange={(v) => set("danhMucId", (Array.isArray(v) ? v[0] : v) !== "" ? Number(Array.isArray(v) ? v[0] : v) : "")}
+          categories={categoryTree}
+          value={form.danhMucId !== "" ? String(form.danhMucId) : undefined}
+          onChange={(id) => set("danhMucId", Number(id))}
           errorMessage={errors.danhMucId}
           required
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <Input
-            label="Số lượng tối đa"
-            type="number"
-            min={1}
-            max={8}
-            value={String(form.soLuong)}
-            onChange={(e) => set("soLuong", Math.max(1, parseInt(e.target.value) || 1))}
-            errorMessage={errors.soLuong}
-            helperText="VD: 2 cho khe RAM dual-channel"
-          />
-          <Input
-            label="Thứ tự hiển thị"
-            type="number"
-            min={1}
-            value={String(form.thuTu)}
-            onChange={(e) => set("thuTu", Math.max(1, parseInt(e.target.value) || 1))}
-          />
-        </div>
+        <Input
+          label="Số lượng tối đa"
+          type="number"
+          min={1}
+          max={8}
+          value={String(form.soLuong)}
+          onChange={(e) => set("soLuong", Math.max(1, parseInt(e.target.value) || 1))}
+          errorMessage={errors.soLuong}
+          helperText="VD: 2 cho khe RAM dual-channel"
+        />
 
         <Textarea
           label="Mô tả"

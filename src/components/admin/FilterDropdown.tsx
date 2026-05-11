@@ -264,11 +264,11 @@ export function FilterDropdown({
                   Không tìm thấy kết quả
                 </li>
               ) : (
-                filtered.map((option) => {
+                filtered.map((option, i) => {
                   const isSelected = selected.includes(option.value);
                   return (
                     <li
-                      key={option.value}
+                      key={option.value ? `${option.value}-${i}` : String(i)}
                       role="option"
                       aria-selected={isSelected}
                     >

@@ -5,15 +5,13 @@ import type { ReactNode } from "react";
 import {
   PencilSquareIcon,
   TrashIcon,
-  StarIcon,
   PlusIcon,
   MapPinIcon,
 } from "@heroicons/react/24/outline";
 import { DataTable, type ColumnDef } from "@/src/components/admin/DataTable";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
-import { AdminEmptyState } from "@/src/components/admin/shared/AdminEmptyState";
-import { Badge } from "@/src/components/ui/Badge";
 import { Button } from "@/src/components/ui/Button";
+import { Toggle } from "@/src/components/ui/Toggle";
 import { useToast } from "@/src/components/ui/Toast";
 import { AddressFormModal } from "@/src/components/admin/customers/AddressFormModal";
 import {
@@ -31,16 +29,6 @@ export interface CustomerAddressesTableProps {
 
 type AddressRow = DiaChiGiaoHang & Record<string, unknown>;
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("vi-VN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  });
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function CustomerAddressesTable({
@@ -50,6 +38,7 @@ export function CustomerAddressesTable({
   const { showToast } = useToast();
 
   const [addresses, setAddresses] = useState<DiaChiGiaoHang[]>(initialAddresses);
+  const [settingDefaultId, setSettingDefaultId] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<DiaChiGiaoHang | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -63,11 +52,19 @@ export function CustomerAddressesTable({
   }, [addresses, page, pageSize]);
 
   const handleSetDefault = useCallback(async (addr: DiaChiGiaoHang) => {
-    await setDefaultAddress(customerId, addr.id);
-    setAddresses((prev) =>
-      prev.map((a) => ({ ...a, isDefault: a.id === addr.id }))
-    );
-    showToast("Đã đặt địa chỉ mặc định.", "success");
+    if (addr.isDefault) return;
+    setSettingDefaultId(addr.id);
+    try {
+      await setDefaultAddress(customerId, addr.id);
+      setAddresses((prev) =>
+        prev.map((a) => ({ ...a, isDefault: a.id === addr.id }))
+      );
+      showToast("Đã đặt địa chỉ mặc định.", "success");
+    } catch {
+      showToast("Không thể đặt địa chỉ mặc định. Vui lòng thử lại.", "error");
+    } finally {
+      setSettingDefaultId(null);
+    }
   }, [customerId, showToast]);
 
   const handleDeleteConfirm = useCallback(async () => {
@@ -77,7 +74,9 @@ export function CustomerAddressesTable({
       await deleteAddress(customerId, deleteTarget.id);
       setAddresses((prev) => prev.filter((a) => a.id !== deleteTarget.id));
       setDeleteTarget(null);
-      showToast("Đã xóa địa chỉ.", "success");
+      showToast("Đã xóa địa chỉ giao hàng.", "success");
+    } catch {
+      showToast("Không thể xóa địa chỉ. Vui lòng thử lại.", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -89,12 +88,10 @@ export function CustomerAddressesTable({
       if (idx >= 0) {
         const next = [...prev];
         next[idx] = saved;
-        // If saved.isDefault, clear other defaults
         return saved.isDefault
           ? next.map((a) => ({ ...a, isDefault: a.id === saved.id }))
           : next;
       }
-      // New address — if isDefault, clear others
       const newList = saved.isDefault
         ? prev.map((a) => ({ ...a, isDefault: false }))
         : [...prev];
@@ -139,41 +136,28 @@ export function CustomerAddressesTable({
         header: "Mặc định",
         width: "w-28",
         align: "center",
-        render: (_, row) =>
-          row.isDefault ? (
-            <Badge variant="success" size="sm" dot>Mặc định</Badge>
-          ) : null,
-      },
-      {
-        key: "createdAt",
-        header: "Ngày thêm",
-        width: "w-28",
-        render: (_, row) => (
-          <span className="text-sm text-secondary-500">{formatDate(row.createdAt as string)}</span>
+        render: (_, row): ReactNode => (
+          <Toggle
+            size="sm"
+            checked={Boolean(row.isDefault)}
+            disabled={Boolean(row.isDefault) || settingDefaultId === row.id}
+            onChange={() => handleSetDefault(row as DiaChiGiaoHang)}
+            aria-label="Đặt làm địa chỉ mặc định"
+          />
         ),
       },
       {
         key: "_actions",
         header: "",
-        width: "w-28",
+        width: "w-20",
         align: "right",
         render: (_, row): ReactNode => (
           <div className="flex items-center justify-end gap-1">
-            {!row.isDefault && (
-              <button
-                type="button"
-                aria-label="Đặt làm mặc định"
-                onClick={() => handleSetDefault(row as DiaChiGiaoHang)}
-                className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-warning-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
-              >
-                <StarIcon className="h-4 w-4" />
-              </button>
-            )}
             <button
               type="button"
               aria-label="Chỉnh sửa địa chỉ"
               onClick={() => { setEditAddress(row as DiaChiGiaoHang); setModalOpen(true); }}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-500"
             >
               <PencilSquareIcon className="h-4 w-4" />
             </button>
@@ -181,7 +165,7 @@ export function CustomerAddressesTable({
               type="button"
               aria-label="Xóa địa chỉ"
               onClick={() => setDeleteTarget(row as DiaChiGiaoHang)}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
+              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-error-500"
             >
               <TrashIcon className="h-4 w-4" />
             </button>
@@ -189,8 +173,7 @@ export function CustomerAddressesTable({
         ),
       },
     ],
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [handleSetDefault, settingDefaultId]
   );
 
   const openCreate = useCallback(() => {
@@ -229,10 +212,14 @@ export function CustomerAddressesTable({
 
       <AddressFormModal
         isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
+        onClose={() => { setModalOpen(false); setEditAddress(null); }}
         customerId={customerId}
         address={editAddress}
-        onSaved={handleSaved}
+        onSaved={(saved) => {
+          handleSaved(saved);
+          setModalOpen(false);
+          setEditAddress(null);
+        }}
       />
 
       <ConfirmDialog

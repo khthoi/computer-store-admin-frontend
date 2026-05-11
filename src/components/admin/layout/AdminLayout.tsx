@@ -24,10 +24,7 @@ import {
   ArrowDownTrayIcon,
   AdjustmentsHorizontalIcon,
   CreditCardIcon,
-  TruckIcon,
   BellIcon,
-  ReceiptPercentIcon,
-  PuzzlePieceIcon,
   BoltIcon,
   // Content icons
   PhotoIcon,
@@ -48,6 +45,7 @@ import { AdminHeader } from "@/src/components/admin/layout/AdminHeader";
 import type { AdminNotification } from "@/src/components/admin/layout/NotificationBell";
 import { ToastProvider } from "@/src/components/ui/Toast";
 import { useAuth } from "@/src/store/auth.store";
+import { AdminAuthService } from "@/src/services/admin-auth.service";
 import { SessionExpiredModal } from "@/src/components/admin/layout/SessionExpiredModal";
 
 const MOCK_NOTIFICATIONS: AdminNotification[] = [];
@@ -376,40 +374,10 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         icon: <ClipboardDocumentListIcon className="w-4 h-4" />,
       },
       {
-        value: "settings-general",
-        label: "Cài đặt chung",
-        href: "/settings/general",
-        icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
-      },
-      {
-        value: "settings-payments",
-        label: "Thanh toán",
-        href: "/settings/payments",
-        icon: <CreditCardIcon className="w-4 h-4" />,
-      },
-      {
-        value: "settings-shipping",
-        label: "Vận chuyển",
-        href: "/settings/shipping",
-        icon: <TruckIcon className="w-4 h-4" />,
-      },
-      {
         value: "settings-notifications",
         label: "Thông báo hệ thống",
         href: "/settings/notifications",
         icon: <BellIcon className="w-4 h-4" />,
-      },
-      {
-        value: "settings-tax",
-        label: "Thuế",
-        href: "/settings/tax",
-        icon: <ReceiptPercentIcon className="w-4 h-4" />,
-      },
-      {
-        value: "settings-integrations",
-        label: "Tích hợp",
-        href: "/settings/integrations",
-        icon: <PuzzlePieceIcon className="w-4 h-4" />,
       },
     ],
   },
@@ -440,7 +408,12 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
     avatarUrl: currentUser?.avatar ?? undefined,
   };
 
-  function handleSignOut() {
+  async function handleSignOut() {
+    try {
+      await AdminAuthService.logout();
+    } catch {
+      // proceed with local logout even if backend call fails
+    }
     logout();
     router.push("/login");
   }

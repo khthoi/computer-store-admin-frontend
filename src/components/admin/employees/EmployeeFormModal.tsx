@@ -7,12 +7,9 @@ import { Select } from "@/src/components/ui/Select";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { Button } from "@/src/components/ui/Button";
 import { RadioGroup, Radio } from "@/src/components/ui/Radio";
-import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
-import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { createEmployee, updateEmployee } from "@/src/services/employee.service";
 import type { NhanVien, EmployeeStatus, GenderType } from "@/src/types/employee.types";
 import type { VaiTro } from "@/src/types/role.types";
-import { MOCK_EMPLOYEES } from "@/src/app/(dashboard)/employees/_mock";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -50,9 +47,6 @@ export function EmployeeFormModal({
   const [hireDate, setHireDate] = useState(employee?.hireDate ?? "");
   const [gender, setGender] = useState<GenderType | null>(employee?.gender ?? null);
   const [dateOfBirth, setDateOfBirth] = useState(employee?.dateOfBirth ?? "");
-  const [avatarImage, setAvatarImage] = useState<ImageFieldValue>(
-    employee?.avatarUrl ? imageFieldFromUrl(employee.avatarUrl) : emptyImageField()
-  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
@@ -78,15 +72,7 @@ export function EmployeeFormModal({
     const next: Record<string, string> = {};
     if (!code.trim()) next.code = "Mã nhân viên không được để trống.";
     if (!fullName.trim()) next.fullName = "Họ tên không được để trống.";
-    if (!email.trim()) {
-      next.email = "Email không được để trống.";
-    } else {
-      // Check email uniqueness against mock data (excluding self when editing)
-      const duplicate = MOCK_EMPLOYEES.find(
-        (e) => e.email === email.trim() && e.id !== employee?.id
-      );
-      if (duplicate) next.email = "Email này đã được sử dụng bởi nhân viên khác.";
-    }
+    if (!isEdit && !email.trim()) next.email = "Email không được để trống.";
     if (!phone.trim()) next.phone = "Số điện thoại không được để trống.";
     if (!hireDate) next.hireDate = "Ngày vào làm không được để trống.";
     setErrors(next);
@@ -103,7 +89,6 @@ export function EmployeeFormModal({
       const saved = isEdit && employee
         ? await updateEmployee(employee.id, {
             fullName: fullName.trim(),
-            email: email.trim(),
             phone: phone.trim(),
             roleIds,
             roleNames: selectedRoleNames,
@@ -123,8 +108,6 @@ export function EmployeeFormModal({
             hireDate,
             gender,
             dateOfBirth: dateOfBirth || null,
-            avatarUrl: avatarImage.displayUrl ?? undefined,
-            avatarAssetId: avatarImage.assetId ?? undefined,
           });
       onSaved(saved);
       onClose();
@@ -133,6 +116,7 @@ export function EmployeeFormModal({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, employee, code, fullName, email, phone, roleIds, status, hireDate, gender, dateOfBirth, allRoles, onSaved, onClose]);
+
 
   return (
     <Modal
@@ -181,7 +165,8 @@ export function EmployeeFormModal({
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             errorMessage={errors.email}
-            required
+            disabled={isEdit}
+            required={!isEdit}
           />
           <Input
             label="Số điện thoại"
@@ -200,14 +185,6 @@ export function EmployeeFormModal({
           onChange={(v) => setRoleIds(v as string[])}
           multiple
           placeholder="Chọn vai trò…"
-        />
-
-        <ImageField
-          label="Ảnh đại diện"
-          value={avatarImage}
-          onChange={setAvatarImage}
-          aspectRatioHint="1:1 — Kích thước đề nghị 200 × 200 px"
-          allowedTypes={["image"]}
         />
 
         <div className="grid grid-cols-2 gap-4">

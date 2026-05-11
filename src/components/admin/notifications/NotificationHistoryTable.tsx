@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, useCallback } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import {
   BellIcon,
@@ -12,16 +12,20 @@ import {
   DataTable,
   RowActions,
   type ColumnDef,
-  type SortDir,
 } from "@/src/components/admin/DataTable";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import { ExportButton, type ExportFormat } from "@/src/components/admin/shared/ExportButton";
+import { Alert } from "@/src/components/ui/Alert";
 import { NotificationStatusBadge } from "@/src/components/admin/notifications/NotificationStatusBadge";
 import { NotificationChannelBadge } from "@/src/components/admin/notifications/NotificationChannelBadge";
 import { NotificationDetailDrawer } from "@/src/components/admin/notifications/NotificationDetailDrawer";
-import { cancelNotification, retryNotification } from "@/src/services/notification.service";
+import {
+  getNotifications,
+  cancelNotification,
+  retryNotification,
+} from "@/src/services/notification.service";
 import { useToast } from "@/src/components/ui/Toast";
 import type {
   ThongBaoRow,
@@ -43,12 +47,39 @@ function formatDatetime(iso: string): string {
   });
 }
 
-const ENTITY_HREF: Record<string, (id: number) => string> = {
-  DonHang:   (id) => `/orders/${id}`,
-  GiaoDich:  (_)  => `/orders/transactions`,
-  HoanHang:  (_)  => `/orders/returns`,
-  KhuyenMai: (id) => `/promotions/${id}`,
-};
+function entityHref(entity: string, id: number, maGiaoDichNgoai?: string | null): string {
+  switch (entity) {
+    case "DonHang":   return `/orders/${id}`;
+    case "GiaoDich":  return maGiaoDichNgoai
+      ? `/orders/transactions?q=${encodeURIComponent(maGiaoDichNgoai)}`
+      : `/orders/transactions`;
+    case "HoanHang":  return `/orders/returns/${id}`;
+    case "KhuyenMai": return `/promotions/${id}`;
+    default:          return "#";
+  }
+}
+
+function entityLabel(entity: string, id: number, maDonHang?: string | null, maGiaoDichNgoai?: string | null): string {
+  switch (entity) {
+    case "DonHang":   return maDonHang ?? `ĐH-${String(id).padStart(6, "0")}`;
+    case "GiaoDich":  return maGiaoDichNgoai ?? `#${id}`;
+    case "HoanHang":  return `#${id}`;
+    case "KhuyenMai": return `#${id}`;
+    default:          return `#${id}`;
+  }
+}
+
+function entityTooltip(entity: string, id: number, maDonHang?: string | null, maGiaoDichNgoai?: string | null): string {
+  switch (entity) {
+    case "DonHang":   return `Đơn hàng: ${maDonHang ?? `#${id}`}`;
+    case "GiaoDich":  return maGiaoDichNgoai
+      ? `Giao dịch ngoài: ${maGiaoDichNgoai}`
+      : `Giao dịch #${id}`;
+    case "HoanHang":  return `Yêu cầu hoàn trả #${id}`;
+    case "KhuyenMai": return `Khuyến mãi #${id}`;
+    default:          return `${entity} #${id}`;
+  }
+}
 
 const LOAI_LABEL: Record<NotificationLoai, string> = {
   DonHang:   "Đơn hàng",
@@ -95,19 +126,9 @@ const ROW_BTN_ERROR =
 const ROW_BTN_WARNING =
   ROW_BTN_BASE + " hover:bg-warning-50 hover:text-warning-600 focus-visible:ring-warning-500";
 
-// ─── Props ────────────────────────────────────────────────────────────────────
-
-interface NotificationHistoryTableProps {
-  initialData: ThongBaoRow[];
-  initialTotal: number;
-}
-
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function NotificationHistoryTable({
-  initialData,
-  initialTotal,
-}: NotificationHistoryTableProps) {
+export function NotificationHistoryTable() {
   const { showToast } = useToast();
 
   // ── Filter state ───────────────────────────────────────────────────────────
@@ -122,15 +143,14 @@ export function NotificationHistoryTable({
   const [page,     setPage]     = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // ── Sort ───────────────────────────────────────────────────────────────────
-  const [sortKey, setSortKey] = useState("ngayTao");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  // ── Data state ─────────────────────────────────────────────────────────────
+  const [data,    setData]    = useState<ThongBaoRow[]>([]);
+  const [total,   setTotal]   = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error,   setError]   = useState<string | null>(null);
 
   // ── Drawer ─────────────────────────────────────────────────────────────────
   const [drawerNotif, setDrawerNotif] = useState<ThongBaoRow | null>(null);
-
-  // ── Data (mutable local copy cho cancel/retry) ─────────────────────────────
-  const [data, setData] = useState<ThongBaoRow[]>(initialData);
 
   // ── Export ─────────────────────────────────────────────────────────────────
   const [isExporting, setIsExporting] = useState(false);
@@ -139,6 +159,43 @@ export function NotificationHistoryTable({
     console.log("Export notifications as", format);
     setTimeout(() => setIsExporting(false), 1200);
   }
+
+  // ── Search debounce ────────────────────────────────────────────────────────
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleSearchChange(q: string) {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setSearch(q);
+      setPage(1);
+    }, 300);
+  }
+
+  // ── Fetch ──────────────────────────────────────────────────────────────────
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const result = await getNotifications({
+        page,
+        pageSize,
+        kenhGui:      channelFilter as NotificationChannel[],
+        trangThai:    statusFilter  as NotificationStatus[],
+        loaiThongBao: loaiFilter    as NotificationLoai[],
+        tuNgay:       tuNgay  || undefined,
+        denNgay:      denNgay || undefined,
+        q:            search  || undefined,
+      });
+      setData(result.data);
+      setTotal(result.total);
+    } catch {
+      setError("Không thể tải danh sách thông báo.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, channelFilter, statusFilter, loaiFilter, tuNgay, denNgay, search]);
+
+  useEffect(() => { loadData(); }, [loadData]);
 
   // ── Actions ────────────────────────────────────────────────────────────────
   const handleCancel = useCallback(async (id: number) => {
@@ -165,52 +222,12 @@ export function NotificationHistoryTable({
     }
   }, [showToast]);
 
-  // ── Filter/sort helpers ────────────────────────────────────────────────────
-  const handleSearchChange  = useCallback((q: string) => { setSearch(q);        setPage(1); }, []);
+  // ── Filter handlers ────────────────────────────────────────────────────────
   const handleStatusChange  = useCallback((v: string[]) => { setStatusFilter(v);  setPage(1); }, []);
   const handleChannelChange = useCallback((v: string[]) => { setChannelFilter(v); setPage(1); }, []);
   const handleLoaiChange    = useCallback((v: string[]) => { setLoaiFilter(v);    setPage(1); }, []);
-  const handleTuNgay        = useCallback((v: string) => { setTuNgay(v);        setPage(1); }, []);
-  const handleDenNgay       = useCallback((v: string) => { setDenNgay(v);       setPage(1); }, []);
-  const handleSortChange    = useCallback((k: string, d: SortDir) => {
-    setSortKey(k); setSortDir(d); setPage(1);
-  }, []);
-
-  // ── Filtered + sorted data ─────────────────────────────────────────────────
-  const filteredData = useMemo((): NRow[] => {
-    let result = [...data];
-
-    if (search) {
-      const lower = search.toLowerCase();
-      result = result.filter(
-        (n) =>
-          n.tenKhachHang.toLowerCase().includes(lower) ||
-          n.tieuDe.toLowerCase().includes(lower) ||
-          n.emailKhachHang.toLowerCase().includes(lower)
-      );
-    }
-    if (statusFilter.length)  result = result.filter((n) => statusFilter.includes(n.trangThai));
-    if (channelFilter.length) result = result.filter((n) => channelFilter.includes(n.kenhGui));
-    if (loaiFilter.length)    result = result.filter((n) => loaiFilter.includes(n.loaiThongBao));
-    if (tuNgay) result = result.filter((n) => n.ngayTao >= tuNgay);
-    if (denNgay) {
-      const next = new Date(denNgay); next.setDate(next.getDate() + 1);
-      result = result.filter((n) => n.ngayTao < next.toISOString());
-    }
-
-    result.sort((a, b) => {
-      const av = String((a as unknown as Record<string, unknown>)[sortKey] ?? "");
-      const bv = String((b as unknown as Record<string, unknown>)[sortKey] ?? "");
-      return sortDir === "asc" ? av.localeCompare(bv, "vi") : bv.localeCompare(av, "vi");
-    });
-
-    return result as unknown as NRow[];
-  }, [data, search, statusFilter, channelFilter, loaiFilter, tuNgay, denNgay, sortKey, sortDir]);
-
-  const displayData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return filteredData.slice(start, start + pageSize);
-  }, [filteredData, page, pageSize]);
+  const handleTuNgay        = useCallback((v: string) => { setTuNgay(v);          setPage(1); }, []);
+  const handleDenNgay       = useCallback((v: string) => { setDenNgay(v);         setPage(1); }, []);
 
   // ── Columns ────────────────────────────────────────────────────────────────
   const columns = useMemo((): ColumnDef<NRow>[] => [
@@ -225,17 +242,18 @@ export function NotificationHistoryTable({
     {
       key: "tenKhachHang",
       header: "Khách hàng",
-      sortable: true,
       render: (v, row) => {
         const n = row as ThongBaoRow;
         return (
           <div className="flex flex-col gap-0.5 min-w-0">
-            <Link
-              href={`/customers/${n.khachHangId}`}
-              className="truncate font-medium text-secondary-900 hover:text-primary-600 hover:underline"
-            >
-              {String(v)}
-            </Link>
+            <Tooltip content={`Khách hàng: ${String(v)} — ${n.emailKhachHang}`} placement="top" anchorToContent>
+              <Link
+                href={`/customers/${n.khachHangId}`}
+                className="truncate font-medium text-secondary-900 hover:text-primary-600 hover:underline"
+              >
+                {String(v)}
+              </Link>
+            </Tooltip>
             <span className="truncate text-xs text-secondary-400">{n.emailKhachHang}</span>
           </div>
         );
@@ -244,6 +262,7 @@ export function NotificationHistoryTable({
     {
       key: "loaiThongBao",
       header: "Loại",
+      align: "center",
       render: (v) => (
         <span className="text-xs text-secondary-600">
           {LOAI_LABEL[v as NotificationLoai] ?? String(v)}
@@ -263,16 +282,19 @@ export function NotificationHistoryTable({
     {
       key: "kenhGui",
       header: "Kênh",
+      align: "center",
       render: (v) => <NotificationChannelBadge channel={v as NotificationChannel} size="sm" />,
     },
     {
       key: "trangThai",
       header: "Trạng thái",
+      align: "center",
       render: (v) => <NotificationStatusBadge status={v as NotificationStatus} size="sm" />,
     },
     {
       key: "daDoc",
       header: "Đã đọc",
+      align: "center",
       render: (v, row) => {
         const n = row as ThongBaoRow;
         if (n.kenhGui !== "Push") return <span className="text-secondary-300">—</span>;
@@ -286,27 +308,29 @@ export function NotificationHistoryTable({
     {
       key: "entityLienQuan",
       header: "Liên kết",
-      tooltip: (v, row) => {
-        const n = row as ThongBaoRow;
-        return v && n.entityLienQuanId ? `${String(v)} #${n.entityLienQuanId}` : "";
-      },
       render: (v, row) => {
         const n = row as ThongBaoRow;
         if (!v || !n.entityLienQuanId) return <span className="text-secondary-300">—</span>;
-        const href = ENTITY_HREF[String(v)]?.(n.entityLienQuanId);
-        return href ? (
-          <Link href={href} className="text-xs text-primary-600 hover:underline">
-            {String(v)} #{n.entityLienQuanId}
-          </Link>
-        ) : (
-          <span className="text-xs text-secondary-500">{String(v)} #{n.entityLienQuanId}</span>
+        const entity = String(v);
+        const id = n.entityLienQuanId;
+        const href = entityHref(entity, id, n.maGiaoDichNgoai);
+        const label = entityLabel(entity, id, n.maDonHang, n.maGiaoDichNgoai);
+        const tip = entityTooltip(entity, id, n.maDonHang, n.maGiaoDichNgoai);
+        return (
+          <Tooltip content={tip} placement="top">
+            <Link
+              href={href}
+              className="block max-w-[120px] truncate text-xs text-primary-600 hover:underline"
+            >
+              {label}
+            </Link>
+          </Tooltip>
         );
       },
     },
     {
       key: "ngayTao",
       header: "Ngày tạo",
-      sortable: true,
       tooltip: (v) => formatDatetime(String(v)),
       width: "w-36",
       render: (v) => (
@@ -370,24 +394,28 @@ export function NotificationHistoryTable({
   ], [handleCancel, handleRetry]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
+  if (error) {
+    return (
+      <div className="p-6">
+        <Alert variant="error">{error}</Alert>
+      </div>
+    );
+  }
+
   return (
     <>
       <DataTable<NRow>
-        data={displayData}
+        data={data as NRow[]}
         columns={columns}
         keyField="thongBaoId"
+        isLoading={loading}
         // Search
-        searchQuery={search}
         onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm tên KH, email, tiêu đề..."
-        // Sort
-        sortKey={sortKey}
-        sortDir={sortDir}
-        onSortChange={handleSortChange}
         // Pagination
         page={page}
         pageSize={pageSize}
-        totalRows={filteredData.length}
+        totalRows={total}
         pageSizeOptions={[10, 20, 50, 100]}
         onPageChange={setPage}
         onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}

@@ -87,6 +87,7 @@ export function Select({
   creatable = false,
   onCreateOption,
   boldLabel = false,
+  showDescriptionInTrigger = true,
 }: SelectProps) {
   const generatedId = useId();
   const id = idProp ?? generatedId;
@@ -411,7 +412,7 @@ export function Select({
                   <span className="truncate text-secondary-400">{placeholder}</span>
                 ) : multiple ? (
                   <span className="truncate text-secondary-400">{placeholder}</span>
-                ) : (selectedSingleOpt.subLabel || selectedSingleOpt.description) ? (
+                ) : (showDescriptionInTrigger && (selectedSingleOpt.subLabel || selectedSingleOpt.description)) ? (
                   /* Stacked layout when subLabel or description present */
                   <span className="flex min-w-0 flex-col leading-tight">
                     <span className="truncate font-semibold text-secondary-900">

@@ -4,10 +4,8 @@ import {
   PlusCircleIcon,
   AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
-import {
-  getNotifications,
-  getNotificationStats,
-} from "@/src/services/notification.service";
+import { getNotificationStats } from "@/src/services/notification.service";
+import { getMembershipTiers } from "@/src/services/loyalty.service";
 import { AdminPageWrapper } from "@/src/components/admin/layout/AdminPageWrapper";
 import { NotificationStatCards } from "@/src/components/admin/notifications/NotificationStatCards";
 import { NotificationHistoryTable } from "@/src/components/admin/notifications/NotificationHistoryTable";
@@ -27,15 +25,15 @@ export const metadata: Metadata = {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default async function NotificationsPage() {
-  const [{ data, total }, stats] = await Promise.all([
-    getNotifications({ pageSize: 50 }),
+  const [stats, membershipTiers] = await Promise.all([
     getNotificationStats(),
+    getMembershipTiers(),
   ]);
 
   return (
     <AdminPageWrapper
       title="Thông báo hệ thống"
-      description={`${total} thông báo · Push, Email, SMS đến khách hàng`}
+      description="Quản lý Push, Email, SMS đến khách hàng"
     >
       <div className="space-y-6">
         {/* KPI cards */}
@@ -66,12 +64,12 @@ export default async function NotificationsPage() {
           >
             {/* Tab 1: Lịch sử */}
             <TabPanel value="history">
-              <NotificationHistoryTable initialData={data} initialTotal={total} />
+              <NotificationHistoryTable />
             </TabPanel>
 
             {/* Tab 2: Tạo mới */}
             <TabPanel value="create" className="p-6">
-              <CreateNotificationForm />
+              <CreateNotificationForm membershipTiers={membershipTiers} />
             </TabPanel>
 
             {/* Tab 3: Cài đặt tự động */}

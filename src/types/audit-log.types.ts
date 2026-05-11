@@ -56,8 +56,10 @@ export interface AuditLogEntry {
   actorId: number | null;
   /** Display name — "Nguyễn Văn A" or "Hệ thống" */
   actorName: string;
-  /** Role slug — "admin" | "staff" | "warehouse" | "cskh" | "system" */
-  actorRole: string;
+  /** Employee code — "NV-001"; null for system events */
+  actorCode: string | null;
+  /** List of role display names — e.g. ["Admin", "Nhân viên bán hàng"] */
+  actorRoles: string[];
   actorAvatarUrl?: string;
 
   /** Client IP captured at request time (from Physical ERD requirement) */

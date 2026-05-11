@@ -1,5 +1,33 @@
 // ─── Loyalty domain types ────────────────────────────────────────────────────
 
+export interface MembershipTier {
+  id: number;
+  /** Slug dùng trong API filter: Bronze | Silver | Gold | Platinum */
+  name: string;
+  /** Nhãn hiển thị tiếng Việt */
+  displayName: string;
+  minPoints: number;
+  /** null = không giới hạn trên (hạng cao nhất) */
+  maxPoints: number | null;
+  color: string | null;
+  description: string | null;
+  sortOrder: number;
+  isActive: boolean;
+  /** Số khách hàng hiện đang ở bậc này (computed) */
+  customerCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MembershipTierPayload {
+  displayName: string;
+  minPoints: number;
+  maxPoints: number | null;
+  color?: string | null;
+  description?: string | null;
+  isActive?: boolean;
+}
+
 export type LoyaltyTransactionType = "earn" | "redeem" | "expire" | "adjust";
 export type LoyaltyRedemptionStatus = "completed" | "cancelled" | "expired";
 

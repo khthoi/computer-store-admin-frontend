@@ -1,5 +1,3 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeftIcon,
@@ -9,38 +7,19 @@ import {
   ClockIcon,
   UserIcon,
   CakeIcon,
-} from "@heroicons/react/24/outline";
-import { getEmployeeById, getEmployeeAuditLogs } from "@/src/services/employee.service";
-import { getRoles } from "@/src/services/role.service";
-import { StatusBadge } from "@/src/components/admin/StatusBadge";
-import { Avatar } from "@/src/components/ui/Avatar";
-import { Badge } from "@/src/components/ui/Badge";
-import { Tabs } from "@/src/components/ui/Tabs";
-import { TabPanel } from "@/src/components/ui/Tabs";
-import { AdminEmptyState } from "@/src/components/admin/shared/AdminEmptyState";
-import { EmployeeDetailActions } from "@/src/components/admin/employees/EmployeeDetailActions";
-import { EmployeeActivityTable } from "@/src/components/admin/employees/EmployeeActivityTable";
-import {
   BriefcaseIcon,
   ShieldCheckIcon,
   ClipboardDocumentListIcon,
 } from "@heroicons/react/24/outline";
-
-export const dynamic = "force-dynamic";
-
-export async function generateMetadata({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}): Promise<Metadata> {
-  const { id } = await params;
-  const employee = await getEmployeeById(id);
-  return {
-    title: employee
-      ? `${employee.fullName} — Nhân viên — Admin`
-      : "Nhân viên không tồn tại — Admin",
-  };
-}
+import { StatusBadge } from "@/src/components/admin/StatusBadge";
+import { Avatar } from "@/src/components/ui/Avatar";
+import { Badge } from "@/src/components/ui/Badge";
+import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
+import { AdminEmptyState } from "@/src/components/admin/shared/AdminEmptyState";
+import { EmployeeDetailActions } from "@/src/components/admin/employees/EmployeeDetailActions";
+import { EmployeeActivityTable } from "@/src/components/admin/employees/EmployeeActivityTable";
+import type { NhanVien } from "@/src/types/employee.types";
+import type { VaiTro } from "@/src/types/role.types";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("vi-VN", {
@@ -49,12 +28,6 @@ function formatDate(iso: string): string {
     day: "numeric",
   });
 }
-
-const GENDER_LABEL: Record<string, string> = {
-  male: "Nam",
-  female: "Nữ",
-  other: "Khác",
-};
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString("vi-VN", {
@@ -66,20 +39,21 @@ function formatDateTime(iso: string): string {
   });
 }
 
-export default async function EmployeeDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const [employee, { data: allRoles }, auditLogs] = await Promise.all([
-    getEmployeeById(id),
-    getRoles(),
-    getEmployeeAuditLogs(id),
-  ]);
+const GENDER_LABEL: Record<string, string> = {
+  male: "Nam",
+  female: "Nữ",
+  other: "Khác",
+};
 
-  if (!employee) notFound();
+export interface EmployeeDetailContentProps {
+  employee: NhanVien;
+  allRoles: VaiTro[];
+}
 
+export function EmployeeDetailContent({
+  employee,
+  allRoles,
+}: EmployeeDetailContentProps) {
   const assignedRoles = allRoles.filter((r) => employee.roleIds.includes(r.id));
 
   return (
@@ -111,7 +85,6 @@ export default async function EmployeeDetailPage({
             </div>
           </div>
         </div>
-        {/* Client-side Edit button (needs modal) */}
         <EmployeeDetailActions employee={employee} allRoles={allRoles} />
       </div>
 
@@ -154,7 +127,7 @@ export default async function EmployeeDetailPage({
                 <CalendarDaysIcon className="h-4 w-4 shrink-0 text-secondary-400" />
                 <span>
                   <span className="text-secondary-400">Ngày vào làm: </span>
-                  {formatDate(employee.hireDate)}
+                  {employee.hireDate ? formatDate(employee.hireDate) : "—"}
                 </span>
               </li>
               {employee.lastLoginAt && (
@@ -243,7 +216,7 @@ export default async function EmployeeDetailPage({
             </TabPanel>
 
             <TabPanel value="activity" className="p-6">
-              <EmployeeActivityTable entries={auditLogs} />
+              <EmployeeActivityTable employeeId={employee.id} />
             </TabPanel>
           </Tabs>
         </div>

@@ -71,13 +71,6 @@ const ACTION_TYPE_OPTIONS: { value: string; label: string }[] = [
   { value: "DangXuat",     label: "Đăng xuất" },
 ];
 
-const ROLE_LABEL: Record<string, string> = {
-  admin:     "Admin",
-  staff:     "Nhân viên",
-  warehouse: "Kho",
-  cskh:      "CSKH",
-  system:    "Hệ thống",
-};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -174,42 +167,50 @@ export function AuditLogListClient() {
         ),
       },
 
-      // ── Nhân viên — Avatar + tên (Link) + role badge ──────────────────────
+      // ── Nhân viên ─────────────────────────────────────────────────────────
       {
         key: "actorName",
         header: "Nhân viên",
-        width: "w-48",
+        width: "w-56",
         render: (_, row) => {
-          const hasLink = row.actorId !== null;
-          const roleDisplay = ROLE_LABEL[row.actorRole as string] ?? (row.actorRole as string);
-          const tooltipContent = `${roleDisplay}${row.actorId ? ` · ID: ${row.actorId as number}` : ""}`;
+          const code = row.actorCode as string | null;
+          const hasLink = !!code;
+          const roles = (row.actorRoles as string[]) ?? [];
 
           return (
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex items-start gap-2 min-w-0">
               <Avatar
                 src={row.actorAvatarUrl as string | undefined}
                 name={row.actorName as string}
                 size="xs"
+                className="mt-0.5 shrink-0"
               />
               <div className="min-w-0 space-y-0.5">
                 {hasLink ? (
-                  <Tooltip content={tooltipContent} placement="top">
-                    <Link
-                      href={`/employees/${row.actorId as number}`}
-                      className="block truncate text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline focus-visible:outline-none focus-visible:underline"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      {row.actorName as string}
-                    </Link>
-                  </Tooltip>
+                  <Link
+                    href={`/employees/${code}`}
+                    className="block truncate text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline focus-visible:outline-none focus-visible:underline"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {row.actorName as string}
+                  </Link>
                 ) : (
                   <span className="block truncate text-sm font-medium text-secondary-500 italic">
                     {row.actorName as string}
                   </span>
                 )}
-                <Badge variant="default" size="sm">
-                  {roleDisplay}
-                </Badge>
+                {code && (
+                  <span className="block font-mono text-xs text-secondary-400">
+                    {code}
+                  </span>
+                )}
+                {roles.length > 0 && (
+                  <div className="flex flex-wrap gap-0.5">
+                    {roles.map((r) => (
+                      <Badge key={r} variant="default" size="sm">{r}</Badge>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           );

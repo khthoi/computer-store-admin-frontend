@@ -77,14 +77,6 @@ function DiffPanel({ before, after }: { before: string; after: string }) {
 // ─── OverviewPanel ────────────────────────────────────────────────────────────
 
 function OverviewPanel({ entry }: { entry: AuditLogEntry }) {
-  const roleLabel: Record<string, string> = {
-    admin:     "Admin",
-    staff:     "Nhân viên",
-    warehouse: "Kho",
-    cskh:      "CSKH",
-    system:    "Hệ thống",
-  };
-
   return (
     <dl className="divide-y divide-secondary-100">
       {/* Actor */}
@@ -92,18 +84,31 @@ function OverviewPanel({ entry }: { entry: AuditLogEntry }) {
         <dt className="w-28 shrink-0 text-xs font-medium text-secondary-500 pt-1">
           Thực hiện bởi
         </dt>
-        <dd className="flex flex-1 items-center gap-2 flex-wrap">
+        <dd className="flex flex-1 items-start gap-2 flex-wrap">
           <Avatar
             src={entry.actorAvatarUrl}
             name={entry.actorName}
             size="sm"
           />
-          <span className="text-sm font-medium text-secondary-800">
-            {entry.actorName}
-          </span>
-          <Badge variant="default" size="sm">
-            {roleLabel[entry.actorRole] ?? entry.actorRole}
-          </Badge>
+          <div className="flex flex-wrap items-center gap-1.5 text-sm">
+            <span className="font-medium text-secondary-800">{entry.actorName}</span>
+            {entry.actorCode && (
+              <>
+                <span className="text-secondary-300">—</span>
+                <span className="font-mono text-xs text-secondary-500">{entry.actorCode}</span>
+              </>
+            )}
+            {entry.actorRoles.length > 0 && (
+              <>
+                <span className="text-secondary-300">—</span>
+                <div className="flex flex-wrap gap-0.5">
+                  {entry.actorRoles.map((r) => (
+                    <Badge key={r} variant="default" size="sm">{r}</Badge>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
         </dd>
       </div>
 

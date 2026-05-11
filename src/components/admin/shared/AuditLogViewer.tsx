@@ -14,8 +14,12 @@ export interface AuditEvent {
   /** ISO date string */
   timestamp: string;
   actorName: string;
+  actorCode?: string;
   actorAvatarUrl?: string;
-  actorRole: string;
+  /** Preferred: array of role display names */
+  actorRoles?: string[];
+  /** Legacy single-role fallback */
+  actorRole?: string;
   /** Human-readable action description, e.g. "Updated status: Pending → Shipped" */
   action: string;
   diff?: {
@@ -97,11 +101,25 @@ function EventRow({ event }: { event: AuditEvent }) {
             size="xs"
           />
           <span className="text-sm font-medium text-secondary-800">
-            {event.actorName}
+            [{event.actorName}]
           </span>
-          <Badge variant="default" size="sm">
-            {event.actorRole}
-          </Badge>
+          {event.actorCode && (
+            <span className="font-mono text-xs text-secondary-500">
+              — [{event.actorCode}]
+            </span>
+          )}
+          {(event.actorRoles ?? (event.actorRole ? [event.actorRole] : [])).length > 0 && (
+            <span className="text-xs text-secondary-400">
+              — {"{"}
+              {(event.actorRoles ?? (event.actorRole ? [event.actorRole] : [])).map((r, i) => (
+                <span key={r}>
+                  {i > 0 && ", "}
+                  <Badge variant="default" size="sm">[{r}]</Badge>
+                </span>
+              ))}
+              {"}"}
+            </span>
+          )}
           <span className="ml-auto text-xs text-secondary-400">
             {formatRelative(event.timestamp)}
           </span>

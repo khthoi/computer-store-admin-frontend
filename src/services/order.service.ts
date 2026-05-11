@@ -155,3 +155,15 @@ export async function getOrderReturnRequests(id: string): Promise<OrderReturnReq
   return apiFetch<OrderReturnRequest[]>(`/admin/orders/${id}/return-requests`);
 }
 
+/**
+ * Fetch recent orders for a customer.
+ * GET /admin/orders?customerId=:id&limit=50
+ */
+export async function getOrdersByCustomerId(customerId: string): Promise<OrderSummary[]> {
+  const qs = new URLSearchParams({ customerId, limit: "50" });
+  const result = await apiFetch<{ data: OrderSummary[]; total: number }>(
+    `/admin/orders?${qs}`
+  );
+  return result?.data ?? [];
+}
+

@@ -82,8 +82,10 @@ export function SortableSlotRow({
           <code className="shrink-0 rounded bg-secondary-100 px-1.5 py-0.5 text-[10px] font-mono text-secondary-500">
             {slot.maKhe}
           </code>
-          {slot.batBuoc && (
+          {!!slot.batBuoc ? (
             <Badge variant="error" size="sm">Bắt buộc</Badge>
+          ) : (
+            <Badge variant="default" size="sm">Không bắt buộc</Badge>
           )}
         </div>
         <div className="mt-0.5 flex items-center gap-2">

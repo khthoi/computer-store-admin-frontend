@@ -151,6 +151,8 @@ export interface TechKeyOption {
   label: string;      // Human label, e.g. "CPU Socket"
   description?: string; // usage hint
   unit?: string;        // e.g. "W" for tdp_watt
+  groupId: number;
+  groupName: string;
 }
 
 export interface SlotOption {

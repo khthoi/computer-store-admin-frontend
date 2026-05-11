@@ -467,7 +467,7 @@ export async function getVariantReviews(
 
 function mapToReviewSummary(r: any): ReviewSummary {
   return {
-    reviewId:        r.id,
+    reviewId:        r.id ?? r.reviewId,
     phienBanId:      r.variantId,
     tenSanPham:      r.tenSanPham ?? "",
     tenPhienBan:     r.tenPhienBan ?? "",

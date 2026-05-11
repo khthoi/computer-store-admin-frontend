@@ -1,13 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Modal } from "@/src/components/ui/Modal";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
 import { Button } from "@/src/components/ui/Button";
 import { RadioGroup, Radio } from "@/src/components/ui/Radio";
 import { DateInput } from "@/src/components/ui/DateInput";
-import { createCustomer, updateCustomer } from "@/src/services/customer.service";
+import { useToast } from "@/src/components/ui/Toast";
+import { createCustomer, getNextCustomerCode, updateCustomer } from "@/src/services/customer.service";
 import type { KhachHang, CustomerStatus, GenderType } from "@/src/types/customer.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,8 +30,10 @@ const STATUS_OPTIONS = [
 
 export function CustomerFormModal({ isOpen, onClose, customer, onSaved }: CustomerFormModalProps) {
   const isEdit = Boolean(customer);
+  const { showToast } = useToast();
 
   const [code, setCode] = useState(customer?.code ?? "");
+  const [isLoadingCode, setIsLoadingCode] = useState(false);
   const [fullName, setFullName] = useState(customer?.fullName ?? "");
   const [email, setEmail] = useState(customer?.email ?? "");
   const [phone, setPhone] = useState(customer?.phone ?? "");
@@ -40,22 +43,52 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSaved }: Custom
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
 
+  // AbortController to cancel in-flight next-code requests when modal closes/reopens
+  const abortRef = useRef<AbortController | null>(null);
+
   useEffect(() => {
-    if (isOpen) {
-      setCode(customer?.code ?? "");
-      setFullName(customer?.fullName ?? "");
-      setEmail(customer?.email ?? "");
-      setPhone(customer?.phone ?? "");
-      setStatus(customer?.status ?? "active");
-      setGender(customer?.gender ?? null);
-      setDateOfBirth(customer?.dateOfBirth ?? "");
-      setErrors({});
+    if (!isOpen) {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      return;
     }
-  }, [isOpen, customer]);
+
+    setCode(customer?.code ?? "");
+    setFullName(customer?.fullName ?? "");
+    setEmail(customer?.email ?? "");
+    setPhone(customer?.phone ?? "");
+    setStatus(customer?.status ?? "active");
+    setGender(customer?.gender ?? null);
+    setDateOfBirth(customer?.dateOfBirth ?? "");
+    setErrors({});
+
+    if (!isEdit) {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setIsLoadingCode(true);
+      setCode("");
+
+      getNextCustomerCode(controller.signal)
+        .then(({ code: nextCode }) => {
+          if (!controller.signal.aborted) setCode(nextCode);
+        })
+        .catch(() => {
+          // Aborted or network error — leave code empty
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsLoadingCode(false);
+        });
+    }
+
+    return () => {
+      abortRef.current?.abort();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
-    if (!code.trim()) next.code = "Mã khách hàng không được để trống.";
     if (!fullName.trim()) next.fullName = "Họ tên không được để trống.";
     if (!email.trim()) next.email = "Email không được để trống.";
     if (!phone.trim()) next.phone = "Số điện thoại không được để trống.";
@@ -77,7 +110,6 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSaved }: Custom
             dateOfBirth: dateOfBirth || null,
           })
         : await createCustomer({
-            code: code.trim(),
             fullName: fullName.trim(),
             email: email.trim(),
             phone: phone.trim(),
@@ -87,11 +119,20 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSaved }: Custom
           });
       onSaved(saved);
       onClose();
+    } catch (err: unknown) {
+      const msg = (err as { message?: string })?.message ?? "Đã xảy ra lỗi, vui lòng thử lại.";
+      showToast(msg, "error");
     } finally {
       setIsSaving(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, customer, code, fullName, email, phone, status, gender, dateOfBirth, onSaved, onClose]);
+  }, [isEdit, customer, fullName, email, phone, status, gender, dateOfBirth, onSaved, onClose, showToast]);
+
+  const codeHelperText = isEdit
+    ? undefined
+    : isLoadingCode
+      ? "Đang lấy mã…"
+      : "Mã khách hàng được hệ thống tự động tạo và không thể chỉnh sửa.";
 
   return (
     <Modal
@@ -105,7 +146,7 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSaved }: Custom
           <Button variant="ghost" onClick={onClose} disabled={isSaving}>
             Hủy
           </Button>
-          <Button variant="primary" onClick={handleSave} disabled={isSaving}>
+          <Button variant="primary" onClick={handleSave} disabled={isSaving || isLoadingCode}>
             {isSaving ? "Đang lưu…" : isEdit ? "Lưu thay đổi" : "Tạo khách hàng"}
           </Button>
         </>
@@ -115,12 +156,11 @@ export function CustomerFormModal({ isOpen, onClose, customer, onSaved }: Custom
         <div className="grid grid-cols-2 gap-4">
           <Input
             label="Mã khách hàng"
-            placeholder="VD: KH-009"
+            placeholder={isLoadingCode ? "Đang tải…" : "KH-XXXX"}
             value={code}
-            onChange={(e) => setCode(e.target.value)}
-            errorMessage={errors.code}
-            disabled={isEdit}
-            required
+            readOnly
+            disabled={isLoadingCode}
+            helperText={codeHelperText}
           />
           <Input
             label="Họ và tên"

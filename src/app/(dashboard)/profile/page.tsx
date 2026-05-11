@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilePage() {
-  const { employee, roles, auditLogs } = await getCurrentProfile();
+  const { employee, roles } = await getCurrentProfile();
 
   return (
     <div className="p-6">
@@ -23,7 +23,6 @@ export default async function ProfilePage() {
       <ProfilePageClient
         initialEmployee={employee}
         roles={roles}
-        auditLogs={auditLogs}
       />
     </div>
   );

@@ -111,3 +111,18 @@ export async function getCategoryNodeTree(): Promise<CategoryNode[]> {
   const tree = await apiFetch<CategoryApiNode[]>("/categories");
   return tree.map(mapToNode);
 }
+
+// ─── Admin category tree (for admin forms) ─────────────────────────────────
+
+function mapDanhMucNodeToNode(n: DanhMucNode): CategoryNode {
+  return {
+    id: n.id,
+    label: n.name,
+    children: n.children?.length ? n.children.map(mapDanhMucNodeToNode) : undefined,
+  };
+}
+
+export async function getAdminCategoryNodeTree(): Promise<CategoryNode[]> {
+  const tree = await getCategoryTree();
+  return tree.map(mapDanhMucNodeToNode);
+}

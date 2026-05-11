@@ -27,11 +27,20 @@ export type EmployeeStatus = NhanVien["status"];
 // ─── Audit log ────────────────────────────────────────────────────────────────
 
 export type AuditActionType =
-  | "login"
+  // current action types
+  | "login_success"
+  | "login_failed"
   | "logout"
+  | "profile_edit"
+  | "password_requested"
+  | "password_changed"
+  | "avatar_changed"
+  | "role_changed"
+  | "status_changed"
+  // legacy action types (may exist in older DB records)
+  | "login"
   | "role_assign"
   | "role_remove"
-  | "profile_edit"
   | "report_view";
 
 export interface AuditLogEntry {

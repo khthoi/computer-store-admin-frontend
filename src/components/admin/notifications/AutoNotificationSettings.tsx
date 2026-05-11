@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ChevronDownIcon,
   ChevronUpIcon,
@@ -53,18 +53,6 @@ const VARIABLE_HINTS = [
   "{{soSanPham}}",
 ];
 
-function VariableChip({ variable, onInsert }: { variable: string; onInsert: (v: string) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={() => onInsert(variable)}
-      className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px] bg-primary-50 text-primary-700 border border-primary-200 hover:bg-primary-100 transition-colors"
-    >
-      {variable}
-    </button>
-  );
-}
-
 // ─── Template editor (inline expand) ─────────────────────────────────────────
 
 interface TemplateEditorProps {
@@ -77,6 +65,9 @@ function TemplateEditor({ rule, onSave, onClose }: TemplateEditorProps) {
   const [tieuDe, setTieuDe] = useState(rule.templateTieuDe);
   const [noiDung, setNoiDung] = useState(rule.templateNoiDung);
   const [saving, setSaving] = useState(false);
+  const [focusedField, setFocusedField] = useState<"title" | "body" | null>(null);
+  const titleRef = useRef<HTMLInputElement>(null);
+  const bodyRef = useRef<HTMLTextAreaElement>(null);
 
   async function handleSave() {
     setSaving(true);
@@ -87,26 +78,56 @@ function TemplateEditor({ rule, onSave, onClose }: TemplateEditorProps) {
     }
   }
 
-  function appendVariable(field: "title" | "body", variable: string) {
-    if (field === "title") setTieuDe((prev) => prev + variable);
-    else setNoiDung((prev) => prev + variable);
+  function insertVariable(variable: string) {
+    if (focusedField === "title") {
+      const el = titleRef.current;
+      if (!el) return;
+      const start = el.selectionStart ?? tieuDe.length;
+      const end = el.selectionEnd ?? tieuDe.length;
+      const next = tieuDe.slice(0, start) + variable + tieuDe.slice(end);
+      setTieuDe(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.selectionStart = el.selectionEnd = start + variable.length;
+      });
+    } else if (focusedField === "body") {
+      const el = bodyRef.current;
+      if (!el) return;
+      const start = el.selectionStart ?? noiDung.length;
+      const end = el.selectionEnd ?? noiDung.length;
+      const next = noiDung.slice(0, start) + variable + noiDung.slice(end);
+      setNoiDung(next);
+      requestAnimationFrame(() => {
+        el.focus();
+        el.selectionStart = el.selectionEnd = start + variable.length;
+      });
+    }
   }
 
   return (
     <div className="mt-3 rounded-xl border border-primary-100 bg-primary-50/30 p-4 space-y-4">
-      {/* Variable hint bar */}
+      {/* Variable panel — dùng chung cho cả 2 trường */}
       <div>
         <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-secondary-400">
-          Variables có thể dùng
+          Variables — click vào ô bên dưới trước, rồi chọn variable để chèn
         </p>
         <div className="flex flex-wrap gap-1.5">
           {VARIABLE_HINTS.map((v) => (
-            <VariableChip key={v} variable={v} onInsert={() => {}} />
+            <button
+              key={v}
+              type="button"
+              disabled={!focusedField}
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => insertVariable(v)}
+              className="inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px] border transition-colors
+                bg-primary-50 text-primary-700 border-primary-200
+                hover:bg-primary-100
+                disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:bg-primary-50"
+            >
+              {v}
+            </button>
           ))}
         </div>
-        <p className="mt-1 text-[11px] text-secondary-400">
-          Click vào variable để chèn vào cuối trường đang soạn.
-        </p>
       </div>
 
       {/* Tiêu đề template */}
@@ -114,16 +135,12 @@ function TemplateEditor({ rule, onSave, onClose }: TemplateEditorProps) {
         <label className="block text-xs font-medium text-secondary-600">
           Template tiêu đề
         </label>
-        <div className="flex gap-2 flex-wrap mb-1">
-          {VARIABLE_HINTS.filter((v) =>
-            rule.templateTieuDe.includes(v) || ["{{tenKhachHang}}", "{{maDonHang}}", "{{soTien}}"].includes(v)
-          ).slice(0, 6).map((v) => (
-            <VariableChip key={v} variable={v} onInsert={(val) => appendVariable("title", val)} />
-          ))}
-        </div>
         <Input
+          ref={titleRef}
           value={tieuDe}
           onChange={(e) => setTieuDe(e.target.value)}
+          onFocus={() => setFocusedField("title")}
+          onBlur={() => setFocusedField(null)}
           placeholder="Template tiêu đề..."
           className="font-mono text-sm"
         />
@@ -134,16 +151,12 @@ function TemplateEditor({ rule, onSave, onClose }: TemplateEditorProps) {
         <label className="block text-xs font-medium text-secondary-600">
           Template nội dung
         </label>
-        <div className="flex gap-2 flex-wrap mb-1">
-          {VARIABLE_HINTS.filter((v) =>
-            rule.templateNoiDung.includes(v) || ["{{tenKhachHang}}", "{{maDonHang}}"].includes(v)
-          ).slice(0, 8).map((v) => (
-            <VariableChip key={v} variable={v} onInsert={(val) => appendVariable("body", val)} />
-          ))}
-        </div>
         <Textarea
+          ref={bodyRef}
           value={noiDung}
           onChange={(e) => setNoiDung(e.target.value)}
+          onFocus={() => setFocusedField("body")}
+          onBlur={() => setFocusedField(null)}
           rows={3}
           placeholder="Template nội dung..."
           className="font-mono text-sm"

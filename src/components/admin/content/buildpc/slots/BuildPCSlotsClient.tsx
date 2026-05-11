@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Reorder } from "framer-motion";
-import { PlusIcon } from "@heroicons/react/24/outline";
+import { PlusIcon, CheckIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
 import { Modal } from "@/src/components/ui/Modal";
 import { Spinner } from "@/src/components/ui/Spinner";
@@ -28,6 +28,9 @@ export function BuildPCSlotsClient() {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
 
+  const [isDirty, setIsDirty]           = useState(false);
+  const [isReordering, setIsReordering] = useState(false);
+
   const [formOpen, setFormOpen]     = useState(false);
   const [editing, setEditing]       = useState<BuildPCSlot | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<BuildPCSlot | null>(null);
@@ -45,12 +48,21 @@ export function BuildPCSlotsClient() {
 
   // ── Reorder (drag-drop) ───────────────────────────────────────────────────
 
-  async function handleReorder(newOrder: BuildPCSlot[]) {
+  function handleReorder(newOrder: BuildPCSlot[]) {
     setSlots(newOrder);
+    setIsDirty(true);
+  }
+
+  async function handleSaveOrder() {
+    setIsReordering(true);
     try {
-      await reorderSlots(newOrder.map((s) => s.id));
+      await reorderSlots(slots.map((s) => s.id));
+      setIsDirty(false);
+      showToast("Đã lưu thứ tự khe linh kiện.", "success");
     } catch {
       showToast("Không thể lưu thứ tự. Vui lòng thử lại.", "error");
+    } finally {
+      setIsReordering(false);
     }
   }
 
@@ -70,16 +82,24 @@ export function BuildPCSlotsClient() {
   // ── Create / update ───────────────────────────────────────────────────────
 
   async function handleSubmit(data: BuildPCSlotFormData) {
-    if (editing) {
-      const updated = await updateSlot(editing.id, data);
-      setSlots((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
-      showToast("Đã cập nhật khe linh kiện.", "success");
-    } else {
-      const created = await createSlot(data);
-      setSlots((prev) => [...prev, created].sort((a, b) => a.thuTu - b.thuTu));
-      showToast("Đã thêm khe linh kiện.", "success");
+    try {
+      if (editing) {
+        const updated = await updateSlot(editing.id, data);
+        setSlots((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+        showToast("Đã cập nhật khe linh kiện.", "success");
+      } else {
+        const created = await createSlot(data);
+        setSlots((prev) => [...prev, created].sort((a, b) => a.thuTu - b.thuTu));
+        showToast("Đã thêm khe linh kiện.", "success");
+      }
+      setEditing(null);
+    } catch (err) {
+      showToast(
+        editing ? "Không thể cập nhật khe. Vui lòng thử lại." : "Không thể thêm khe. Vui lòng thử lại.",
+        "error"
+      );
+      throw err;
     }
-    setEditing(null);
   }
 
   // ── Delete ────────────────────────────────────────────────────────────────
@@ -111,13 +131,27 @@ export function BuildPCSlotsClient() {
             Quản lý các khe trong bộ công cụ Build PC. Kéo để sắp xếp thứ tự hiển thị.
           </p>
         </div>
-        <Button
-          variant="primary"
-          onClick={() => { setEditing(null); setFormOpen(true); }}
-        >
-          <PlusIcon className="h-4 w-4" />
-          Thêm khe
-        </Button>
+        <div className="flex items-center gap-3">
+          {isDirty && (
+            <Button
+              variant="secondary"
+              size="sm"
+              isLoading={isReordering}
+              onClick={handleSaveOrder}
+            >
+              <CheckIcon className="h-4 w-4" />
+              Lưu thứ tự
+            </Button>
+          )}
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={() => { setEditing(null); setFormOpen(true); }}
+          >
+            <PlusIcon className="h-4 w-4" />
+            Thêm khe
+          </Button>
+        </div>
       </div>
 
       {/* Body */}

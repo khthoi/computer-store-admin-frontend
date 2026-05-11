@@ -1,5 +1,5 @@
+import { apiFetch } from "@/src/services/api";
 import type { KhachHang, DiaChiGiaoHang, CustomerStatus, GenderType } from "@/src/types/customer.types";
-import { MOCK_CUSTOMERS } from "@/src/app/(dashboard)/customers/_mock";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -8,8 +8,14 @@ export interface GetCustomersResult {
   total: number;
 }
 
+export interface GetCustomersParams {
+  q?: string;
+  status?: string;
+  page?: number;
+  limit?: number;
+}
+
 export interface CreateCustomerPayload {
-  code: string;
   fullName: string;
   email: string;
   phone: string;
@@ -51,116 +57,93 @@ export interface UpdateAddressPayload {
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
-/**
- * Fetch all customers.
- * Mock — replace with GET /admin/customers
- */
-export async function getCustomers(): Promise<GetCustomersResult> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return { data: MOCK_CUSTOMERS, total: MOCK_CUSTOMERS.length };
+export async function getCustomers(params: GetCustomersParams = {}): Promise<GetCustomersResult> {
+  const { q, status, page = 1, limit } = params;
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (limit)  qs.set("limit", String(limit));
+  if (q)      qs.set("search", q);
+  if (status) qs.set("status", status);
+  return apiFetch<GetCustomersResult>(`/admin/customers?${qs}`);
 }
 
-/**
- * Fetch a single customer by ID.
- * Mock — replace with GET /admin/customers/:id
- */
 export async function getCustomerById(id: string): Promise<KhachHang | null> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return MOCK_CUSTOMERS.find((c) => c.id === id) ?? null;
+  try {
+    return await apiFetch<KhachHang>(`/admin/customers/${id}`);
+  } catch (err: unknown) {
+    const msg = (err as Error)?.message ?? '';
+    if (msg.startsWith('HTTP 404') || msg.includes('không tồn tại')) return null;
+    throw err;
+  }
 }
 
-/**
- * Create a new customer.
- * Mock — replace with POST /admin/customers
- */
+export async function getNextCustomerCode(signal?: AbortSignal): Promise<{ code: string }> {
+  return apiFetch<{ code: string }>('/admin/customers/next-code', { signal });
+}
+
 export async function createCustomer(payload: CreateCustomerPayload): Promise<KhachHang> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return {
-    id: `kh-${Date.now()}`,
-    totalOrders: 0,
-    totalSpent: 0,
-    registeredAt: new Date().toISOString(),
-    shippingAddresses: [],
-    ...payload,
-  };
+  return apiFetch<KhachHang>('/admin/customers', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
-/**
- * Update a customer.
- * Mock — replace with PATCH /admin/customers/:id
- */
 export async function updateCustomer(id: string, payload: UpdateCustomerPayload): Promise<KhachHang> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  const existing = MOCK_CUSTOMERS.find((c) => c.id === id);
-  if (!existing) throw new Error(`Customer ${id} not found`);
-  return { ...existing, ...payload };
+  // Strip email/avatarUrl — backend AdminUpdateCustomerDto only accepts profile fields
+  const { email: _email, avatarUrl: _avatar, ...body } = payload;
+  void _email; void _avatar;
+  return apiFetch<KhachHang>(`/admin/customers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+  });
 }
 
-/**
- * Delete a customer.
- * Mock — replace with DELETE /admin/customers/:id
- */
-export async function deleteCustomer(_id: string): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+export async function deleteCustomer(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/customers/${id}`, { method: 'DELETE' });
 }
 
-/**
- * Bulk update customer status.
- * Mock — replace with PATCH /admin/customers/bulk
- */
+export async function updateCustomerStatus(
+  id: string,
+  status: CustomerStatus
+): Promise<void> {
+  await apiFetch<void>(`/admin/customers/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+  });
+}
+
 export async function bulkUpdateCustomerStatus(
   ids: string[],
   status: CustomerStatus
 ): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  void ids; void status;
+  await Promise.all(ids.map((id) => updateCustomerStatus(id, status)));
 }
 
-/**
- * Add a shipping address to a customer.
- * Mock — replace with POST /admin/customers/:id/addresses
- */
 export async function addAddress(
   customerId: string,
   payload: CreateAddressPayload
 ): Promise<DiaChiGiaoHang> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return {
-    id: `addr-${Date.now()}`,
-    customerId,
-    createdAt: new Date().toISOString(),
-    ...payload,
-  };
+  return apiFetch<DiaChiGiaoHang>(`/admin/customers/${customerId}/addresses`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
 }
 
-/**
- * Update a shipping address.
- * Mock — replace with PATCH /admin/customers/:id/addresses/:addressId
- */
 export async function updateAddress(
   customerId: string,
   addressId: string,
   payload: UpdateAddressPayload
 ): Promise<DiaChiGiaoHang> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  const customer = MOCK_CUSTOMERS.find((c) => c.id === customerId);
-  const existing = customer?.shippingAddresses.find((a) => a.id === addressId);
-  if (!existing) throw new Error(`Address ${addressId} not found`);
-  return { ...existing, ...payload };
+  return apiFetch<DiaChiGiaoHang>(`/admin/customers/${customerId}/addresses/${addressId}`, {
+    method: 'PUT',
+    body: JSON.stringify(payload),
+  });
 }
 
-/**
- * Delete a shipping address.
- * Mock — replace with DELETE /admin/customers/:id/addresses/:addressId
- */
-export async function deleteAddress(_customerId: string, _addressId: string): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+export async function deleteAddress(customerId: string, addressId: string): Promise<void> {
+  await apiFetch<void>(`/admin/customers/${customerId}/addresses/${addressId}`, { method: 'DELETE' });
 }
 
-/**
- * Set a shipping address as default.
- * Mock — replace with PATCH /admin/customers/:id/addresses/:addressId/set-default
- */
-export async function setDefaultAddress(_customerId: string, _addressId: string): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+export async function setDefaultAddress(customerId: string, addressId: string): Promise<void> {
+  await apiFetch<void>(`/admin/customers/${customerId}/addresses/${addressId}/default`, { method: 'PUT' });
 }

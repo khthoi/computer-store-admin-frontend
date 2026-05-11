@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { EyeIcon } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
@@ -11,6 +11,8 @@ import { DataTable, type ColumnDef } from "@/src/components/admin/DataTable";
 import { fetchBuilds } from "@/src/services/buildpc.service";
 import { BuildDetailDrawer } from "./BuildDetailDrawer";
 import type { BuildPCBuild, BuildStatus } from "@/src/types/buildpc.types";
+
+const PAGE_SIZE = 10;
 
 // ─── Style maps ───────────────────────────────────────────────────────────────
 
@@ -36,12 +38,14 @@ function buildColumns(onView: (b: BuildPCBuild) => void): ColumnDef<BuildPCBuild
       render: (_, row) => (
         <Tooltip
           content={
-            <div className="max-w-xs space-y-1">
+            <div className="space-y-1">
               <p className="font-semibold">{row.tenBuild}</p>
               {row.moTa && <p className="text-xs text-secondary-300">{row.moTa}</p>}
             </div>
           }
           placement="top"
+          multiline
+          maxWidth="320px"
         >
           <div className="max-w-[200px]">
             <p className="truncate text-sm font-semibold text-secondary-800">{row.tenBuild}</p>
@@ -96,7 +100,7 @@ function buildColumns(onView: (b: BuildPCBuild) => void): ColumnDef<BuildPCBuild
       align: "center",
       width: "w-32",
       render: (v, row) => {
-        const cfg = STATUS_BADGE[v as BuildStatus];
+        const cfg = STATUS_BADGE[v as BuildStatus] ?? STATUS_BADGE.draft;
         return (
           <div className="flex items-center justify-center gap-1.5">
             <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
@@ -148,54 +152,72 @@ function buildColumns(onView: (b: BuildPCBuild) => void): ColumnDef<BuildPCBuild
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function BuildsListClient() {
-  const [builds, setBuilds]   = useState<BuildPCBuild[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [builds, setBuilds]     = useState<BuildPCBuild[]>([]);
+  const [total, setTotal]       = useState(0);
+  const [loading, setLoading]   = useState(true);
+  const [error, setError]       = useState<string | null>(null);
 
   const [search, setSearch]             = useState("");
   const [statusFilter, setStatusFilter] = useState<BuildStatus | "all">("all");
   const [page, setPage]                 = useState(1);
-  const [pageSize, setPageSize]         = useState(10);
+  const [pageSize, setPageSize]         = useState(PAGE_SIZE);
   const [selected, setSelected]         = useState<BuildPCBuild | null>(null);
 
-  useEffect(() => {
+  // Debounce ref cho search
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const loadData = useCallback(async () => {
     setLoading(true);
-    fetchBuilds()
-      .then(setBuilds)
-      .catch(() => setError("Không thể tải danh sách build."))
-      .finally(() => setLoading(false));
-  }, []);
+    setError(null);
+    try {
+      const result = await fetchBuilds({
+        page,
+        limit: pageSize,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        search: search || undefined,
+      });
+      setBuilds(result.data);
+      setTotal(result.total);
+    } catch {
+      setError("Không thể tải danh sách build.");
+    } finally {
+      setLoading(false);
+    }
+  }, [page, pageSize, statusFilter, search]);
 
-  // Reset page when filters change
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
+  useEffect(() => { loadData(); }, [loadData]);
 
-  const filtered = useMemo(() =>
-    builds.filter((b) => {
-      const matchStatus = statusFilter === "all" || b.trangThai === statusFilter;
-      const q = search.toLowerCase();
-      const matchSearch =
-        !q ||
-        b.tenBuild.toLowerCase().includes(q) ||
-        b.tenNguoiDung.toLowerCase().includes(q) ||
-        b.email.toLowerCase().includes(q);
-      return matchStatus && matchSearch;
-    }),
-    [builds, search, statusFilter]
-  );
+  function handleSearchChange(q: string) {
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setSearch(q);
+      setPage(1);
+    }, 300);
+  }
+
+  function handleStatusFilter(value: BuildStatus | "all") {
+    setStatusFilter(value);
+    setPage(1);
+  }
+
+  function handlePageSizeChange(size: number) {
+    setPageSize(size);
+    setPage(1);
+  }
 
   const columns = useMemo(() => buildColumns(setSelected), []);
 
   const toolbarActions = (
-    <div className="flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white p-1">
+    <div className="flex items-center gap-1 rounded-xl border border-secondary-200 bg-white p-1">
       {STATUS_FILTER_OPTIONS.map((opt) => (
         <button
           key={opt.value}
           type="button"
-          onClick={() => setStatusFilter(opt.value)}
+          onClick={() => handleStatusFilter(opt.value)}
           className={[
-            "rounded px-3 py-1 text-xs font-medium transition-colors",
+            "rounded-lg px-3 py-1 text-xs font-medium transition-colors",
             statusFilter === opt.value
-              ? "bg-primary-500 text-white"
+              ? "bg-primary-600 text-white"
               : "text-secondary-600 hover:bg-secondary-50",
           ].join(" ")}
         >
@@ -226,19 +248,19 @@ export function BuildsListClient() {
       </div>
 
       <DataTable<BuildPCBuild & Record<string, unknown>>
-        data={filtered as (BuildPCBuild & Record<string, unknown>)[]}
+        data={builds as (BuildPCBuild & Record<string, unknown>)[]}
         columns={columns}
         keyField="id"
         isLoading={loading}
-        searchQuery={search}
-        onSearchChange={setSearch}
+        onSearchChange={handleSearchChange}
         searchPlaceholder="Tìm theo tên build, khách hàng, email…"
         toolbarActions={toolbarActions}
         page={page}
         pageSize={pageSize}
-        totalRows={filtered.length}
+        totalRows={total}
+        pageSizeOptions={[10, 25, 50]}
         onPageChange={setPage}
-        onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
+        onPageSizeChange={handlePageSizeChange}
         emptyMessage="Không tìm thấy build nào."
       />
 

@@ -79,11 +79,13 @@ export function BrandsPageClient({ initialData, initialTotal }: BrandsPageClient
         });
         setData(result.data as BrandRow[]);
         setTotal(result.total);
+      } catch {
+        showToast("Không thể tải dữ liệu. Vui lòng thử lại.", "error");
       } finally {
         setIsLoading(false);
       }
     },
-    [searchQuery, page, pageSize]
+    [searchQuery, page, pageSize, showToast]
   );
 
   function handleSearchChange(q: string) {

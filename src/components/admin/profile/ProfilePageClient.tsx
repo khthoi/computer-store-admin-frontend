@@ -14,7 +14,7 @@ import { ProfileAvatarUploader } from "./ProfileAvatarUploader";
 import { ChangePasswordForm } from "./ChangePasswordForm";
 import { ProfileRolesPanel } from "./ProfileRolesPanel";
 import { ProfileActivityLog } from "./ProfileActivityLog";
-import type { NhanVien, AuditLogEntry } from "@/src/types/employee.types";
+import type { NhanVien } from "@/src/types/employee.types";
 import type { VaiTro } from "@/src/types/role.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -22,7 +22,6 @@ import type { VaiTro } from "@/src/types/role.types";
 export interface ProfilePageClientProps {
   initialEmployee: NhanVien;
   roles: VaiTro[];
-  auditLogs: AuditLogEntry[];
 }
 
 // ─── Tab definitions ──────────────────────────────────────────────────────────
@@ -50,7 +49,6 @@ const TABS = [
 export function ProfilePageClient({
   initialEmployee,
   roles,
-  auditLogs,
 }: ProfilePageClientProps) {
   const [employee, setEmployee] = useState<NhanVien>(initialEmployee);
   const [editOpen, setEditOpen] = useState(false);
@@ -154,7 +152,7 @@ export function ProfilePageClient({
               <p className="mb-4 text-xs text-secondary-400">
                 Hiển thị tối đa 50 hành động gần đây nhất.
               </p>
-              <ProfileActivityLog entries={auditLogs} />
+              <ProfileActivityLog />
             </TabPanel>
           </Tabs>
         </div>

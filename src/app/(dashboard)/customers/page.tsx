@@ -10,17 +10,25 @@ export const metadata: Metadata = {
 };
 
 export default async function CustomersPage() {
-  const { data: customers } = await getCustomers();
+  let customers: import("@/src/types/customer.types").KhachHang[] = [];
+  let total = 0;
+  try {
+    ({ data: customers, total } = await getCustomers({ limit: 10 }));
+  } catch {
+    // Backend unavailable — render empty shell; client-side refetch will recover
+  }
 
   return (
     <div className="space-y-6 p-6">
-      <div>
-        <h1 className="text-2xl font-bold text-secondary-900">Khách hàng</h1>
-        <p className="mt-1 text-sm text-secondary-500">
-          Quản lý hồ sơ khách hàng và danh sách địa chỉ giao hàng.
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-secondary-900">Khách hàng</h1>
+          <p className="mt-1 text-sm text-secondary-500">
+            {total} khách hàng tổng cộng
+          </p>
+        </div>
       </div>
-      <CustomersTable initialCustomers={customers} />
+      <CustomersTable initialCustomers={customers} initialTotal={total} />
     </div>
   );
 }

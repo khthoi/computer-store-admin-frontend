@@ -35,7 +35,7 @@ interface AssigneeStatsItem {
 
 interface CustomerListItem {
   id: number;
-  hoTen: string;
+  fullName: string;
   email: string;
 }
 
@@ -105,12 +105,12 @@ export async function getStaffOptions(): Promise<StaffOption[]> {
 }
 
 export async function getCustomerOptions(search?: string): Promise<CustomerSelectOption[]> {
-  const qs = new URLSearchParams({ limit: "100", trangThai: "HoatDong" });
+  const qs = new URLSearchParams({ limit: "100", status: "active" });
   if (search) qs.set("search", search);
-  const result = await apiFetch<{ items: CustomerListItem[] }>(`/admin/customers?${qs}`);
-  return result.items.map((c) => ({
+  const result = await apiFetch<{ data: CustomerListItem[] }>(`/admin/customers?${qs}`);
+  return result.data.map((c) => ({
     value:       String(c.id),
-    label:       c.hoTen,
+    label:       c.fullName,
     description: c.email,
   }));
 }

@@ -44,7 +44,8 @@ export function AuditActionBadge({
   size = "sm",
   dot = false,
 }: AuditActionBadgeProps) {
-  const { variant, label } = ACTION_CONFIG[actionType];
+  const config = ACTION_CONFIG[actionType] ?? { variant: "default" as BadgeVariant, label: actionType };
+  const { variant, label } = config;
 
   return (
     <Badge variant={variant} size={size} dot={dot} className="w-fit">

@@ -1,16 +1,31 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Modal } from "@/src/components/ui/Modal";
 import { Select } from "@/src/components/ui/Select";
+import type { SelectOptionGroup } from "@/src/components/ui/Select";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Button } from "@/src/components/ui/Button";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Alert } from "@/src/components/ui/Alert";
-import { Badge } from "@/src/components/ui/Badge";
-import { TECH_KEY_OPTIONS, slotsToOptions } from "@/src/services/buildpc.service";
-import type { BuildPCRule, BuildPCRuleFormData, BuildPCSlot, RuleCheckType } from "@/src/types/buildpc.types";
+import { fetchTechKeys, slotsToOptions } from "@/src/services/buildpc.service";
+import type { BuildPCRule, BuildPCRuleFormData, BuildPCSlot, RuleCheckType, TechKeyOption } from "@/src/types/buildpc.types";
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function groupTechKeys(keys: TechKeyOption[]): SelectOptionGroup[] {
+  const map = new Map<string, { value: string; label: string; description: string }[]>();
+  for (const k of keys) {
+    if (!map.has(k.groupName)) map.set(k.groupName, []);
+    map.get(k.groupName)!.push({
+      value: k.value,
+      label: k.unit ? `${k.label} (${k.unit})` : k.label,
+      description: k.value,
+    });
+  }
+  return Array.from(map.entries()).map(([label, options]) => ({ label, options }));
+}
 
 // ─── Check type descriptions ──────────────────────────────────────────────────
 
@@ -83,22 +98,47 @@ export function RuleFormModal({
   const [form, setForm] = useState<BuildPCRuleFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof BuildPCRuleFormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [techKeys, setTechKeys] = useState<TechKeyOption[]>([]);
+  const [isFiltered, setIsFiltered] = useState(false);
+  const prevSlotKey = useRef("");
+
+  // Re-fetch tech keys when selected slots change — filter to relevant categories
+  useEffect(() => {
+    const nguon = slots.find((s) => s.id === form.slotNguonId);
+    const dich = slots.find((s) => s.id === form.slotDichId);
+    const categoryIds = [...new Set([nguon?.danhMucId, dich?.danhMucId].filter((id): id is number => id !== undefined))];
+
+    const slotKey = categoryIds.sort().join(",");
+    if (slotKey === prevSlotKey.current) return;
+
+    // prevSlotKey === "" means this is the first run after modal open — don't clear
+    const isUserSlotChange = prevSlotKey.current !== "";
+    prevSlotKey.current = slotKey;
+
+    if (isUserSlotChange && slotKey !== "") {
+      setForm((f) => ({ ...f, maKyThuat: "" }));
+      setErrors((e) => ({ ...e, maKyThuat: undefined }));
+    }
+
+    setIsFiltered(categoryIds.length > 0);
+    fetchTechKeys(categoryIds.length > 0 ? categoryIds : undefined)
+      .then(setTechKeys)
+      .catch(() => {});
+  }, [form.slotNguonId, form.slotDichId, slots]);
 
   const slotOptions = slotsToOptions(slots).map((o) => ({ value: o.value, label: o.label, description: o.description }));
-  const techKeySelectOptions = TECH_KEY_OPTIONS.map((t) => ({
-    value: t.value,
-    label: t.label,
-    description: t.description,
-  }));
+  const techKeyGroupedOptions = groupTechKeys(techKeys);
 
-  const selectedCheckType = form.loaiKiemTra;
-  const checkTypeInfo = CHECK_TYPE_INFO[selectedCheckType];
-  const needsHeSo = selectedCheckType === "min_sum" || selectedCheckType === "min_value";
+  const checkTypeInfo = CHECK_TYPE_INFO[form.loaiKiemTra];
+  const needsHeSo = form.loaiKiemTra === "min_sum" || form.loaiKiemTra === "min_value";
 
   useEffect(() => {
     if (!isOpen) return;
-    setForm(editing ? ruleToForm(editing) : EMPTY_FORM);
+    const nextForm = editing ? ruleToForm(editing) : EMPTY_FORM;
+    setForm(nextForm);
     setErrors({});
+    // Reset slot key so the tech-key effect fires fresh on open
+    prevSlotKey.current = "";
   }, [isOpen, editing]);
 
   function validate(): boolean {
@@ -135,7 +175,7 @@ export function RuleFormModal({
       isOpen={isOpen}
       onClose={onClose}
       title={editing ? "Chỉnh sửa quy tắc tương thích" : "Thêm quy tắc tương thích"}
-      size="2xl"
+      size="3xl"
       animated
       footer={
         <div className="flex justify-end gap-3">
@@ -171,16 +211,35 @@ export function RuleFormModal({
           />
         </div>
 
-        {/* Tech key */}
-        <Select
-          label="Thông số kỹ thuật"
-          placeholder="Chọn thông số cần kiểm tra…"
-          options={techKeySelectOptions}
-          value={form.maKyThuat}
-          onChange={(v) => set("maKyThuat", Array.isArray(v) ? v[0] : v)}
-          errorMessage={errors.maKyThuat}
-          required
-        />
+        {/* Tech key — grouped by spec group, filtered to selected slot categories */}
+        <div className="space-y-1.5">
+          <Select
+            label="Thông số kỹ thuật"
+            placeholder={
+              form.slotNguonId || form.slotDichId
+                ? "Chọn thông số cần kiểm tra…"
+                : "Chọn khe trước để lọc thông số…"
+            }
+            options={techKeyGroupedOptions}
+            value={form.maKyThuat}
+            onChange={(v) => set("maKyThuat", Array.isArray(v) ? v[0] : v)}
+            errorMessage={errors.maKyThuat}
+            searchable
+            clearable
+            required
+          />
+          {isFiltered && (
+            <p className="text-xs text-info-600">
+              Đang hiển thị thông số của{" "}
+              {[
+                slots.find((s) => s.id === form.slotNguonId)?.tenKhe,
+                slots.find((s) => s.id === form.slotDichId)?.tenKhe,
+              ]
+                .filter(Boolean)
+                .join(" + ")}
+            </p>
+          )}
+        </div>
 
         {/* Check type */}
         <div className="space-y-2">

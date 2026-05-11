@@ -224,9 +224,9 @@ export function VariantReviewsSection({ variantId }: VariantReviewsSectionProps)
           </div>
         ) : (
           <div className="space-y-3">
-            {reviews.map((review) => (
+            {reviews.map((review, i) => (
               <VariantReviewCard
-                key={review.reviewId}
+                key={review.reviewId ?? i}
                 review={review}
                 onOpenModerate={openModerate}
               />

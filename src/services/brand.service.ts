@@ -29,29 +29,13 @@ export interface GetBrandsResult {
 // ─── Service ───────────────────────────────────────────────────────────────
 
 export async function getBrands(params: GetBrandsParams = {}): Promise<GetBrandsResult> {
-  const { q = "", active, page = 1, pageSize } = params;
-
-  const all = await apiFetch<ThuongHieu[]>("/admin/brands");
-
-  let filtered = all.slice();
-  if (q) {
-    const lower = q.toLowerCase();
-    filtered = filtered.filter(
-      (b) =>
-        b.name.toLowerCase().includes(lower) ||
-        b.description.toLowerCase().includes(lower),
-    );
-  }
-  if (active !== undefined) {
-    filtered = filtered.filter((b) => b.active === active);
-  }
-
-  const total = filtered.length;
-  if (pageSize) {
-    const start = (page - 1) * pageSize;
-    filtered = filtered.slice(start, start + pageSize);
-  }
-  return { data: filtered, total };
+  const { q, active, page = 1, pageSize } = params;
+  const qs = new URLSearchParams();
+  qs.set("page", String(page));
+  if (pageSize) qs.set("limit", String(pageSize));
+  if (q)        qs.set("q", q);
+  if (active !== undefined) qs.set("active", String(active));
+  return apiFetch<GetBrandsResult>(`/admin/brands?${qs}`);
 }
 
 export async function getBrandById(id: string): Promise<ThuongHieu | null> {

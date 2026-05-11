@@ -244,9 +244,19 @@ DELETE /admin/suppliers/:id
 ```
 GET    /admin/customers          ?q&status&page&limit
 GET    /admin/customers/:id
-PUT    /admin/customers/:id/status  { action: "suspend" | "reactivate" }
+POST   /admin/customers          AdminCreateCustomerDto
+PATCH  /admin/customers/:id      { fullName?, phone?, gender?, dateOfBirth?, status?: "active"|"inactive"|"banned" }
 DELETE /admin/customers/:id
+PUT    /admin/customers/:id/status  (legacy — dùng PATCH /:id thay thế; body: { trangThai: string })
+GET    /admin/customers/next-code   → { code: string }
+POST   /admin/customers/:id/addresses          AdminCreateAddressDto
+PUT    /admin/customers/:id/addresses/:addrId  AdminUpdateAddressDto
+DELETE /admin/customers/:id/addresses/:addrId
+PUT    /admin/customers/:id/addresses/:addrId/default
 ```
+
+> **Cập nhật status (đơn lẻ hoặc bulk):** dùng `PATCH /admin/customers/:id` với `{ status }`.
+> `PUT /:id/status` là legacy endpoint, nhận `trangThai` tiếng Việt — không dùng cho tích hợp mới.
 
 ---
 

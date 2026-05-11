@@ -1,5 +1,5 @@
+import { apiFetch } from "@/src/services/api";
 import type { VaiTro, NhanVienVaiTro } from "@/src/types/role.types";
-import { MOCK_ROLES } from "@/src/app/(dashboard)/roles/_mock";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -11,106 +11,86 @@ export interface GetRolesResult {
 export interface CreateRolePayload {
   name: string;
   description: string;
-  permissions: string[];
 }
 
 export interface UpdateRolePayload {
   name?: string;
   description?: string;
-  permissions?: string[];
+}
+
+// Backend shape — GET /admin/roles returns Role entity directly (no response DTO)
+interface BackendRole {
+  id: number;
+  tenVaiTro: string;
+  moTa: string | null;
+  permissions?: { id: number; code: string; module?: string; hanhDong?: string }[];
+}
+
+function mapRole(r: BackendRole): VaiTro {
+  return {
+    id: String(r.id),
+    name: r.tenVaiTro,
+    description: r.moTa ?? "",
+    permissions: (r.permissions ?? []).map((p) => p.code),
+    employeeCount: 0,
+    assignments: [] as NhanVienVaiTro[],
+    createdAt: "",
+  };
 }
 
 // ─── Service ─────────────────────────────────────────────────────────────────
 
-/**
- * Fetch all roles.
- * Mock — replace with GET /admin/roles
- */
 export async function getRoles(): Promise<GetRolesResult> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return { data: MOCK_ROLES, total: MOCK_ROLES.length };
+  const roles = await apiFetch<BackendRole[]>("/admin/roles");
+  const mapped = (roles ?? []).map(mapRole);
+  return { data: mapped, total: mapped.length };
 }
 
-/**
- * Fetch a single role by ID.
- * Mock — replace with GET /admin/roles/:id
- */
 export async function getRoleById(id: string): Promise<VaiTro | null> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return MOCK_ROLES.find((r) => r.id === id) ?? null;
+  try {
+    const role = await apiFetch<BackendRole>(`/admin/roles/${id}`);
+    return mapRole(role);
+  } catch {
+    return null;
+  }
 }
 
-/**
- * Create a new role.
- * Mock — replace with POST /admin/roles
- */
 export async function createRole(payload: CreateRolePayload): Promise<VaiTro> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  const newRole: VaiTro = {
-    id: `role-${Date.now()}`,
-    name: payload.name,
-    description: payload.description,
-    permissions: payload.permissions,
-    employeeCount: 0,
-    assignments: [],
-    createdAt: new Date().toISOString(),
-  };
-  return newRole;
+  const role = await apiFetch<BackendRole>("/admin/roles", {
+    method: "POST",
+    body: JSON.stringify({ tenVaiTro: payload.name, moTa: payload.description }),
+  });
+  return mapRole(role);
 }
 
-/**
- * Update an existing role.
- * Mock — replace with PATCH /admin/roles/:id
- */
 export async function updateRole(id: string, payload: UpdateRolePayload): Promise<VaiTro> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  const existing = MOCK_ROLES.find((r) => r.id === id);
-  if (!existing) throw new Error(`Role ${id} not found`);
-  return { ...existing, ...payload };
+  const body: Record<string, unknown> = {};
+  if (payload.name !== undefined)        body.tenVaiTro = payload.name;
+  if (payload.description !== undefined) body.moTa      = payload.description;
+  const role = await apiFetch<BackendRole>(`/admin/roles/${id}`, {
+    method: "PUT",
+    body: JSON.stringify(body),
+  });
+  return mapRole(role);
 }
 
-/**
- * Delete a role by ID.
- * Mock — replace with DELETE /admin/roles/:id
- */
-export async function deleteRole(_id: string): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+export async function deleteRole(id: string): Promise<void> {
+  await apiFetch<void>(`/admin/roles/${id}`, { method: "DELETE" });
 }
 
-/**
- * Bulk delete roles.
- * Mock — replace with DELETE /admin/roles/bulk
- */
 export async function bulkDeleteRoles(ids: string[]): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  void ids;
+  await Promise.all(ids.map((id) => deleteRole(id)));
 }
 
-/**
- * Assign a role to an employee.
- * Mock — replace with POST /admin/roles/:roleId/assignments
- */
 export async function assignRole(
-  roleId: string,
-  employeeId: string,
-  employeeName: string,
-  employeeEmail: string
+  _roleId: string,
+  _employeeId: string,
+  _employeeName: string,
+  _employeeEmail: string
 ): Promise<NhanVienVaiTro> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  return {
-    id: `assign-${Date.now()}`,
-    employeeId,
-    employeeName,
-    employeeEmail,
-    roleId,
-    assignedAt: new Date().toISOString(),
-  };
+  throw new Error("assignRole: not implemented");
 }
 
-/**
- * Remove a role assignment.
- * Mock — replace with DELETE /admin/roles/:roleId/assignments/:assignmentId
- */
 export async function removeAssignment(_assignmentId: string): Promise<void> {
-  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  throw new Error("removeAssignment: not implemented");
 }

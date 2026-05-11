@@ -7,6 +7,7 @@ import { Drawer } from "@/src/components/ui/Drawer";
 import { Badge } from "@/src/components/ui/Badge";
 import { Spinner } from "@/src/components/ui/Spinner";
 import { Alert } from "@/src/components/ui/Alert";
+import { Tooltip } from "@/src/components/ui/Tooltip";
 import { fetchBuildDetail } from "@/src/services/buildpc.service";
 import type { BuildPCBuild, BuildPCBuildDetail, BuildStatus } from "@/src/types/buildpc.types";
 
@@ -78,12 +79,23 @@ export function BuildDetailDrawer({ build, onClose }: BuildDetailDrawerProps) {
 
             {/* Customer info */}
             <div className="flex items-center gap-1.5 text-sm">
-              <Link
-                href={`/customers/${build.customerId}`}
-                className="font-medium text-primary-600 hover:underline"
+              <Tooltip
+                content={
+                  <div className="space-y-0.5">
+                    <p className="font-semibold">{build.tenNguoiDung}</p>
+                    <p className="text-[11px] text-secondary-300">{build.email}</p>
+                  </div>
+                }
+                placement="top"
+                multiline
               >
-                {build.tenNguoiDung}
-              </Link>
+                <Link
+                  href={`/customers/${build.customerId}`}
+                  className="font-medium text-primary-600 hover:underline"
+                >
+                  {build.tenNguoiDung}
+                </Link>
+              </Tooltip>
               <span className="text-secondary-400">·</span>
               <span className="text-secondary-500">{build.email}</span>
             </div>
@@ -115,7 +127,7 @@ export function BuildDetailDrawer({ build, onClose }: BuildDetailDrawerProps) {
           {/* ── Line items (phiên bản sản phẩm) ── */}
           <div>
             <h4 className="mb-3 text-xs font-semibold uppercase tracking-wide text-secondary-500">
-              Phiên bản sản phẩm ({detail?.chiTiet.length ?? 0})
+              Sản phẩm ({detail?.chiTiet.length ?? 0})
             </h4>
             {detail && detail.chiTiet.length === 0 ? (
               <p className="text-sm text-secondary-400">Chưa có linh kiện nào trong build này.</p>
@@ -143,15 +155,30 @@ export function BuildDetailDrawer({ build, onClose }: BuildDetailDrawerProps) {
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           {/* Variant name — clickable link */}
-                          <Link
-                            href={`/products/${item.sanPhamId}/variants/${item.phienBanId}`}
-                            className="group inline-flex items-center gap-1 text-sm font-semibold text-secondary-800 hover:text-primary-600 transition-colors"
-                            target="_blank"
-                            rel="noopener noreferrer"
+                          <Tooltip
+                            content={
+                              <div className="space-y-1">
+                                <p className="font-semibold leading-snug">{item.tenSanPham}</p>
+                                <p className="text-[11px] text-secondary-300">{item.tenPhienBan}</p>
+                                <p className="text-[11px] font-mono text-secondary-400">{item.SKU}</p>
+                                <p className="text-[11px] text-secondary-300">
+                                  {item.giaBan.toLocaleString("vi-VN")} ₫
+                                </p>
+                              </div>
+                            }
+                            placement="top"
+                            multiline
                           >
-                            <span className="truncate max-w-[220px]">{item.tenPhienBan}</span>
-                            <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </Link>
+                            <Link
+                              href={`/products/${item.sanPhamId}/variants/${item.phienBanId}`}
+                              className="group inline-flex items-center gap-1 text-sm font-semibold text-secondary-800 hover:text-primary-600 transition-colors"
+                              target="_blank"
+                              rel="noopener noreferrer"
+                            >
+                              <span className="truncate max-w-[220px]">{item.tenPhienBan}</span>
+                              <ArrowTopRightOnSquareIcon className="h-3.5 w-3.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                            </Link>
+                          </Tooltip>
                           <p className="text-[11px] text-secondary-400 font-mono">{item.SKU}</p>
                         </div>
                         <p className="shrink-0 text-sm font-semibold text-secondary-800 whitespace-nowrap">

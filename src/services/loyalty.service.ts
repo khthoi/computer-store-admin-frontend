@@ -7,7 +7,59 @@ import type {
   LoyaltyRedemptionCatalogPayload,
   LoyaltyEarnRule,
   LoyaltyEarnRulePayload,
+  MembershipTier,
+  MembershipTierPayload,
 } from "@/src/types/loyalty.types";
+
+// ─── Membership Tiers ─────────────────────────────────────────────────────────
+
+export async function getMembershipTiers(activeOnly = true): Promise<MembershipTier[]> {
+  const qs = new URLSearchParams({ limit: "100" });
+  if (activeOnly) qs.set("activeOnly", "true");
+  const result = await apiFetch<{ data: MembershipTier[]; total: number; totalPages: number }>(
+    `/admin/loyalty/tiers?${qs}`
+  );
+  return result?.data ?? [];
+}
+
+export async function getMembershipTiersAdmin(
+  page = 1,
+  limit?: number,
+  search?: string,
+): Promise<{ data: MembershipTier[]; total: number; totalPages: number }> {
+  const qs = new URLSearchParams({ page: String(page) });
+  if (limit) qs.set("limit", String(limit));
+  if (search) qs.set("search", search);
+  const result = await apiFetch<{ data: MembershipTier[]; total: number; totalPages: number }>(
+    `/admin/loyalty/tiers?${qs}`
+  );
+  return result ?? { data: [], total: 0, totalPages: 1 };
+}
+
+export async function getMembershipTierById(id: number): Promise<MembershipTier> {
+  return apiFetch<MembershipTier>(`/admin/loyalty/tiers/${id}`);
+}
+
+export async function createMembershipTier(payload: MembershipTierPayload): Promise<MembershipTier> {
+  return apiFetch<MembershipTier>("/admin/loyalty/tiers", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function updateMembershipTier(
+  id: number,
+  payload: Partial<MembershipTierPayload>,
+): Promise<MembershipTier> {
+  return apiFetch<MembershipTier>(`/admin/loyalty/tiers/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteMembershipTier(id: number): Promise<void> {
+  await apiFetch<void>(`/admin/loyalty/tiers/${id}`, { method: "DELETE" });
+}
 
 // ─── Earn Rules ───────────────────────────────────────────────────────────────
 

@@ -2,6 +2,19 @@ import { apiFetch } from "@/src/services/api";
 import type { NhanVien, AuditLogEntry } from "@/src/types/employee.types";
 import type { VaiTro } from "@/src/types/role.types";
 
+export interface GetMyAuditLogsParams {
+  page?: number;
+  limit?: number;
+  q?: string;
+  action?: string[];
+}
+
+export interface GetMyAuditLogsResult {
+  items: AuditLogEntry[];
+  total: number;
+  totalPages: number;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface UpdateProfilePayload {
@@ -19,7 +32,6 @@ export interface ChangePasswordPayload {
 export interface ProfileData {
   employee: NhanVien;
   roles: VaiTro[];
-  auditLogs: AuditLogEntry[];
 }
 
 // ─── Server-safe fetch (used by server component page.tsx) ────────────────────
@@ -114,6 +126,18 @@ export async function changeCurrentPassword(
     body: JSON.stringify(payload),
   });
   return result.message;
+}
+
+export async function getMyAuditLogs(
+  params: GetMyAuditLogsParams = {},
+): Promise<GetMyAuditLogsResult> {
+  const { page = 1, limit = 20, q, action } = params;
+  const qs = new URLSearchParams();
+  qs.set('page', String(page));
+  qs.set('limit', String(limit));
+  if (q) qs.set('q', q);
+  if (action?.length) qs.set('action', action.join(','));
+  return apiFetch<GetMyAuditLogsResult>(`/admin/me/audit-logs?${qs}`);
 }
 
 /**
