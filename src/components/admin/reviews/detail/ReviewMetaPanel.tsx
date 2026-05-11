@@ -11,7 +11,7 @@ import {
 } from "@heroicons/react/24/outline";
 import { Button }            from "@/src/components/ui/Button";
 import { Tooltip }           from "@/src/components/ui/Tooltip";
-import { ReviewStatusBadge } from "./ReviewStatusBadge";
+import { ReviewStatusBadge } from "../moderation/ReviewStatusBadge";
 import { StarRating }        from "@/src/components/ui/StarRating";
 import type { ReviewSummary, ModerateReviewPayload } from "@/src/types/review.types";
 

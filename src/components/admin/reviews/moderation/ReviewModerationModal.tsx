@@ -14,7 +14,7 @@ import { Tooltip }        from "@/src/components/ui/Tooltip";
 import { DropdownAction } from "@/src/components/ui/DropdownAction";
 import type { DropdownActionItem } from "@/src/components/ui/DropdownAction";
 import { StarRating }     from "@/src/components/ui/StarRating";
-import { Textarea } from "../../ui";
+import { Textarea } from "@/src/components/ui/Textarea";
 import type { ReviewSummary, ModerateReviewPayload } from "@/src/types/review.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ export function ReviewModerationModal({
             label="Lý do từ chối"
             rows={3}
             value={lyDo}
-            onChange={(e) => { setLyDo(e.target.value); setLyDoError(""); }}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => { setLyDo(e.target.value); setLyDoError(""); }}
             showCharCount
             maxCharCount={300}
             placeholder="Nhập lý do từ chối (tối thiểu 10 ký tự)..."

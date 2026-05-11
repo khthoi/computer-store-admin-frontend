@@ -19,7 +19,7 @@ import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { createEarnRule, updateEarnRule, deleteEarnRule } from "@/src/services/loyalty.service";
-import { ScopeMultipliersSection, type ScopeEntry } from "./ScopeMultipliersSection";
+import { ScopeMultipliersSection, type ScopeEntry } from "../conditions/ScopeMultipliersSection";
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 

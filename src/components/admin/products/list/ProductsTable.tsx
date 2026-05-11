@@ -29,7 +29,7 @@ import {
 import { useToast } from "@/src/components/ui/Toast";
 import type { Product, ProductVariant } from "@/src/types/product.types";
 import { buildColumns, type ProductRow } from "./_columns";
-import { VariantSubRow } from "./_VariantSubRow";
+import { VariantSubRow } from "../detail/_VariantSubRow";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

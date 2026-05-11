@@ -6,7 +6,7 @@ import { useToast }              from "@/src/components/ui/Toast";
 import { Select }                from "@/src/components/ui/Select";
 import { ReviewModerationModal } from "@/src/components/admin/reviews/moderation/ReviewModerationModal";
 import { Pagination }            from "@/src/components/navigation/Pagination";
-import { VariantRatingSummary }  from "./VariantRatingSummary";
+import { VariantRatingSummary }  from "../info/VariantRatingSummary";
 import { VariantReviewCard }     from "./VariantReviewCard";
 import { getVariantReviews }     from "@/src/services/product.service";
 import { moderateReview }        from "@/src/services/review.service";

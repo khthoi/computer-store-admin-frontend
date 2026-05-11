@@ -9,13 +9,13 @@ import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
 import { TicketListToolbar, DEFAULT_TICKET_FILTERS } from "./TicketListToolbar";
 import type { TicketFilters } from "./TicketListToolbar";
-import { TicketStatusBadge } from "./TicketStatusBadge";
-import { TicketPriorityBadge } from "./TicketPriorityBadge";
-import { TicketIssueTypeBadge } from "./TicketIssueTypeBadge";
-import { TicketChannelIcon } from "./TicketChannelIcon";
-import { TicketSLATimer } from "./TicketSLATimer";
-import { TicketAssignModal } from "./TicketAssignModal";
-import { TicketCreateModal } from "./TicketCreateModal";
+import { TicketStatusBadge } from "../badges/TicketStatusBadge";
+import { TicketPriorityBadge } from "../badges/TicketPriorityBadge";
+import { TicketIssueTypeBadge } from "../badges/TicketIssueTypeBadge";
+import { TicketChannelIcon } from "../badges/TicketChannelIcon";
+import { TicketSLATimer } from "../badges/TicketSLATimer";
+import { TicketAssignModal } from "../detail/TicketAssignModal";
+import { TicketCreateModal } from "../detail/TicketCreateModal";
 import {
   getTickets,
   getTicketStats,

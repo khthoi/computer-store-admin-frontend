@@ -4,11 +4,11 @@ import { useState } from "react";
 import { Modal } from "@/src/components/ui/Modal";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
-import { Textarea } from "../../ui";
+import { Textarea } from "@/src/components/ui/Textarea";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type AdjustAction =
+export type AdjustAction =
   | { kind: "adjust"; soLuong: number; loaiGiaoDich: "Nhap"; ghiChu: string }
   | { kind: "export"; soLuong: number; loaiPhieu: "XuatHuy" | "XuatDieuChinh" | "XuatNoiBo"; lyDo: string; ghiChu: string };
 
@@ -17,7 +17,6 @@ interface AdjustStockModalProps {
   onClose: () => void;
   onConfirm: (action: AdjustAction) => Promise<void>;
   itemName: string;
-  variantId: number;
   currentQty: number;
   isConfirming: boolean;
 }
@@ -40,7 +39,6 @@ export function AdjustStockModal({
   onClose,
   onConfirm,
   itemName,
-  variantId,
   currentQty,
   isConfirming,
 }: AdjustStockModalProps) {
@@ -181,7 +179,7 @@ export function AdjustStockModal({
           <Textarea
             rows={2}
             value={lyDo}
-            onChange={(e) => setLyDo(e.target.value)}
+            onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setLyDo(e.target.value)}
             placeholder="VD: Hư hỏng khi vận chuyển nội bộ…"
             className="w-full resize-none rounded-lg border border-secondary-300 px-3 py-2 text-sm text-secondary-900 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
             showCharCount
@@ -198,7 +196,7 @@ export function AdjustStockModal({
         <Textarea
           rows={2}
           value={ghiChu}
-          onChange={(e) => setGhiChu(e.target.value)}
+          onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setGhiChu(e.target.value)}
           placeholder="Ghi chú thêm (không bắt buộc)"
           className="w-full resize-none rounded-lg border border-secondary-300 px-3 py-2 text-sm text-secondary-900 placeholder:text-secondary-400 focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
           showCharCount

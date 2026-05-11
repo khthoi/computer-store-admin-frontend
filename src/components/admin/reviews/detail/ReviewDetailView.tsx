@@ -5,7 +5,7 @@ import { ReviewContentCard }     from "./ReviewContentCard";
 import { ReviewTimeline }        from "./ReviewTimeline";
 import { ReviewReplyComposer }   from "./ReviewReplyComposer";
 import { ReviewMetaPanel }       from "./ReviewMetaPanel";
-import { ReviewModerationModal } from "./ReviewModerationModal";
+import { ReviewModerationModal } from "../moderation/ReviewModerationModal";
 import type {
   ReviewDetail,
   ReviewSummary,

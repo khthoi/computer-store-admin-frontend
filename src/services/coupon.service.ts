@@ -10,7 +10,7 @@ export {
   getPromotionUsage as getCouponUsage,
   getPromotionUsageStats as getCouponUsageStats,
   validateCouponCode,
-  generateCouponCode,
+  generateCouponCodeFromApi as generateCouponCode,
   createPromotion as createCoupon,
   updatePromotion as updateCoupon,
 } from "@/src/services/promotion.service";

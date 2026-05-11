@@ -48,8 +48,6 @@ import { useAuth } from "@/src/store/auth.store";
 import { AdminAuthService } from "@/src/services/admin-auth.service";
 import { SessionExpiredModal } from "@/src/components/admin/layout/SessionExpiredModal";
 
-const MOCK_NOTIFICATIONS: AdminNotification[] = [];
-
 // ─── Navigation items ─────────────────────────────────────────────────────────
 //
 // Structure rules:
@@ -451,7 +449,7 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
       <div className="flex flex-1 flex-col min-w-0 overflow-hidden">
         <AdminHeader
           user={adminUser}
-          notifications={MOCK_NOTIFICATIONS}
+          notifications={[]}
           onSignOut={handleSignOut}
           onMarkRead={() => {}}
           onMarkAllRead={() => {}}

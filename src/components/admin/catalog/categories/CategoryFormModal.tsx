@@ -64,30 +64,6 @@ const FILTER_KEY_OPTIONS = [
   { value: "__custom", label: "Tùy chỉnh…", description: "Nhập tên tham số tùy ý" },
 ];
 
-/** Helper – generate a colored letter-avatar SVG data URI for brand logos */
-function mkBrandImg(letter: string, bg: string): string {
-  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32"><rect width="32" height="32" fill="${bg}" rx="4"/><text x="16" y="21" text-anchor="middle" font-size="14" font-weight="700" font-family="Arial,sans-serif" fill="white">${letter}</text></svg>`;
-  return `data:image/svg+xml,${encodeURIComponent(svg)}`;
-}
-
-/** Mock brand list — replace with GET /admin/brands in production */
-const MOCK_BRANDS = [
-  { value: "asus", label: "ASUS", imageUrl: mkBrandImg("A", "#004082") },
-  { value: "msi", label: "MSI", imageUrl: mkBrandImg("M", "#bd1220") },
-  { value: "gigabyte", label: "Gigabyte", imageUrl: mkBrandImg("G", "#e67e22") },
-  { value: "nvidia", label: "NVIDIA", imageUrl: mkBrandImg("N", "#76b900") },
-  { value: "amd", label: "AMD", imageUrl: mkBrandImg("A", "#ed1c24") },
-  { value: "intel", label: "Intel", imageUrl: mkBrandImg("I", "#0071c5") },
-  { value: "corsair", label: "Corsair", imageUrl: mkBrandImg("C", "#1a1a1a") },
-  { value: "kingston", label: "Kingston", imageUrl: mkBrandImg("K", "#c8102e") },
-  { value: "samsung", label: "Samsung", imageUrl: mkBrandImg("S", "#1428a0") },
-  { value: "western-digital", label: "Western Digital", imageUrl: mkBrandImg("W", "#02a08d") },
-  { value: "seagate", label: "Seagate", imageUrl: mkBrandImg("S", "#00ae42") },
-  { value: "lg", label: "LG", imageUrl: mkBrandImg("L", "#a50034") },
-  { value: "logitech", label: "Logitech", imageUrl: mkBrandImg("L", "#00b2ff") },
-  { value: "razer", label: "Razer", imageUrl: mkBrandImg("R", "#00d000") },
-];
-
 const BADGE_PRESETS = [
   { label: "HOT", bg: "#ef4444", fg: "#ffffff" },
   { label: "SALE", bg: "#f97316", fg: "#ffffff" },
@@ -200,7 +176,7 @@ function FilterParamsBuilder({
                   {row.key === "brand" ? (
                     /* Brand picker — Select with logo images */
                     <Select
-                      options={MOCK_BRANDS}
+                      options={[]}
                       value={row.value}
                       onChange={(v) => setRow(i, "value", v as string)}
                       placeholder="Chọn thương hiệu…"

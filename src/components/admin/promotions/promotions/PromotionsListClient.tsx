@@ -12,10 +12,10 @@ import {
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { PromotionsTable } from "./PromotionsTable";
-import { RedemptionCatalogTable } from "./RedemptionCatalogTable";
-import { RedemptionCatalogForm } from "./RedemptionCatalogForm";
-import { EarnRulesTable } from "./EarnRulesTable";
-import { MembershipTiersTable } from "./MembershipTiersTable";
+import { RedemptionCatalogTable } from "../loyalty/RedemptionCatalogTable";
+import { RedemptionCatalogForm } from "../loyalty/RedemptionCatalogForm";
+import { EarnRulesTable } from "../loyalty/EarnRulesTable";
+import { MembershipTiersTable } from "../loyalty/MembershipTiersTable";
 import type { PromotionSummary } from "@/src/types/promotion.types";
 import type { LoyaltyRedemptionCatalog } from "@/src/types/loyalty.types";
 import { getRedemptionCatalog, getEarnRules, getMembershipTiersAdmin } from "@/src/services/loyalty.service";

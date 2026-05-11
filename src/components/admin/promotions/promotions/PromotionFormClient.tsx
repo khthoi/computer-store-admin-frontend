@@ -28,16 +28,16 @@ import {
   conditionDraftToPayload,
   conditionToEditDraft,
   type ConditionDraft,
-} from "./ConditionBuilder";
+} from "../conditions/ConditionBuilder";
 import {
   ScopeSelector,
   scopeDraftToPayload,
   scopeToEditDraft,
   type ScopeDraft,
-} from "./ScopeSelector";
-import { BxgyActionForm, defaultBxgyFields } from "./BxgyActionForm";
-import { BundleActionForm } from "./BundleActionForm";
-import { BulkTiersForm } from "./BulkTiersForm";
+} from "../conditions/ScopeSelector";
+import { BxgyActionForm, defaultBxgyFields } from "../conditions/BxgyActionForm";
+import { BundleActionForm } from "../conditions/BundleActionForm";
+import { BulkTiersForm } from "../conditions/BulkTiersForm";
 import { formatVND } from "@/src/lib/format";
 import type { ProductVariantFlat } from "@/src/services/product.service";
 import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";

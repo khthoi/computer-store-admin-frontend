@@ -11,9 +11,9 @@ import { Tooltip }               from "@/src/components/ui/Tooltip";
 import { useToast }              from "@/src/components/ui/Toast";
 import { ReviewListToolbar, DEFAULT_REVIEW_FILTERS } from "./ReviewListToolbar";
 import type { ReviewFilters }    from "@/src/types/review.types";
-import { ReviewStatusBadge }     from "./ReviewStatusBadge";
-import { ReviewModerationModal } from "./ReviewModerationModal";
-import { ReviewBulkModerateModal } from "./ReviewBulkModerateModal";
+import { ReviewStatusBadge }     from "../moderation/ReviewStatusBadge";
+import { ReviewModerationModal } from "../moderation/ReviewModerationModal";
+import { ReviewBulkModerateModal } from "../moderation/ReviewBulkModerateModal";
 import {
   getReviews,
   getReviewStats,

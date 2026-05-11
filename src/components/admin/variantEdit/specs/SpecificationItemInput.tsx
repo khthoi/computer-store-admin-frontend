@@ -1,7 +1,7 @@
 "use client";
 
 import { FunnelIcon } from "@heroicons/react/24/outline";
-import { SpecificationItemEditor } from "@/src/components/admin/variant/SpecificationItemEditor";
+import { SpecificationItemEditor } from "@/src/components/admin/variant/specs/SpecificationItemEditor";
 import type { SpecificationItem } from "@/src/types/product.types";
 
 // ─── Constants ────────────────────────────────────────────────────────────────

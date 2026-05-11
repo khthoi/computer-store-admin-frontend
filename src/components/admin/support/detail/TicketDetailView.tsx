@@ -3,9 +3,9 @@
 import { useState, useMemo } from "react";
 import { TicketTimeline }    from "./TicketTimeline";
 import { TicketReplyComposer } from "./TicketReplyComposer";
-import { TicketStatusBadge }   from "./TicketStatusBadge";
-import { TicketPriorityBadge } from "./TicketPriorityBadge";
-import { TicketSLATimer }      from "./TicketSLATimer";
+import { TicketStatusBadge }   from "../badges/TicketStatusBadge";
+import { TicketPriorityBadge } from "../badges/TicketPriorityBadge";
+import { TicketSLATimer }      from "../badges/TicketSLATimer";
 import { TicketMetaPanel, type TicketMeta } from "./TicketMetaPanel";
 import {
   MediaLightbox,

@@ -10,7 +10,6 @@ interface MediaItemCardProps {
 const TYPE_BADGE: Record<MediaType, React.ReactNode> = {
   main:    <Badge variant="primary" size="sm">Main</Badge>,
   gallery: <Badge variant="default" size="sm">Gallery</Badge>,
-  "360":   <Badge variant="warning" size="sm">360°</Badge>,
 };
 
 export function MediaItemCard({ item }: MediaItemCardProps) {

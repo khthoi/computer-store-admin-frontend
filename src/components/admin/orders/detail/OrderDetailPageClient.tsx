@@ -28,7 +28,7 @@ import {
   getOrderReturnRequests,
 } from "@/src/services/order.service";
 import type { Order, OrderStatus, OrderReturnRequest } from "@/src/types/order.types";
-import type { ShippingInfo } from "@/src/components/admin/orders/OrderShippingPanel";
+import type { ShippingInfo } from "./OrderShippingPanel";
 
 // ─── Cancel Dialog ────────────────────────────────────────────────────────────
 

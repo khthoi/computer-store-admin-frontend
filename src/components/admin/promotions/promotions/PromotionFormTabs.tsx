@@ -5,9 +5,9 @@ import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Select } from "@/src/components/ui/Select";
-import { DiscountRuleBuilder, type DiscountRule } from "./DiscountRuleBuilder";
-import { CouponCodeManager, type CouponCode } from "./CouponCodeManager";
-import { FlashSaleScheduler, type FlashSaleConfig } from "./FlashSaleScheduler";
+import { DiscountRuleBuilder, type DiscountRule } from "../conditions/DiscountRuleBuilder";
+import { CouponCodeManager, type CouponCode } from "../coupons/CouponCodeManager";
+import { FlashSaleScheduler, type FlashSaleConfig } from "../coupons/FlashSaleScheduler";
 import {
   PromotionApplicabilityPicker,
   type Applicability,

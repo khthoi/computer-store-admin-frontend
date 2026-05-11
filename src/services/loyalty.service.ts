@@ -164,64 +164,28 @@ export async function deleteRedemptionCatalogItem(id: string): Promise<void> {
   await apiFetch<void>(`/admin/loyalty/catalog/${id}`, { method: "DELETE" });
 }
 
-// ─── Customer Loyalty (TODO: wire when customer loyalty endpoints ready) ──────
-
-// Mock data preserved until backend exposes customer-specific loyalty endpoints.
-
-function delay(ms = 300): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-const MOCK_TRANSACTIONS: LoyaltyPointTransaction[] = [];
-const MOCK_REDEMPTIONS: LoyaltyRedemption[] = [];
+// ─── Customer Loyalty (wire when backend exposes customer loyalty endpoints) ──
 
 export async function getCustomerLoyaltySummary(
-  customerId: string,
+  _customerId: string,
 ): Promise<CustomerLoyaltySummary> {
-  await delay();
-  const txns = MOCK_TRANSACTIONS.filter((t) => t.customerId === customerId);
-  const reds = MOCK_REDEMPTIONS.filter((r) => r.customerId === customerId);
-
-  const earned = txns
-    .filter((t) => t.type === "earn" || (t.type === "adjust" && t.points > 0))
-    .reduce((sum, t) => sum + Math.abs(t.points), 0);
-
-  const spent = txns
-    .filter(
-      (t) =>
-        t.type === "redeem" ||
-        t.type === "expire" ||
-        (t.type === "adjust" && t.points < 0),
-    )
-    .reduce((sum, t) => sum + Math.abs(t.points), 0);
-
-  const lastTxn = [...txns].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-  )[0];
-
-  return {
-    currentBalance: lastTxn?.balanceAfter ?? 0,
-    lifetimeEarned: earned,
-    lifetimeSpent: spent,
-    totalRedemptions: reds.length,
-    pendingPoints: 0,
-  };
+  return apiFetch<CustomerLoyaltySummary>(`/admin/loyalty/customers/${_customerId}/summary`);
 }
 
 export async function getCustomerPointTransactions(
   customerId: string,
 ): Promise<LoyaltyPointTransaction[]> {
-  await delay();
-  return MOCK_TRANSACTIONS.filter((t) => t.customerId === customerId).sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  const result = await apiFetch<{ data: LoyaltyPointTransaction[] }>(
+    `/admin/loyalty/customers/${customerId}/transactions`,
   );
+  return result?.data ?? [];
 }
 
 export async function getCustomerRedemptions(
   customerId: string,
 ): Promise<LoyaltyRedemption[]> {
-  await delay();
-  return MOCK_REDEMPTIONS.filter((r) => r.customerId === customerId).sort(
-    (a, b) => new Date(b.redeemedAt).getTime() - new Date(a.redeemedAt).getTime(),
+  const result = await apiFetch<{ data: LoyaltyRedemption[] }>(
+    `/admin/loyalty/customers/${customerId}/redemptions`,
   );
+  return result?.data ?? [];
 }

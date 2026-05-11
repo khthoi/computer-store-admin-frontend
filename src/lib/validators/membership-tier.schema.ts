@@ -7,12 +7,12 @@ export const membershipTierSchema = z
       .min(1, "Tên bậc không được để trống.")
       .max(100, "Tên bậc không được vượt quá 100 ký tự."),
     minPoints: z
-      .number({ invalid_type_error: "Điểm tối thiểu phải là số." })
+      .number({ error: "Điểm tối thiểu phải là số." })
       .int("Điểm tối thiểu phải là số nguyên.")
       .min(0, "Điểm tối thiểu không được âm."),
     unlimited: z.boolean(),
     maxPoints: z
-      .number({ invalid_type_error: "Điểm tối đa phải là số." })
+      .number({ error: "Điểm tối đa phải là số." })
       .int("Điểm tối đa phải là số nguyên.")
       .min(0, "Điểm tối đa phải ≥ 0.")
       .optional()

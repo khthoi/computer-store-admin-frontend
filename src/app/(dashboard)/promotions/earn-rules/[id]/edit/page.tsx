@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getEarnRuleById } from "@/src/services/loyalty.service";
-import { EarnRuleFormClient } from "@/src/components/admin/promotions/EarnRuleFormClient";
+import { EarnRuleFormClient } from "@/src/components/admin/promotions/loyalty/EarnRuleFormClient";
 
 export async function generateMetadata({
   params,

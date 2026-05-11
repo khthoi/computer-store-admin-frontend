@@ -1,6 +1,3 @@
-import {
-  MOCK_STOCK_MOVEMENTS,
-} from "@/src/app/(dashboard)/inventory/_mock";
 import { apiFetch } from "@/src/services/api";
 import type {
   Supplier,
@@ -17,10 +14,6 @@ import type {
 } from "@/src/types/inventory.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function delay(ms = 400): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function mapReceiptStatus(beStatus: string): StockInStatus {
   const map: Record<string, StockInStatus> = {
@@ -163,10 +156,8 @@ export async function updateThresholds(
 // ─── Stock Movements ──────────────────────────────────────────────────────────
 
 export async function getStockMovements(): Promise<StockMovement[]> {
-  await delay();
-  return [...MOCK_STOCK_MOVEMENTS].sort(
-    (a, b) => new Date(b.performedAt).getTime() - new Date(a.performedAt).getTime()
-  );
+  const result = await apiFetch<StockMovementPage>("/admin/inventory/movements");
+  return result.data;
 }
 
 // ─── Suppliers ────────────────────────────────────────────────────────────────

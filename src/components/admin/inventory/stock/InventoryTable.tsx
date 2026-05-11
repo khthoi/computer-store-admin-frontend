@@ -531,7 +531,6 @@ export function InventoryTable() {
           onClose={() => setAdjustingItem(null)}
           onConfirm={handleAdjust}
           itemName={`${adjustingItem.productName} — ${adjustingItem.variantName}`}
-          variantId={Number(adjustingItem.variantId)}
           currentQty={adjustingItem.quantityOnHand}
           isConfirming={isAdjusting}
         />

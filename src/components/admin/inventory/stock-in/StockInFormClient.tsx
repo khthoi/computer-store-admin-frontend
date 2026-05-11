@@ -267,6 +267,8 @@ export function StockInFormClient({
           sku: l.sku,
           quantityOrdered: l.quantityOrdered,
           quantityReceived: 0,
+          quantityDamaged: 0,
+          quantityShort: 0,
           costPrice: l.costPrice,
           note: l.note?.trim() || undefined,
         })),

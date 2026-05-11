@@ -3,7 +3,7 @@
 import Link              from "next/link";
 import { Badge }         from "@/src/components/ui/Badge";
 import { Tooltip }       from "@/src/components/ui/Tooltip";
-import { DataTable }     from "./DataTable";
+import { DataTable }     from "../shared/DataTable";
 import type { PromotionReport } from "@/src/types/report.types";
 import type { BadgeVariant }    from "@/src/components/ui/Badge";
 

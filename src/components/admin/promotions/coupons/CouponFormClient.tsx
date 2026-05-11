@@ -5,7 +5,7 @@
 "use client";
 
 import type { Promotion } from "@/src/types/promotion.types";
-import { PromotionFormClient } from "./PromotionFormClient";
+import { PromotionFormClient } from "../promotions/PromotionFormClient";
 
 type Props =
   | { mode: "create"; coupon?: never }

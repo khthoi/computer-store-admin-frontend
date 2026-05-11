@@ -32,9 +32,8 @@ function formatDatetime(iso: string): string {
 const PAYMENT_METHOD_LABELS: Record<TransactionPaymentMethod, string> = {
   COD:         "Thanh toán khi nhận hàng (COD)",
   ChuyenKhoan: "Chuyển khoản ngân hàng",
-  VNPAY:       "VNPAY",
-  Momo:        "Ví MoMo",
-  ZaloPay:     "ZaloPay",
+  TheNganHang: "Thẻ ngân hàng",
+  ViDienTu:    "Ví điện tử",
   TraGop:      "Trả góp",
 };
 

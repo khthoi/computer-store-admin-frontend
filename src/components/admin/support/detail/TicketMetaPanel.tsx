@@ -4,7 +4,7 @@ import Link from "next/link";
 import { UserCircleIcon } from "@heroicons/react/24/outline";
 import { Select } from "@/src/components/ui/Select";
 import { Button } from "@/src/components/ui/Button";
-import { TicketStatusBadge } from "./TicketStatusBadge";
+import { TicketStatusBadge } from "../badges/TicketStatusBadge";
 import type {
   MessageSenderType,
   TicketStatus,

@@ -6,7 +6,7 @@ export const AdminAuthService = {
   async login(values: AdminLoginFormValues): Promise<LoginResponse> {
     return apiFetch<LoginResponse>("/auth/admin/login", {
       method: "POST",
-      body: JSON.stringify({ email: values.email, password: values.password }),
+      body: JSON.stringify({ email: values.email, password: values.password, rememberMe: values.rememberMe }),
     });
   },
 

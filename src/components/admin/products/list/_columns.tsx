@@ -11,7 +11,7 @@ import {
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { formatVND } from "@/src/lib/format";
-import { formatDate, StockCell } from "./_shared";
+import { formatDate, StockCell } from "../form/_shared";
 import type { Product, ProductVariant } from "@/src/types/product.types";
 
 export type ProductRow = Product & Record<string, unknown>;

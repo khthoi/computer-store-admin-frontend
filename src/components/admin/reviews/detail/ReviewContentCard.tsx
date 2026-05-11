@@ -1,6 +1,6 @@
 import Link               from "next/link";
 import { StarRating }       from "@/src/components/ui/StarRating";
-import { ReviewStatusBadge } from "./ReviewStatusBadge";
+import { ReviewStatusBadge } from "../moderation/ReviewStatusBadge";
 import type { ReviewDetail } from "@/src/types/review.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────

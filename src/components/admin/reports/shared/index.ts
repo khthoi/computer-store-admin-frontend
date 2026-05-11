@@ -12,11 +12,11 @@ export { ReportsSummaryClient } from "../overview/ReportsSummaryClient";
 
 // ─── Page-specific client components ─────────────────────────────────────────
 
-export { RevenueReportClient }   from "./revenue/RevenueReportClient";
-export { ProductReportClient }   from "./products/ProductReportClient";
-export { CustomerReportClient }  from "./customers/CustomerReportClient";
-export { InventoryReportClient } from "./inventory/InventoryReportClient";
-export { PromotionReportClient } from "./promotions/PromotionReportClient";
-export { SupportReportClient }   from "./support/SupportReportClient";
-export { ResolutionTimeChart }   from "./support/ResolutionTimeChart";
-export { ReviewRatingBar }       from "./support/ReviewRatingBar";
+export { RevenueReportClient }   from "../revenue/RevenueReportClient";
+export { ProductReportClient }   from "../products/ProductReportClient";
+export { CustomerReportClient }  from "../customers/CustomerReportClient";
+export { InventoryReportClient } from "../inventory/InventoryReportClient";
+export { PromotionReportClient } from "../promotions/PromotionReportClient";
+export { SupportReportClient }   from "../support/SupportReportClient";
+export { ResolutionTimeChart }   from "../support/ResolutionTimeChart";
+export { ReviewRatingBar }       from "../support/ReviewRatingBar";

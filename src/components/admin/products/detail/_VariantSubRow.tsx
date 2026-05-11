@@ -15,7 +15,7 @@ import { Checkbox } from "@/src/components/ui/Checkbox";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { Tooltip } from "@/src/components/ui/Tooltip";
 import { formatVND } from "@/src/lib/format";
-import { formatDate, StockCell } from "./_shared";
+import { formatDate, StockCell } from "../form/_shared";
 import type { ProductVariant } from "@/src/types/product.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────

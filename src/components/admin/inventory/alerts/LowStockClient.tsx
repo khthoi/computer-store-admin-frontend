@@ -9,7 +9,7 @@ import {
   MagnifyingGlassIcon,
 } from "@heroicons/react/24/outline";
 import { StatusBadge } from "@/src/components/admin/StatusBadge";
-import { AdjustStockModal } from "@/src/components/admin/inventory/stock/AdjustStockModal";
+import { AdjustStockModal, type AdjustAction } from "@/src/components/admin/inventory/stock/AdjustStockModal";
 import { AlertThresholdModal } from "./AlertThresholdModal";
 import { AlertConfigTable } from "./AlertConfigTable";
 import {
@@ -171,9 +171,12 @@ export function LowStockClient({ initialItems, initialTotal }: Props) {
   }, [search, alertFilter, supplierId, sortValue, pageSize]);
 
   // Handlers
-  async function handleAdjust(delta: number, loaiGiaoDich: string, note: string) {
+  async function handleAdjust(action: AdjustAction) {
     if (!adjustingItem) return;
     setIsAdjusting(true);
+    const delta = action.kind === "adjust" ? action.soLuong : -action.soLuong;
+    const loaiGiaoDich = action.kind === "adjust" ? action.loaiGiaoDich : action.loaiPhieu;
+    const note = action.ghiChu;
     try {
       await adjustStock(adjustingItem.id, delta, loaiGiaoDich, note);
       setItems((prev) =>

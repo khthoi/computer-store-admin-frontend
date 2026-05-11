@@ -122,12 +122,6 @@ export function AdminLoginForm() {
         </Button>
       </form>
 
-      {/* Demo hint */}
-      <div className="mt-6 rounded-lg bg-secondary-50 border border-secondary-200 p-3">
-        <p className="text-xs font-medium text-secondary-600 mb-1">Tài khoản demo:</p>
-        <p className="text-xs text-secondary-500 font-mono">admin@techstore.vn / Admin123</p>
-        <p className="text-xs text-secondary-500 font-mono">staff@techstore.vn / Staff123</p>
-      </div>
     </div>
   );
 }
