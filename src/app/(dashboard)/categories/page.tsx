@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getCategories, getCategoryTree } from "@/src/services/category.service";
 import { getSpecGroups } from "@/src/services/spec_group.service";
-import { CategoriesPageClient } from "@/src/components/admin/catalog/CategoriesPageClient";
+import { CategoriesPageClient } from "@/src/components/admin/catalog/categories/CategoriesPageClient";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 

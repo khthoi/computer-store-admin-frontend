@@ -7,6 +7,7 @@ import {
   ArrowPathIcon,
   PlusIcon,
   UserGroupIcon,
+  KeyIcon,
 } from "@heroicons/react/24/outline";
 import {
   DataTable,
@@ -29,7 +30,10 @@ import {
   deleteEmployee,
   bulkUpdateEmployeeStatus,
   getEmployees,
+  resetEmployeePassword,
 } from "@/src/services/employee.service";
+import { ResetPasswordModal } from "@/src/components/admin/shared/ResetPasswordModal";
+import { useAuth } from "@/src/store/auth.store";
 import { getRoles } from "@/src/services/role.service";
 import type { NhanVien, EmployeeStatus } from "@/src/types/employee.types";
 import type { VaiTro } from "@/src/types/role.types";
@@ -73,6 +77,7 @@ const STATUS_FILTER_OPTIONS = [
 
 export function EmployeesTable({ initialEmployees, initialTotal }: EmployeesTableProps) {
   const { showToast } = useToast();
+  const { state: authState } = useAuth();
 
   const [employees, setEmployees] = useState<NhanVien[]>(initialEmployees);
   const [serverTotal, setServerTotal] = useState<number>(initialTotal);
@@ -158,6 +163,7 @@ export function EmployeesTable({ initialEmployees, initialTotal }: EmployeesTabl
   // ── Modal state ───────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
   const [editEmployee, setEditEmployee] = useState<NhanVien | null>(null);
+  const [resetTarget, setResetTarget] = useState<NhanVien | null>(null);
 
   // ── Role filter options — value is the numeric role ID (string) to pass as
   //    roleId query param; backend VaiTro.id is already mapped to String(r.id)
@@ -278,6 +284,13 @@ export function EmployeesTable({ initialEmployees, initialTotal }: EmployeesTabl
     setModalOpen(true);
   }, []);
 
+  const handleResetPassword = useCallback(async (payload: { newPassword: string; confirmPassword: string }) => {
+    if (!resetTarget) return;
+    await resetEmployeePassword(resetTarget.id, payload);
+    setResetTarget(null);
+    showToast(`Đã đặt lại mật khẩu cho ${resetTarget.fullName}.`, "success");
+  }, [resetTarget, showToast]);
+
   // ── Columns ───────────────────────────────────────────────────────────────
 
   const columns: ColumnDef<EmployeeRow>[] = useMemo(
@@ -355,30 +368,47 @@ export function EmployeesTable({ initialEmployees, initialTotal }: EmployeesTabl
         header: "",
         width: "w-20",
         align: "right",
-        render: (_, row): ReactNode => (
-          <RowActions>
-            <Tooltip content="Sửa" placement="top">
-              <span className="inline-flex">
-                <RowActionEdit
-                  ariaLabel={`Chỉnh sửa ${row.fullName as string}`}
-                  onClick={() => { setEditEmployee(row as NhanVien); setModalOpen(true); }}
-                />
-              </span>
-            </Tooltip>
-            <Tooltip content="Xoá" placement="top">
-              <span className="inline-flex">
-                <RowActionDelete
-                  ariaLabel={`Xoá ${row.fullName as string}`}
-                  onClick={() => handleDeleteClick(row as NhanVien)}
-                />
-              </span>
-            </Tooltip>
-          </RowActions>
-        ),
+        render: (_, row): ReactNode => {
+          const isSelf = authState.user?.id === (row as NhanVien).id;
+          return (
+            <RowActions>
+              <Tooltip content="Sửa" placement="top">
+                <span className="inline-flex">
+                  <RowActionEdit
+                    ariaLabel={`Chỉnh sửa ${row.fullName as string}`}
+                    onClick={() => { setEditEmployee(row as NhanVien); setModalOpen(true); }}
+                  />
+                </span>
+              </Tooltip>
+              {!isSelf && (
+                <Tooltip content="Đặt lại mật khẩu" placement="top">
+                  <span className="inline-flex">
+                    <button
+                      type="button"
+                      aria-label={`Đặt lại mật khẩu ${row.fullName as string}`}
+                      onClick={() => setResetTarget(row as NhanVien)}
+                      className="rounded p-1 text-secondary-400 hover:bg-secondary-100 hover:text-blue-600 transition-colors"
+                    >
+                      <KeyIcon className="h-4 w-4" />
+                    </button>
+                  </span>
+                </Tooltip>
+              )}
+              <Tooltip content="Xoá" placement="top">
+                <span className="inline-flex">
+                  <RowActionDelete
+                    ariaLabel={`Xoá ${row.fullName as string}`}
+                    onClick={() => handleDeleteClick(row as NhanVien)}
+                  />
+                </span>
+              </Tooltip>
+            </RowActions>
+          );
+        },
       },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [handleDeleteClick]
+    [handleDeleteClick, authState.user?.id]
   );
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -452,6 +482,13 @@ export function EmployeesTable({ initialEmployees, initialTotal }: EmployeesTabl
         employee={editEmployee}
         allRoles={allRoles}
         onSaved={handleSaved}
+      />
+
+      <ResetPasswordModal
+        isOpen={Boolean(resetTarget)}
+        onClose={() => setResetTarget(null)}
+        targetName={resetTarget?.fullName ?? ""}
+        onConfirm={handleResetPassword}
       />
 
       <ConfirmDialog

@@ -116,7 +116,7 @@ export function AdminLoginForm() {
           size="lg"
           isLoading={isSubmitting}
           disabled={isSubmitting}
-          className="mt-2 !bg-violet-700 hover:!bg-violet-800"
+          className="mt-2 !bg-blue-700 hover:!bg-blue-800"
         >
           Đăng nhập
         </Button>

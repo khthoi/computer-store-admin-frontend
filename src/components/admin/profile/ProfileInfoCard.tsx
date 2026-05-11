@@ -112,7 +112,7 @@ export function ProfileInfoCard({ employee }: ProfileInfoCardProps) {
         {employee.lastLoginAt && (
           <InfoRow
             icon={<ClockIcon className="h-4 w-4" />}
-            label="Đăng nhập lần cuối"
+            label="ĐN lần cuối"
             value={formatDateTime(employee.lastLoginAt)}
           />
         )}

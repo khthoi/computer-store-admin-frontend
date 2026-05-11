@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
-import { ExportReceiptForm } from "@/src/components/admin/inventory/ExportReceiptForm";
+import { ExportReceiptForm } from "@/src/components/admin/inventory/export/ExportReceiptForm";
 
 export default function NewExportReceiptPage() {
   return (

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductById, getNewVariantTemplate } from "@/src/services/product.service";
-import { VariantFormPage } from "@/src/components/admin/catalog/VariantFormPage";
+import { VariantFormPage } from "@/src/components/admin/catalog/variants/VariantFormPage";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 

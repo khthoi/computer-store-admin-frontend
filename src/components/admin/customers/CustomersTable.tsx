@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { ArrowPathIcon, PlusIcon, UserGroupIcon, MapPinIcon } from "@heroicons/react/24/outline";
+import { ArrowPathIcon, PlusIcon, UserGroupIcon, MapPinIcon, KeyIcon } from "@heroicons/react/24/outline";
 import {
   DataTable,
   RowActions,
@@ -25,7 +25,9 @@ import {
   getCustomers,
   deleteCustomer,
   bulkUpdateCustomerStatus,
+  resetCustomerPassword,
 } from "@/src/services/customer.service";
+import { ResetPasswordModal } from "@/src/components/admin/shared/ResetPasswordModal";
 import { formatVND } from "@/src/lib/format";
 import type { KhachHang, DiaChiGiaoHang, CustomerStatus } from "@/src/types/customer.types";
 
@@ -225,6 +227,7 @@ export function CustomersTable({ initialCustomers, initialTotal }: CustomersTabl
 
   const [modalOpen, setModalOpen]       = useState(false);
   const [editCustomer, setEditCustomer] = useState<KhachHang | null>(null);
+  const [resetTarget, setResetTarget]   = useState<KhachHang | null>(null);
 
   // ── Handlers ────────────────────────────────────────────────────────────────
 
@@ -303,6 +306,13 @@ export function CustomersTable({ initialCustomers, initialTotal }: CustomersTabl
     setModalOpen(true);
   }, []);
 
+  const handleResetPassword = useCallback(async (payload: { newPassword: string; confirmPassword: string }) => {
+    if (!resetTarget) return;
+    await resetCustomerPassword(resetTarget.id, payload);
+    setResetTarget(null);
+    showToast(`Đã đặt lại mật khẩu cho ${resetTarget.fullName}.`, "success");
+  }, [resetTarget, showToast]);
+
   // ── Expandable sub-rows (shipping addresses) ────────────────────────────────
 
   const getSubRows = useCallback((row: CustomerRow) => {
@@ -365,6 +375,18 @@ export function CustomersTable({ initialCustomers, initialTotal }: CustomersTabl
                 ariaLabel={`Chỉnh sửa ${row.fullName as string}`}
                 onClick={() => { setEditCustomer(row as unknown as KhachHang); setModalOpen(true); }}
               />
+            </span>
+          </Tooltip>
+          <Tooltip content="Đặt lại mật khẩu" placement="top">
+            <span className="inline-flex">
+              <button
+                type="button"
+                aria-label={`Đặt lại mật khẩu ${row.fullName as string}`}
+                onClick={() => setResetTarget(row as unknown as KhachHang)}
+                className="rounded p-1 text-secondary-400 hover:bg-secondary-100 hover:text-blue-600 transition-colors"
+              >
+                <KeyIcon className="h-4 w-4" />
+              </button>
             </span>
           </Tooltip>
           <Tooltip content="Xoá" placement="top">
@@ -447,6 +469,13 @@ export function CustomersTable({ initialCustomers, initialTotal }: CustomersTabl
         onClose={() => setModalOpen(false)}
         customer={editCustomer}
         onSaved={handleSaved}
+      />
+
+      <ResetPasswordModal
+        isOpen={Boolean(resetTarget)}
+        onClose={() => setResetTarget(null)}
+        targetName={resetTarget?.fullName ?? ""}
+        onConfirm={handleResetPassword}
       />
 
       <ConfirmDialog

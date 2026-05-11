@@ -13,7 +13,7 @@ import { Badge, type BadgeVariant } from "@/src/components/ui/Badge";
 export interface AdminUser {
   name: string;
   email: string;
-  role: string;
+  roles: string[];
   avatarUrl?: string;
 }
 
@@ -89,7 +89,7 @@ export function AdminUserMenu({ user, onSignOut }: AdminUserMenuProps) {
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:bg-violet-600/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        className="flex items-center gap-2 rounded-xl px-2 py-1 transition-colors hover:bg-blue-600/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <Avatar
           src={user.avatarUrl}
@@ -105,16 +105,18 @@ export function AdminUserMenu({ user, onSignOut }: AdminUserMenuProps) {
         <div
           role="menu"
           aria-label="User menu"
-          className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-secondary-200 bg-white shadow-xl z-50"
+          className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-secondary-200 bg-white shadow-xl z-50 overflow-hidden"
         >
           {/* User info header */}
           <div className="px-4 py-3 border-b border-secondary-100">
             <p className="text-sm font-semibold text-secondary-900 truncate">{user.name}</p>
             <p className="text-xs text-secondary-500 truncate mt-0.5">{user.email}</p>
-            <div className="mt-2">
-              <Badge variant={roleBadgeVariant(user.role)} size="sm">
-                {roleLabel(user.role)}
-              </Badge>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {user.roles.map((role) => (
+                <Badge key={role} variant={roleBadgeVariant(role)} size="sm">
+                  {roleLabel(role)}
+                </Badge>
+              ))}
             </div>
           </div>
 

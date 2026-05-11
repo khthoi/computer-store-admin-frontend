@@ -41,7 +41,7 @@ export default function ReportsLayout({ children }: { children: ReactNode }) {
               className={[
                 "py-3 px-4 text-sm whitespace-nowrap border-b-2 transition-colors",
                 isActive
-                  ? "border-violet-600 text-violet-700 font-semibold"
+                  ? "border-blue-600 text-blue-700 font-semibold"
                   : "border-transparent text-secondary-500 hover:text-secondary-800",
               ].join(" ")}
             >

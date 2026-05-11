@@ -58,8 +58,8 @@ const TYPE_OPTIONS: TypeOption[] = [
     description: "Chọn tay từng sản phẩm",
     info: "Bạn tự chọn và sắp xếp từng sản phẩm hiển thị bằng cách kéo thả. Không phụ thuộc vào bộ lọc tự động. Phù hợp cho bộ sưu tập đặc biệt, hàng featured hoặc khi cần kiểm soát chính xác danh sách.",
     icon: HandRaisedIcon,
-    color: "bg-purple-50",
-    iconColor: "text-purple-600",
+    color: "bg-blue-50",
+    iconColor: "text-blue-600",
   },
   {
     value: "new_arrivals",

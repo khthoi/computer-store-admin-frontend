@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { getProductBrands } from "@/src/services/product.service";
 import { getCategoryNodeTree } from "@/src/services/category.service";
-import { ProductFormPage } from "@/src/components/admin/products/ProductFormPage";
+import { ProductFormPage } from "@/src/components/admin/products/form/ProductFormPage";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 

@@ -41,7 +41,7 @@ export function AdminHeader({
         type="button"
         aria-label="Open navigation menu"
         onClick={toggleMobile}
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-secondary-300 transition-colors hover:bg-white/[0.06] hover:text-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 lg:hidden"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-secondary-300 transition-colors hover:bg-white/[0.06] hover:text-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400 lg:hidden"
       >
         <Bars3Icon className="w-5 h-5" aria-hidden="true" />
       </button>

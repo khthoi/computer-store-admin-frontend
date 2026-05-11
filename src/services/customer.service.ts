@@ -147,3 +147,13 @@ export async function deleteAddress(customerId: string, addressId: string): Prom
 export async function setDefaultAddress(customerId: string, addressId: string): Promise<void> {
   await apiFetch<void>(`/admin/customers/${customerId}/addresses/${addressId}/default`, { method: 'PUT' });
 }
+
+export async function resetCustomerPassword(
+  customerId: string,
+  payload: { newPassword: string; confirmPassword: string }
+): Promise<void> {
+  await apiFetch<void>(`/admin/customers/${customerId}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

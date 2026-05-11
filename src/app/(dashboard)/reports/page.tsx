@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getExecutiveSummary } from "@/src/services/report.service";
-import { ReportsSummaryClient } from "@/src/components/admin/reports/ReportsSummaryClient";
+import { ReportsSummaryClient } from "@/src/components/admin/reports/overview/ReportsSummaryClient";
 
 export const dynamic = "force-dynamic";
 

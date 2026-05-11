@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { TicketListClient } from "@/src/components/admin/support/TicketListClient";
+import { TicketListClient } from "@/src/components/admin/support/list/TicketListClient";
 import { AdminPageWrapper } from "@/src/components/admin/layout/AdminPageWrapper";
 
 export const metadata = {

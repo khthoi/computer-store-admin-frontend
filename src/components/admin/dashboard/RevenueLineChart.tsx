@@ -52,7 +52,7 @@ export function RevenueLineChart({
               className={[
                 "px-2.5 py-1 rounded text-xs font-medium transition-colors",
                 period === p
-                  ? "bg-violet-100 text-violet-700"
+                  ? "bg-blue-100 text-blue-700"
                   : "text-secondary-500 hover:bg-secondary-100",
               ].join(" ")}
             >
@@ -109,10 +109,10 @@ export function RevenueLineChart({
           <Line
             type="monotone"
             dataKey="revenue"
-            stroke="#7c3aed"
+            stroke="#2563eb"
             strokeWidth={2}
             dot={false}
-            activeDot={{ r: 4, fill: "#7c3aed" }}
+            activeDot={{ r: 4, fill: "#2563eb" }}
           />
         </LineChart>
       </ResponsiveContainer>

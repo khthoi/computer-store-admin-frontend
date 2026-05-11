@@ -15,7 +15,7 @@ const CHANNEL_CONFIG: Record<
   SMS: {
     label: "SMS",
     icon: <DevicePhoneMobileIcon className="h-3 w-3" aria-hidden />,
-    className: "bg-violet-50 text-violet-600",
+    className: "bg-blue-50 text-blue-600",
   },
   Push: {
     label: "Push",

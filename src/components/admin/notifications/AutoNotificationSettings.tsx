@@ -314,7 +314,7 @@ const GROUP_ICON_COLOR: Record<string, string> = {
   DonHang:   "bg-primary-100 text-primary-600",
   ThanhToan: "bg-success-100 text-success-600",
   HoanTra:   "bg-warning-100 text-warning-600",
-  Marketing: "bg-violet-100 text-violet-600",
+  Marketing: "bg-blue-100 text-blue-600",
   Loyalty:   "bg-amber-100 text-amber-600",
 };
 

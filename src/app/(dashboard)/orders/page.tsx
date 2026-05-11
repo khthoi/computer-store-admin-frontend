@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getOrders } from "@/src/services/order.service";
-import { OrdersTable } from "@/src/components/admin/orders/OrdersTable";
+import { OrdersTable } from "@/src/components/admin/orders/list/OrdersTable";
 
 // ─── Route config ─────────────────────────────────────────────────────────────
 

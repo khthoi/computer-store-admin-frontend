@@ -111,7 +111,7 @@ export function NotificationBell({
         aria-expanded={open}
         aria-haspopup="true"
         onClick={() => setOpen((v) => !v)}
-        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-white transition-colors hover:bg-violet-600/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+        className="relative flex h-9 w-9 items-center justify-center rounded-lg text-white transition-colors hover:bg-blue-600/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
       >
         <BellIcon className="w-5 h-5" aria-hidden="true" />
 
@@ -167,7 +167,7 @@ export function NotificationBell({
                       onClick={() => handleItemClick(notification)}
                       className={[
                         "flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary-50",
-                        !notification.read ? "bg-violet-50" : "bg-white",
+                        !notification.read ? "bg-blue-50" : "bg-white",
                       ].join(" ")}
                     >
                       <span className="mt-0.5">
@@ -187,7 +187,7 @@ export function NotificationBell({
                       {!notification.read && (
                         <span
                           aria-label="Unread"
-                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-violet-500"
+                          className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-blue-500"
                         />
                       )}
                     </Wrapper>

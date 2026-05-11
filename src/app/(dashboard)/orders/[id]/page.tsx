@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getOrderById } from "@/src/services/order.service";
-import { OrderDetailPageClient } from "@/src/components/admin/orders/OrderDetailPageClient";
+import { OrderDetailPageClient } from "@/src/components/admin/orders/detail/OrderDetailPageClient";
 
 // ─── Route config ─────────────────────────────────────────────────────────────
 

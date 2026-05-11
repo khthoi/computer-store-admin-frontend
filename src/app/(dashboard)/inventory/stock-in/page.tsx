@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { getStockInList } from "@/src/services/inventory.service";
-import { StockInTable } from "@/src/components/admin/inventory/StockInTable";
+import { StockInTable } from "@/src/components/admin/inventory/stock-in/StockInTable";
 
 export default async function StockInPage() {
   const result = await getStockInList({ page: 1, limit: 10, sortBy: "createdAt", sortOrder: "DESC" });

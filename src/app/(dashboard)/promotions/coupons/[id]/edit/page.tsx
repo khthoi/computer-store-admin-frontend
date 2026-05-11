@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getCouponById } from "@/src/services/coupon.service";
-import { CouponFormClient } from "@/src/components/admin/promotions/CouponFormClient";
+import { CouponFormClient } from "@/src/components/admin/promotions/coupons/CouponFormClient";
 
 export async function generateMetadata({
   params,

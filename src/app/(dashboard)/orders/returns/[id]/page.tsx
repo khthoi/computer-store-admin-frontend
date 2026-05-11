@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getReturnById } from "@/src/services/returns.service";
-import { ReturnDetailClient } from "@/src/components/admin/inventory/ReturnDetailClient";
+import { ReturnDetailClient } from "@/src/components/admin/inventory/returns/ReturnDetailClient";
 
 interface Props {
   params: Promise<{ id: string }>;

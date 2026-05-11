@@ -30,8 +30,11 @@ export function ProfileHeader({
 }: ProfileHeaderProps) {
   return (
     <div className="rounded-2xl border border-secondary-200 bg-white shadow-sm overflow-hidden">
-      {/* Gradient cover */}
-      <div className="h-28 bg-gradient-to-r from-violet-700 to-violet-500" />
+      {/* Cover image */}
+      <div
+        className="h-68 bg-cover bg-top"
+        style={{ backgroundImage: "url('https://res.cloudinary.com/dvn3b4en9/image/upload/v1778500248/pc-store/misc/webuzdmwcphioa3s1ldv.png')" }}
+      />
 
       <div className="px-6 pb-6">
         {/* Avatar row */}

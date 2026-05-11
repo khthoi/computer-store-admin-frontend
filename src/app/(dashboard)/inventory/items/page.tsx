@@ -1,8 +1,8 @@
 export const dynamic = "force-dynamic";
 
 import { getInventorySummary } from "@/src/services/inventory.service";
-import { InventoryTable } from "@/src/components/admin/inventory/InventoryTable";
-import { InventoryStatsBar } from "@/src/components/admin/inventory/InventoryStatsBar";
+import { InventoryTable } from "@/src/components/admin/inventory/stock/InventoryTable";
+import { InventoryStatsBar } from "@/src/components/admin/inventory/dashboard/InventoryStatsBar";
 
 export default async function InventoryItemsPage() {
   const stats = await getInventorySummary();

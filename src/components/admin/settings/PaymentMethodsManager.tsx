@@ -69,7 +69,7 @@ const METHOD_COLORS: Record<string, string> = {
   momo: "bg-pink-100 text-pink-700",
   bank_transfer: "bg-green-100 text-green-700",
   cod: "bg-amber-100 text-amber-700",
-  credit_card: "bg-purple-100 text-purple-700",
+  credit_card: "bg-blue-100 text-blue-700",
 };
 
 // ─── Single method row ────────────────────────────────────────────────────────

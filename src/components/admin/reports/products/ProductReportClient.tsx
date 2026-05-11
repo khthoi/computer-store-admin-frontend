@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link                          from "next/link";
-import { KpiCardGrid }               from "../KpiCardGrid";
-import { ReportPeriodSelector }      from "../ReportPeriodSelector";
-import { DataTable }                 from "../DataTable";
+import { KpiCardGrid }               from "../shared/KpiCardGrid";
+import { ReportPeriodSelector }      from "../shared/ReportPeriodSelector";
+import { DataTable }                 from "../shared/DataTable";
 import { ProductStackedBarChart }    from "./ProductStackedBarChart";
 import { TopProductsBarChart }       from "@/src/components/admin/dashboard/TopProductsBarChart";
 import { Tabs, TabPanel }            from "@/src/components/ui/Tabs";

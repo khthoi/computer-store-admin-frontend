@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { MovementsTable } from "@/src/components/admin/inventory/MovementsTable";
+import { MovementsTable } from "@/src/components/admin/inventory/movements/MovementsTable";
 
 export default function MovementsPage() {
   return (

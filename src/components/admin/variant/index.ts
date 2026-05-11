@@ -1,16 +1,16 @@
 // ─── Variant components — public API ─────────────────────────────────────────
 
-export { VariantHeader }             from "./VariantHeader";
-export { ProductSummaryCard }        from "./ProductSummaryCard";
-export { VariantInfoSection }        from "./VariantInfoSection";
-export { PricingStatusSection }      from "./PricingStatusSection";
-export { VariantDescriptionSection } from "./VariantDescriptionSection";
-export { SpecificationGroupPanel }   from "./SpecificationGroupPanel";
-export { SpecificationItemRow }      from "./SpecificationItemRow";
-export { SpecificationItemEditor }   from "./SpecificationItemEditor";
-export { MediaGallery }              from "./MediaGallery";
-export { MediaItemCard }             from "./MediaItemCard";
-export { VariantSalesStatsCard }     from "./VariantSalesStatsCard";
-export { VariantRatingSummary }      from "./VariantRatingSummary";
-export { VariantReviewCard }         from "./VariantReviewCard";
-export { VariantReviewsSection }     from "./VariantReviewsSection";
+export { VariantHeader }             from "./info/VariantHeader";
+export { ProductSummaryCard }        from "./info/ProductSummaryCard";
+export { VariantInfoSection }        from "./info/VariantInfoSection";
+export { PricingStatusSection }      from "./info/PricingStatusSection";
+export { VariantDescriptionSection } from "./info/VariantDescriptionSection";
+export { SpecificationGroupPanel }   from "./specs/SpecificationGroupPanel";
+export { SpecificationItemRow }      from "./specs/SpecificationItemRow";
+export { SpecificationItemEditor }   from "./specs/SpecificationItemEditor";
+export { MediaGallery }              from "./media/MediaGallery";
+export { MediaItemCard }             from "./media/MediaItemCard";
+export { VariantSalesStatsCard }     from "./info/VariantSalesStatsCard";
+export { VariantRatingSummary }      from "./info/VariantRatingSummary";
+export { VariantReviewCard }         from "./reviews/VariantReviewCard";
+export { VariantReviewsSection }     from "./reviews/VariantReviewsSection";

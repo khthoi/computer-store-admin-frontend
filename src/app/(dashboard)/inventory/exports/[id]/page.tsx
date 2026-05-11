@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { getExportReceiptById } from "@/src/services/inventory-exports.service";
-import { ExportReceiptDetail } from "@/src/components/admin/inventory/ExportReceiptDetail";
+import { ExportReceiptDetail } from "@/src/components/admin/inventory/export/ExportReceiptDetail";
 
 interface Props {
   params: Promise<{ id: string }>;

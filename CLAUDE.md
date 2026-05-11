@@ -26,7 +26,7 @@ Mock files are temporary placeholders that will be deleted when real API integra
 - DataTable: `import { DataTable } from "@/src/components/admin/DataTable"`
 - All forms: react-hook-form + Zod (schemas in `src/lib/validators/`)
 - Destructive actions: always wrap in `ConfirmDialog`
-- Violet (`accent-600`, `#1E1B4B`) only in AdminSidebar + AdminHeader
+- Navy/Blue theme: sidebar bg `#0F172A`, active items `blue-600` (`#2563EB`)
 - All monetary values: `formatVND()` from `src/lib/format.ts`
 - All UI text: Vietnamese
 

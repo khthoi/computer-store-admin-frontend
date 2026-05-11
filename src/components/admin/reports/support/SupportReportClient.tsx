@@ -3,10 +3,10 @@
 import { useState, useEffect }      from "react";
 import Link                         from "next/link";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { KpiCardGrid }              from "../KpiCardGrid";
-import { ReportPeriodSelector }     from "../ReportPeriodSelector";
-import { SimpleAreaChart }          from "../SimpleAreaChart";
-import { DataTable }                from "../DataTable";
+import { KpiCardGrid }              from "../shared/KpiCardGrid";
+import { ReportPeriodSelector }     from "../shared/ReportPeriodSelector";
+import { SimpleAreaChart }          from "../shared/SimpleAreaChart";
+import { DataTable }                from "../shared/DataTable";
 import { ResolutionTimeChart }      from "./ResolutionTimeChart";
 import { ReviewRatingBar }          from "./ReviewRatingBar";
 import { Tabs, TabPanel }           from "@/src/components/ui/Tabs";

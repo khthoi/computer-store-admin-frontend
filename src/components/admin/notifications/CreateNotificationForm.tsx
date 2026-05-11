@@ -97,10 +97,10 @@ const CHANNEL_CONFIG: Record<NotificationChannel, {
   },
   SMS: {
     icon: <DevicePhoneMobileIcon className="h-4 w-4" />,
-    color: "text-violet-600",
-    activeCls: "border-violet-300 bg-violet-50 text-violet-700",
-    previewBg: "bg-violet-50/50",
-    previewBorder: "border-violet-200",
+    color: "text-blue-600",
+    activeCls: "border-blue-300 bg-blue-50 text-blue-700",
+    previewBg: "bg-blue-50/50",
+    previewBorder: "border-blue-200",
     label: "SMS",
   },
 };
@@ -304,12 +304,12 @@ function NotificationPreviewCard({
       )}
 
       {channels.includes("SMS") && (
-        <div className="rounded-xl border border-violet-200 bg-violet-50/50 p-3 space-y-2">
+        <div className="rounded-xl border border-blue-200 bg-blue-50/50 p-3 space-y-2">
           <div className="flex items-center gap-1.5">
-            <DevicePhoneMobileIcon className="h-3.5 w-3.5 text-violet-500" />
-            <span className="text-[10px] font-semibold text-violet-600 uppercase tracking-wide">SMS Preview</span>
+            <DevicePhoneMobileIcon className="h-3.5 w-3.5 text-blue-500" />
+            <span className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide">SMS Preview</span>
           </div>
-          <div className="rounded-lg border border-violet-100 bg-white px-3 py-2">
+          <div className="rounded-lg border border-blue-100 bg-white px-3 py-2">
             <p className="text-xs text-secondary-700 leading-relaxed">
               {tieuDe ? `[${tieuDe}] ` : ""}{short}
             </p>

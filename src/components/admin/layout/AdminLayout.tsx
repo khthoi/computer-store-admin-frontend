@@ -388,7 +388,7 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 function AdminLogo() {
   return (
     <span className="text-white font-bold text-lg tracking-tight">
-      TechStore <span className="text-violet-300">Admin</span>
+      TechStore <span className="text-blue-300">Admin</span>
     </span>
   );
 }
@@ -404,7 +404,7 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
   const adminUser = {
     name: currentUser?.fullName ?? "Nhân viên",
     email: currentUser?.email ?? "",
-    role: currentUser?.roles?.[0] ?? "staff",
+    roles: currentUser?.roles ?? ["staff"],
     avatarUrl: currentUser?.avatar ?? undefined,
   };
 

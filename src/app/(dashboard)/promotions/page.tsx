@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getPromotionList } from "@/src/services/promotion.service";
-import { PromotionsListClient } from "@/src/components/admin/promotions/PromotionsListClient";
+import { PromotionsListClient } from "@/src/components/admin/promotions/promotions/PromotionsListClient";
 
 const PAGE_SIZE = 10;
 

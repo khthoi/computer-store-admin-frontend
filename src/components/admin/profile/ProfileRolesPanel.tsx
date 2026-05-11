@@ -77,7 +77,7 @@ export function ProfileRolesPanel({ roles }: ProfileRolesPanelProps) {
       value: role.id,
       label: (
         <div className="flex items-center gap-2">
-          <ShieldCheckIcon className="h-4 w-4 text-violet-500 shrink-0" />
+          <ShieldCheckIcon className="h-4 w-4 text-blue-500 shrink-0" />
           <span className="font-medium text-secondary-800">{role.name}</span>
           <Badge variant="primary" size="sm">
             {role.permissions.length} quyền

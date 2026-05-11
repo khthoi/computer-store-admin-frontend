@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { getProducts } from "@/src/services/product.service";
 import { getCategories } from "@/src/services/category.service";
-import { ProductsTable } from "@/src/components/admin/products/ProductsTable";
+import { ProductsTable } from "@/src/components/admin/products/list/ProductsTable";
 
 // ─── Route config ─────────────────────────────────────────────────────────────
 

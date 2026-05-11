@@ -63,23 +63,23 @@ export const colorSecondary = {
 } as const;
 
 /**
- * ACCENT — Violet
+ * ACCENT — Blue
  * Storefront: premium badges, featured labels, promo highlights
  * Admin: PRIMARY interface color — sidebar, nav, admin CTAs
  * Tailwind: bg-accent-600 · text-accent-500 · border-accent-200
  */
 export const colorAccent = {
-  50:  "#f5f3ff",  // Soft highlight background
-  100: "#ede9fe",  // Badge/hover background
-  200: "#ddd6fe",  // Light accent border
-  300: "#c4b5fd",  // Light accent icon/text
-  400: "#a78bfa",  // Accent icon, decorative
-  500: "#8b5cf6",  // Featured labels, highlights
-  600: "#7c3aed",  // ★ Premium badges / admin primary
-  700: "#6d28d9",  // Accent hover
-  800: "#5b21b6",  // Accent active
-  900: "#4c1d95",  // Dark accent emphasis
-  950: "#2e1065",  // Deepest accent
+  50:  "#eff6ff",  // Soft highlight background
+  100: "#dbeafe",  // Badge/hover background
+  200: "#bfdbfe",  // Light accent border
+  300: "#93c5fd",  // Light accent icon/text
+  400: "#60a5fa",  // Accent icon, decorative
+  500: "#3b82f6",  // Featured labels, highlights
+  600: "#2563eb",  // ★ Premium badges / admin primary
+  700: "#1d4ed8",  // Accent hover
+  800: "#1e40af",  // Accent active
+  900: "#1e3a8f",  // Dark accent emphasis
+  950: "#172554",  // Deepest accent
 } as const;
 
 /**
@@ -175,19 +175,19 @@ export type ColorShade = keyof ColorScale;
 
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   ADMIN-SPECIFIC COLORS (sidebar shell uses deep violet)
+   ADMIN-SPECIFIC COLORS (sidebar shell uses deep navy/blue)
    ═══════════════════════════════════════════════════════════════════════════ */
 export const adminColors = {
-  sidebarBg:          "#1E1B4B",  // Deep violet — sidebar background
-  sidebarBgHover:     "#2D2A5A",  // Hover — slightly lighter than sidebar
-  sidebarActiveBg:    "#7C3AED",  // accent-600 — active nav item background
-  sidebarActiveHover: "#6D28D9",  // accent-700 — active item hover
-  sidebarText:        "#C4B5FD",  // accent-300 — default sidebar nav text
+  sidebarBg:          "#0F172A",  // Deep navy — sidebar background
+  sidebarBgHover:     "#1E293B",  // Hover — slightly lighter than sidebar
+  sidebarActiveBg:    "#2563EB",  // accent-600 — active nav item background
+  sidebarActiveHover: "#1D4ED8",  // accent-700 — active item hover
+  sidebarText:        "#CBD5E1",  // slate-300 — default sidebar nav text
   sidebarTextActive:  "#FFFFFF",  // White — active nav item text
-  sidebarTextMuted:   "#7C6FA8",  // Muted section label text
-  sidebarIcon:        "#A78BFA",  // accent-400 — default nav icon
+  sidebarTextMuted:   "#64748B",  // Muted section label text
+  sidebarIcon:        "#94A3B8",  // slate-400 — default nav icon
   sidebarIconActive:  "#FFFFFF",  // White — active nav icon
-  sidebarDivider:     "#312E6B",  // Section separator
+  sidebarDivider:     "#1E293B",  // Section separator
 } as const;
 
 
@@ -420,7 +420,7 @@ export const shadows = {
   modal:      "0 25px 50px rgba(0,0,0,0.20), 0 12px 24px rgba(0,0,0,0.10)",
   sidebar:    "2px 0 8px rgba(0,0,0,0.15)",
   inputFocus: "0 0 0 3px rgba(37,99,235,0.15)",    // blue
-  inputFocusAccent: "0 0 0 3px rgba(124,58,237,0.20)", // violet (admin)
+  inputFocusAccent: "0 0 0 3px rgba(37,99,235,0.20)", // blue (admin)
   none:       "none",
 } as const;
 

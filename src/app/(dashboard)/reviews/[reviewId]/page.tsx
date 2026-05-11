@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeftIcon } from "@heroicons/react/24/outline";
-import { ReviewDetailClient } from "@/src/components/admin/reviews/ReviewDetailClient";
+import { ReviewDetailClient } from "@/src/components/admin/reviews/detail/ReviewDetailClient";
 
 export const dynamic = "force-dynamic";
 

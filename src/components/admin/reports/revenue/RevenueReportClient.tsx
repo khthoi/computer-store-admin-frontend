@@ -6,9 +6,9 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { KpiCardGrid }          from "../KpiCardGrid";
-import { ReportPeriodSelector } from "../ReportPeriodSelector";
-import { DataTable }            from "../DataTable";
+import { KpiCardGrid }          from "../shared/KpiCardGrid";
+import { ReportPeriodSelector } from "../shared/ReportPeriodSelector";
+import { DataTable }            from "../shared/DataTable";
 import { TopProductsBarChart }  from "@/src/components/admin/dashboard/TopProductsBarChart";
 import { OrdersByStatusDonut }  from "@/src/components/admin/dashboard/OrdersByStatusDonut";
 import { Skeleton }             from "@/src/components/ui/Skeleton";
@@ -70,7 +70,7 @@ export function RevenueReportClient({ initialData }: RevenueReportClientProps) {
       <UiTooltip content={`Xem chi tiết mã ${c.code}`} placement="top">
         <Link
           href={`/promotions/coupons/${c.couponId}`}
-          className="inline-block max-w-[140px] truncate font-mono font-semibold text-violet-700 hover:text-violet-900 hover:underline"
+          className="inline-block max-w-[140px] truncate font-mono font-semibold text-blue-700 hover:text-blue-900 hover:underline"
         >
           {c.code}
         </Link>
@@ -115,7 +115,7 @@ export function RevenueReportClient({ initialData }: RevenueReportClientProps) {
                     className={[
                       "px-2.5 py-1 rounded text-xs font-medium transition-colors",
                       chartMode === m
-                        ? "bg-violet-100 text-violet-700"
+                        ? "bg-blue-100 text-blue-700"
                         : "text-secondary-500 hover:bg-secondary-100",
                     ].join(" ")}
                   >
@@ -148,7 +148,7 @@ export function RevenueReportClient({ initialData }: RevenueReportClientProps) {
                 />
                 <Legend wrapperStyle={{ fontSize: "12px" }} />
                 {chartMode === "gmv" ? (
-                  <Line type="monotone" dataKey="GMV" stroke="#7c3aed" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
+                  <Line type="monotone" dataKey="GMV" stroke="#2563eb" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                 ) : (
                   <Line type="monotone" dataKey="Thuần" stroke="#0ea5e9" strokeWidth={2} dot={false} activeDot={{ r: 4 }} />
                 )}

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { getExportReceipts } from "@/src/services/inventory-exports.service";
-import { ExportReceiptsTable } from "@/src/components/admin/inventory/ExportReceiptsTable";
+import { ExportReceiptsTable } from "@/src/components/admin/inventory/export/ExportReceiptsTable";
 
 export default async function ExportReceiptsPage() {
   const result = await getExportReceipts({ page: 1, limit: 20, sortBy: "createdAt", sortOrder: "desc" });

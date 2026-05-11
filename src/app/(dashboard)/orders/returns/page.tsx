@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getReturns } from "@/src/services/returns.service";
-import { ReturnsTable } from "@/src/components/admin/inventory/ReturnsTable";
+import { ReturnsTable } from "@/src/components/admin/inventory/returns/ReturnsTable";
 
 const PAGE_SIZE = 20;
 

@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getLowStockItems } from "@/src/services/inventory.service";
-import { LowStockClient } from "@/src/components/admin/inventory/LowStockClient";
+import { LowStockClient } from "@/src/components/admin/inventory/alerts/LowStockClient";
 import type { InventoryItem } from "@/src/types/inventory.types";
 
 export default async function LowStockPage() {

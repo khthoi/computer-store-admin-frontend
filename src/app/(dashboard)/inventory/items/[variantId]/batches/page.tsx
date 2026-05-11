@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeftIcon, ArchiveBoxIcon, CubeIcon, TagIcon } from "@heroicons/react/24/outline";
 import { getBatchesByVariant } from "@/src/services/inventory.service";
-import { BatchTable } from "@/src/components/admin/inventory/BatchTable";
+import { BatchTable } from "@/src/components/admin/inventory/stock-in/BatchTable";
 import { Badge } from "@/src/components/ui/Badge";
 import { formatVND } from "@/src/lib/format";
 

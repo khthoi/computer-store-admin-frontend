@@ -23,7 +23,7 @@ function FileIcon({ mimeType }: { mimeType: string }) {
   if (mimeType.startsWith("video/"))
     return <FilmIcon className="h-10 w-10 text-blue-400" />;
   if (mimeType.startsWith("audio/"))
-    return <MusicalNoteIcon className="h-10 w-10 text-purple-400" />;
+    return <MusicalNoteIcon className="h-10 w-10 text-blue-400" />;
   if (mimeType === "application/pdf")
     return <DocumentTextIcon className="h-10 w-10 text-red-400" />;
   return <DocumentIcon className="h-10 w-10 text-secondary-400" />;

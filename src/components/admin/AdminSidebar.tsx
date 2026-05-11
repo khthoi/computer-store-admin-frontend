@@ -146,12 +146,12 @@ function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
   const baseClass = [
     "group relative flex w-full items-center gap-3 rounded-lg py-2 pr-3 text-sm font-medium",
     "transition-colors duration-150",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400",
     pl,
     active
-      ? "bg-violet-500/20 text-white border-violet-400"
+      ? "bg-blue-500/20 text-white border-blue-400"
       : childActive
-        ? "bg-white/[0.05] text-secondary-100 border-violet-500/30"
+        ? "bg-white/[0.05] text-secondary-100 border-blue-500/30"
         : "text-secondary-400 hover:bg-white/[0.06] hover:text-secondary-100 border-transparent",
     item.disabled ? "pointer-events-none opacity-40" : "",
   ]
@@ -161,7 +161,7 @@ function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
   const iconClass = [
     "shrink-0 w-5 h-5 transition-colors",
     active
-      ? "text-violet-300"
+      ? "text-blue-300"
       : childActive
         ? "text-secondary-300"
         : "text-secondary-500 group-hover:text-secondary-300",
@@ -181,7 +181,7 @@ function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
           <span className="flex-1 truncate">{item.label}</span>
 
           {item.badge && (
-            <span className="shrink-0 rounded-full bg-violet-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+            <span className="shrink-0 rounded-full bg-blue-500 px-1.5 py-0.5 text-[10px] font-semibold text-white">
               {item.badge}
             </span>
           )}
@@ -290,7 +290,7 @@ export function AdminSidebar({
             type="button"
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             onClick={toggle}
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-secondary-500 transition-colors hover:bg-white/[0.06] hover:text-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-secondary-500 transition-colors hover:bg-white/[0.06] hover:text-secondary-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-400"
           >
             {collapsed ? (
               <Bars3Icon className="w-5 h-5" aria-hidden="true" />

@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getStockInById, getBatchesByVariant } from "@/src/services/inventory.service";
-import { StockInDetailClient } from "@/src/components/admin/inventory/StockInDetailClient";
+import { StockInDetailClient } from "@/src/components/admin/inventory/stock-in/StockInDetailClient";
 import type { StockBatch } from "@/src/types/inventory.types";
 
 interface Props {

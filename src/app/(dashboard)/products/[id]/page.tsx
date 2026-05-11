@@ -4,9 +4,9 @@ import { CubeIcon } from "@heroicons/react/24/outline";
 import { getProductById } from "@/src/services/product.service";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
 import { VariantsPanel } from "@/src/app/(dashboard)/products/[id]/VariantsPanel";
-import { ProductDetailHeader } from "@/src/components/admin/products/ProductDetailHeader";
-import { ProductInfoCard } from "@/src/components/admin/products/ProductInfoCard";
-import { ProductVariantStats } from "@/src/components/admin/products/ProductVariantStats";
+import { ProductDetailHeader } from "@/src/components/admin/products/detail/ProductDetailHeader";
+import { ProductInfoCard } from "@/src/components/admin/products/detail/ProductInfoCard";
+import { ProductVariantStats } from "@/src/components/admin/products/detail/ProductVariantStats";
 
 export const dynamic = "force-dynamic";
 

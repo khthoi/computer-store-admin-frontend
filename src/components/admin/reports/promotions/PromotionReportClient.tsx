@@ -3,10 +3,10 @@
 import { useState, useEffect }  from "react";
 import Link                     from "next/link";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
-import { KpiCardGrid }          from "../KpiCardGrid";
-import { ReportPeriodSelector } from "../ReportPeriodSelector";
-import { PromotionRoiTable }    from "../PromotionRoiTable";
-import { DataTable }            from "../DataTable";
+import { KpiCardGrid }          from "../shared/KpiCardGrid";
+import { ReportPeriodSelector } from "../shared/ReportPeriodSelector";
+import { PromotionRoiTable }    from "../overview/PromotionRoiTable";
+import { DataTable }            from "../shared/DataTable";
 import { Badge }                from "@/src/components/ui/Badge";
 import { Skeleton }             from "@/src/components/ui/Skeleton";
 import { Tooltip as UiTooltip } from "@/src/components/ui/Tooltip";
@@ -22,7 +22,7 @@ const DISCOUNT_TYPE_LABELS: Record<string, string> = {
 };
 
 const DISCOUNT_TYPE_COLORS: Record<string, string> = {
-  coupon:       "#7c3aed",
+  coupon:       "#2563eb",
   flash_sale:   "#f59e0b",
   point_reward: "#06b6d4",
 };

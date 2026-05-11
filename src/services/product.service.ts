@@ -397,8 +397,8 @@ interface BrandApiItem { id: string; name: string; }
 export interface BrandOption { id: string; name: string; }
 
 export async function getProductBrands(): Promise<BrandOption[]> {
-  const items = await apiFetch<BrandApiItem[]>("/admin/brands");
-  return items.map((b) => ({ id: b.id, name: b.name }));
+  const res = await apiFetch<{ data: BrandApiItem[] }>("/admin/brands");
+  return (res?.data ?? []).map((b) => ({ id: b.id, name: b.name }));
 }
 
 // ─── Variant sales stats ──────────────────────────────────────────────────────

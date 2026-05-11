@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { SuppliersTable } from "@/src/components/admin/inventory/SuppliersTable";
+import { SuppliersTable } from "@/src/components/admin/inventory/suppliers/SuppliersTable";
 
 export default function SuppliersPage() {
   return (

@@ -16,12 +16,12 @@ import type { ProductPerformanceReport } from "@/src/types/report.types";
 // ─── Config ───────────────────────────────────────────────────────────────────
 
 const VARIANT_COLORS = [
-  "#7c3aed", // violet
+  "#2563eb", // blue
   "#06b6d4", // cyan
   "#f59e0b", // amber
   "#10b981", // emerald
   "#ef4444", // red
-  "#8b5cf6", // purple
+  "#3b82f6", // blue
 ];
 
 type Metric = "units" | "revenue";
@@ -50,7 +50,7 @@ function CustomYTick({ x = 0, y = 0, payload, productIdMap, onNavigate }: Custom
         y={4}
         textAnchor="end"
         fontSize={12}
-        fill={productId ? "#7c3aed" : "#475569"}
+        fill={productId ? "#2563eb" : "#475569"}
         style={{
           cursor:         productId ? "pointer" : "default",
           textDecoration: productId ? "underline" : "none",
@@ -178,7 +178,7 @@ export function ProductStackedBarChart({ data }: ProductStackedBarChartProps) {
               className={[
                 "px-2.5 py-1 rounded text-xs font-medium transition-colors",
                 metric === m
-                  ? "bg-violet-100 text-violet-700"
+                  ? "bg-blue-100 text-blue-700"
                   : "text-secondary-500 hover:bg-secondary-100",
               ].join(" ")}
             >

@@ -1,4 +1,4 @@
-import { ReviewsListClient } from "@/src/components/admin/reviews/ReviewsListClient";
+import { ReviewsListClient } from "@/src/components/admin/reviews/list/ReviewsListClient";
 
 export const dynamic = "force-dynamic";
 

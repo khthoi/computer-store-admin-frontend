@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { getProductById } from "@/src/services/product.service";
 import { getVariantById } from "@/src/services/variant.service";
 import { getImages } from "@/src/services/image.service";
-import { ImagesPageClient } from "@/src/components/admin/catalog/ImagesPageClient";
+import { ImagesPageClient } from "@/src/components/admin/catalog/images/ImagesPageClient";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 

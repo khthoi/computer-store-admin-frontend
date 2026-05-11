@@ -9,7 +9,7 @@ export function AdminLoginBrand() {
       <h1 className="text-2xl font-bold text-white tracking-tight">
         PC Store Admin
       </h1>
-      <p className="mt-1.5 text-sm text-violet-200">
+      <p className="mt-1.5 text-sm text-blue-200">
         Hệ thống quản trị nội bộ
       </p>
     </div>

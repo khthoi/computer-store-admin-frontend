@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { getSuppliers, getInventoryItems } from "@/src/services/inventory.service";
-import { StockInFormClient } from "@/src/components/admin/inventory/StockInFormClient";
+import { StockInFormClient } from "@/src/components/admin/inventory/stock-in/StockInFormClient";
 import { Button } from "@/src/components/ui/Button";
 
 interface Props {

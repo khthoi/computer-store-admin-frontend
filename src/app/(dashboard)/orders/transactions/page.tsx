@@ -4,8 +4,8 @@ import {
   getTransactionStats,
 } from "@/src/services/transaction.service";
 import { AdminPageWrapper } from "@/src/components/admin/layout/AdminPageWrapper";
-import { TransactionStatCards } from "@/src/components/admin/orders/TransactionStatCards";
-import { TransactionsTable } from "@/src/components/admin/orders/TransactionsTable";
+import { TransactionStatCards } from "@/src/components/admin/orders/transactions/TransactionStatCards";
+import { TransactionsTable } from "@/src/components/admin/orders/transactions/TransactionsTable";
 
 // ─── Route config ─────────────────────────────────────────────────────────────
 // CRITICAL: Admin pages must NEVER be ISR/cached — always fresh data.

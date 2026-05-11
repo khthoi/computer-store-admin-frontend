@@ -5,7 +5,7 @@
 .rti--container {
   --rti-bg: #fff;
   --rti-border: var(--color-secondary-300, #d1d5db);
-  --rti-main: var(--color-primary-600, #4f46e5);
+  --rti-main: var(--color-primary-600, #2563eb);
   --rti-radius: 0.5rem;
   --rti-s: 0.375rem;
   --rti-tag: var(--color-primary-100, #e0e7ff);
@@ -14,11 +14,11 @@
   min-height: 2.5rem;
 }
 .rti--container:focus-within {
-  border-color: var(--color-primary-600, #4f46e5) !important;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-600, #4f46e5) 15%, transparent) !important;
+  border-color: var(--color-primary-600, #2563eb) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary-600, #2563eb) 15%, transparent) !important;
 }
 .rti--tag {
-  color: var(--color-primary-700, #3730a3);
+  color: var(--color-primary-700, #1d4ed8);
   font-size: 0.75rem;
   font-weight: 500;
   border-radius: 9999px;
@@ -80,9 +80,9 @@
  *
  * Key differences from customer storefront:
  *   - Font: DM Sans (data-dense, structured) instead of Inter
- *   - Sidebar: Deep violet #1E1B4B shell + accent-600 active items
+ *   - Sidebar: Deep navy #0F172A shell + blue-600 active items
  *   - Information density: Tighter table/card padding
- *   - Accent color (violet) is the PRIMARY admin interface color
+ *   - Accent color (blue) is the PRIMARY admin interface color
  *
  * Fonts loaded via Next.js in layout.tsx:
  *   --font-dm-sans         (var name assigned in layout)
@@ -92,7 +92,6 @@
 
 @import "tailwindcss";
 
-/* Activate tailwind.config.ts (optional — uncomment to use JS config) */
 /* @config "../tailwind.config.ts"; */
 
 /* ── Prevent double scrollbar ──────────────────────────────────────────────────
@@ -151,21 +150,21 @@ body {
   --color-secondary-950: #020617;  /* Maximum contrast                      */
 
   /* ─────────────────────────────────────────────────────────────────────────
-     COLOR: ACCENT — Violet (★ PRIMARY admin interface color)
-     Admin usage: sidebar, nav active states, admin CTAs, admin badges,
+     COLOR: ACCENT — Blue (★ PRIMARY admin interface color)
+     Admin usage: sidebar active, nav active states, admin CTAs, admin badges,
                   dashboard highlights, chart accent colors
      ───────────────────────────────────────────────────────────────────── */
-  --color-accent-50:  #f5f3ff;   /* Admin content hover bg                  */
-  --color-accent-100: #ede9fe;   /* Admin selected item bg                  */
-  --color-accent-200: #ddd6fe;   /* Admin active border                     */
-  --color-accent-300: #c4b5fd;   /* Sidebar text muted                      */
-  --color-accent-400: #a78bfa;   /* Sidebar icons, collapsed state          */
-  --color-accent-500: #8b5cf6;   /* Admin highlights, chart colors          */
-  --color-accent-600: #7c3aed;   /* ★ Admin sidebar active, primary CTA     */
-  --color-accent-700: #6d28d9;   /* Admin CTA hover                         */
-  --color-accent-800: #5b21b6;   /* Admin active/pressed                    */
-  --color-accent-900: #4c1d95;   /* Dark admin emphasis                     */
-  --color-accent-950: #2e1065;   /* Deepest accent                          */
+  --color-accent-50:  #eff6ff;   /* Admin content hover bg                  */
+  --color-accent-100: #dbeafe;   /* Admin selected item bg                  */
+  --color-accent-200: #bfdbfe;   /* Admin active border                     */
+  --color-accent-300: #93c5fd;   /* Sidebar text muted                      */
+  --color-accent-400: #60a5fa;   /* Sidebar icons, collapsed state          */
+  --color-accent-500: #3b82f6;   /* Admin highlights, chart colors          */
+  --color-accent-600: #2563eb;   /* ★ Admin sidebar active, primary CTA     */
+  --color-accent-700: #1d4ed8;   /* Admin CTA hover                         */
+  --color-accent-800: #1e40af;   /* Admin active/pressed                    */
+  --color-accent-900: #1e3a8f;   /* Dark admin emphasis                     */
+  --color-accent-950: #172554;   /* Deepest accent                          */
 
   /* ─────────────────────────────────────────────────────────────────────────
      COLOR: SUCCESS — Green
@@ -356,7 +355,7 @@ body {
     0 0 0 3px rgba(37,99,235,0.15);
 
   --shadow-input-focus-accent:
-    0 0 0 3px rgba(124,58,237,0.20);  /* Violet focus for admin inputs       */
+    0 0 0 3px rgba(37,99,235,0.20);   /* Blue focus for admin inputs         */
 
   --shadow-none: none;
 
@@ -374,17 +373,17 @@ body {
   --header-height:            64px;
   --content-padding:          1.5rem;    /* 24px content area padding        */
 
-  /* ── Sidebar Colors (deep violet identity) ───────────────────────────── */
-  --sidebar-bg:               #1E1B4B;   /* Deep violet — sidebar shell      */
-  --sidebar-bg-hover:         #2D2A5A;   /* Slightly lighter hover           */
-  --sidebar-active-bg:        #7C3AED;   /* accent-600 — active nav item     */
-  --sidebar-active-hover:     #6D28D9;   /* accent-700 — active item hover   */
-  --sidebar-text:             #C4B5FD;   /* accent-300 — default nav text    */
+  /* ── Sidebar Colors (deep navy identity) ────────────────────────────── */
+  --sidebar-bg:               #0F172A;   /* slate-900 — sidebar shell        */
+  --sidebar-bg-hover:         #1E293B;   /* slate-800 — hover state          */
+  --sidebar-active-bg:        #2563EB;   /* blue-600 — active nav item       */
+  --sidebar-active-hover:     #1D4ED8;   /* blue-700 — active item hover     */
+  --sidebar-text:             #CBD5E1;   /* slate-300 — default nav text     */
   --sidebar-text-active:      #FFFFFF;   /* White — active nav item text     */
-  --sidebar-text-muted:       #7C6FA8;   /* Muted nav labels                 */
-  --sidebar-icon:             #A78BFA;   /* accent-400 — nav icons           */
+  --sidebar-text-muted:       #64748B;   /* slate-500 — muted nav labels     */
+  --sidebar-icon:             #94A3B8;   /* slate-400 — nav icons            */
   --sidebar-icon-active:      #FFFFFF;   /* White icon when active           */
-  --sidebar-divider:          #312E6B;   /* Sidebar section dividers         */
+  --sidebar-divider:          #1E293B;   /* slate-800 — sidebar dividers     */
   --sidebar-shadow:           var(--shadow-sidebar);
 
   /* ── Header Colors ───────────────────────────────────────────────────── */
@@ -504,9 +503,9 @@ body {
   }
   a:hover { color: var(--text-link-hover); }
 
-  /* Admin focus ring uses violet accent */
+  /* Admin focus ring uses blue accent */
   :focus-visible {
-    outline: 2px solid var(--color-accent-500);
+    outline: 2px solid var(--color-primary-500);
     outline-offset: 2px;
     border-radius: 4px;
   }

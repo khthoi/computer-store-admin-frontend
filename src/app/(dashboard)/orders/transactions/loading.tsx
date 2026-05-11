@@ -1,6 +1,6 @@
 import { Skeleton } from "@/src/components/ui/Skeleton";
 import { AdminPageWrapper } from "@/src/components/admin/layout/AdminPageWrapper";
-import { TransactionStatCards } from "@/src/components/admin/orders/TransactionStatCards";
+import { TransactionStatCards } from "@/src/components/admin/orders/transactions/TransactionStatCards";
 
 // ─── Skeleton stats placeholder ───────────────────────────────────────────────
 

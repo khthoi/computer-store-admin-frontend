@@ -39,12 +39,12 @@ const ENTITY_CONFIG: Record<AuditEntityType, EntityConfig> = {
     label: "Sản phẩm",
     icon: <CubeIcon className="w-3 h-3" />,
     basePath: "/products",
-    colorClass: "bg-indigo-50 text-indigo-700 border-indigo-200",
+    colorClass: "bg-blue-50 text-blue-700 border-blue-200",
   },
   PhienBan: {
     label: "Phiên bản",
     icon: <SwatchIcon className="w-3 h-3" />,
-    colorClass: "bg-violet-50 text-violet-700 border-violet-200",
+    colorClass: "bg-blue-50 text-blue-700 border-blue-200",
   },
   KhachHang: {
     label: "Khách hàng",
@@ -108,7 +108,7 @@ const ENTITY_CONFIG: Record<AuditEntityType, EntityConfig> = {
     label: "Phân quyền",
     icon: <ShieldCheckIcon className="w-3 h-3" />,
     basePath: "/roles",
-    colorClass: "bg-purple-50 text-purple-700 border-purple-200",
+    colorClass: "bg-blue-50 text-blue-700 border-blue-200",
   },
 };
 

@@ -134,7 +134,7 @@ export function EmployeeDetailContent({
                 <li className="flex items-center gap-3 text-secondary-700">
                   <ClockIcon className="h-4 w-4 shrink-0 text-secondary-400" />
                   <span>
-                    <span className="text-secondary-400">Đăng nhập lần cuối: </span>
+                    <span className="text-secondary-400">ĐN lần cuối: </span>
                     {formatDateTime(employee.lastLoginAt)}
                   </span>
                 </li>
@@ -188,7 +188,7 @@ export function EmployeeDetailContent({
                       className="group rounded-lg border border-secondary-200 p-4 transition-colors hover:border-primary-300 hover:bg-primary-50/40"
                     >
                       <div className="flex items-start gap-3">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-violet-100 text-violet-600">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-100 text-blue-600">
                           <ShieldCheckIcon className="h-5 w-5" />
                         </div>
                         <div className="min-w-0">

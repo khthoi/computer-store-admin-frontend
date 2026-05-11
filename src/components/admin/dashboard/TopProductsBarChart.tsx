@@ -71,7 +71,7 @@ export function TopProductsBarChart({ data }: TopProductsBarChartProps) {
             className={[
               "px-2.5 py-1 rounded text-xs font-medium transition-colors",
               metric === "units"
-                ? "bg-violet-100 text-violet-700"
+                ? "bg-blue-100 text-blue-700"
                 : "text-secondary-500 hover:bg-secondary-100",
             ].join(" ")}
           >
@@ -83,7 +83,7 @@ export function TopProductsBarChart({ data }: TopProductsBarChartProps) {
             className={[
               "px-2.5 py-1 rounded text-xs font-medium transition-colors",
               metric === "revenue"
-                ? "bg-violet-100 text-violet-700"
+                ? "bg-blue-100 text-blue-700"
                 : "text-secondary-500 hover:bg-secondary-100",
             ].join(" ")}
           >
@@ -122,7 +122,7 @@ export function TopProductsBarChart({ data }: TopProductsBarChartProps) {
               fontSize: "12px",
             }}
           />
-          <Bar dataKey={dataKey} fill="#7c3aed" radius={[0, 4, 4, 0]}>
+          <Bar dataKey={dataKey} fill="#2563eb" radius={[0, 4, 4, 0]}>
             {data.map((entry) => (
               <Cell
                 key={entry.productId}

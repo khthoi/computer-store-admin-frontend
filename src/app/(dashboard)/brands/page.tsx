@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { getBrands } from "@/src/services/brand.service";
-import { BrandsPageClient } from "@/src/components/admin/catalog/BrandsPageClient";
+import { BrandsPageClient } from "@/src/components/admin/catalog/brands/BrandsPageClient";
 
 // ─── Route config ──────────────────────────────────────────────────────────────
 

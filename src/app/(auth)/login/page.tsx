@@ -26,7 +26,7 @@ export default function LoginPage() {
         <AdminLoginForm />
       </Suspense>
 
-      <p className="mt-6 text-center text-xs text-violet-300">
+      <p className="mt-6 text-center text-xs text-blue-300">
         © 2026 PC Store — Chỉ dành cho nhân viên nội bộ
       </p>
     </>

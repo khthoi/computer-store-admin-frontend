@@ -2,11 +2,11 @@
 
 import { useState, useEffect }   from "react";
 import Link                      from "next/link";
-import { KpiCardGrid }           from "../KpiCardGrid";
-import { ReportPeriodSelector }  from "../ReportPeriodSelector";
-import { SimpleAreaChart }       from "../SimpleAreaChart";
-import { DataTable }             from "../DataTable";
-import { RfmSegmentBadge }       from "../RfmSegmentBadge";
+import { KpiCardGrid }           from "../shared/KpiCardGrid";
+import { ReportPeriodSelector }  from "../shared/ReportPeriodSelector";
+import { SimpleAreaChart }       from "../shared/SimpleAreaChart";
+import { DataTable }             from "../shared/DataTable";
+import { RfmSegmentBadge }       from "../shared/RfmSegmentBadge";
 import { ProgressBar }           from "@/src/components/ui/ProgressBar";
 import { Skeleton }              from "@/src/components/ui/Skeleton";
 import { getCustomerReport }     from "@/src/services/report.service";
@@ -22,10 +22,10 @@ interface CustomerReportClientProps {
 
 function retentionCellClass(pct: number): string {
   if (pct === 0)   return "text-secondary-300 text-xs tabular-nums";
-  if (pct >= 80)   return "bg-violet-500 text-white text-xs tabular-nums font-semibold rounded px-1";
-  if (pct >= 50)   return "bg-violet-300 text-violet-900 text-xs tabular-nums rounded px-1";
-  if (pct >= 30)   return "bg-violet-200 text-violet-800 text-xs tabular-nums rounded px-1";
-  return "bg-violet-100 text-violet-700 text-xs tabular-nums rounded px-1";
+  if (pct >= 80)   return "bg-blue-500 text-white text-xs tabular-nums font-semibold rounded px-1";
+  if (pct >= 50)   return "bg-blue-300 text-blue-900 text-xs tabular-nums rounded px-1";
+  if (pct >= 30)   return "bg-blue-200 text-blue-800 text-xs tabular-nums rounded px-1";
+  return "bg-blue-100 text-blue-700 text-xs tabular-nums rounded px-1";
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

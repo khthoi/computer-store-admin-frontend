@@ -164,3 +164,13 @@ export async function bulkUpdateEmployeeStatus(
     )
   );
 }
+
+export async function resetEmployeePassword(
+  employeeId: string,
+  payload: { newPassword: string; confirmPassword: string }
+): Promise<void> {
+  await apiFetch<void>(`/admin/employees/${employeeId}/reset-password`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}

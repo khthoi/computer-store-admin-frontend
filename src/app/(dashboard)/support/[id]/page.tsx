@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { TicketDetailClient } from "@/src/components/admin/support/TicketDetailClient";
+import { TicketDetailClient } from "@/src/components/admin/support/detail/TicketDetailClient";
 
 interface Props {
   params: Promise<{ id: string }>;

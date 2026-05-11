@@ -1,10 +1,10 @@
 "use client";
 
 import Link                   from "next/link";
-import { KpiCardGrid }        from "../KpiCardGrid";
-import { SimpleAreaChart }    from "../SimpleAreaChart";
-import { StockHealthDonut }   from "../StockHealthDonut";
-import { DataTable }          from "../DataTable";
+import { KpiCardGrid }        from "../shared/KpiCardGrid";
+import { SimpleAreaChart }    from "../shared/SimpleAreaChart";
+import { StockHealthDonut }   from "../shared/StockHealthDonut";
+import { DataTable }          from "../shared/DataTable";
 import { Tabs, TabPanel }     from "@/src/components/ui/Tabs";
 import { Badge }              from "@/src/components/ui/Badge";
 import { Tooltip }            from "@/src/components/ui/Tooltip";

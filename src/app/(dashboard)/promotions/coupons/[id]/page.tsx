@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getPromotionById, getPromotionUsage } from "@/src/services/promotion.service";
-import { PromotionFormClient } from "@/src/components/admin/promotions/PromotionFormClient";
-import { PromotionUsageSection } from "@/src/components/admin/promotions/PromotionUsageSection";
+import { PromotionFormClient } from "@/src/components/admin/promotions/promotions/PromotionFormClient";
+import { PromotionUsageSection } from "@/src/components/admin/promotions/promotions/PromotionUsageSection";
 
 export async function generateMetadata({
   params,
