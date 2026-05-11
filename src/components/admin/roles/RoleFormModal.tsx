@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Modal } from "@/src/components/ui/Modal";
 import { Input } from "@/src/components/ui/Input";
 import { Textarea } from "@/src/components/ui/Textarea";
 import { Button } from "@/src/components/ui/Button";
 import { Checkbox } from "@/src/components/ui/Checkbox";
-import { createRole, updateRole } from "@/src/services/role.service";
-import { PERMISSION_GROUPS } from "@/src/app/(dashboard)/roles/_mock";
+import {
+  createRole,
+  updateRole,
+  getPermissions,
+  type BackendPermission,
+} from "@/src/services/role.service";
 import type { VaiTro } from "@/src/types/role.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -33,13 +37,32 @@ export function RoleFormModal({ isOpen, onClose, role, onSaved }: RoleFormModalP
   const [nameError, setNameError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
-  // Reset form when modal opens with new data
-  const handleOpen = useCallback(() => {
+  const [allPerms, setAllPerms] = useState<BackendPermission[]>([]);
+  const [permsLoading, setPermsLoading] = useState(true);
+
+  // Reset form and fetch permissions when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
     setName(role?.name ?? "");
     setDescription(role?.description ?? "");
     setSelectedPermissions(role?.permissions ?? []);
     setNameError("");
-  }, [role]);
+    setPermsLoading(true);
+    getPermissions()
+      .then(setAllPerms)
+      .finally(() => setPermsLoading(false));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, role?.id]);
+
+  // Build permission groups from API data, grouped by module
+  const permissionGroups = useMemo(() => {
+    const groupMap = new Map<string, { maQuyen: string; tenQuyen: string }[]>();
+    for (const p of allPerms) {
+      if (!groupMap.has(p.module)) groupMap.set(p.module, []);
+      groupMap.get(p.module)!.push({ maQuyen: p.maQuyen, tenQuyen: p.tenQuyen });
+    }
+    return Array.from(groupMap.entries()).map(([group, permissions]) => ({ group, permissions }));
+  }, [allPerms]);
 
   const togglePermission = useCallback((perm: string) => {
     setSelectedPermissions((prev) =>
@@ -47,14 +70,14 @@ export function RoleFormModal({ isOpen, onClose, role, onSaved }: RoleFormModalP
     );
   }, []);
 
-  const toggleGroup = useCallback((groupPerms: string[]) => {
-    const allSelected = groupPerms.every((p) => selectedPermissions.includes(p));
+  const toggleGroup = useCallback((groupCodes: string[]) => {
+    const allSelected = groupCodes.every((p) => selectedPermissions.includes(p));
     if (allSelected) {
-      setSelectedPermissions((prev) => prev.filter((p) => !groupPerms.includes(p)));
+      setSelectedPermissions((prev) => prev.filter((p) => !groupCodes.includes(p)));
     } else {
       setSelectedPermissions((prev) => {
         const next = new Set(prev);
-        groupPerms.forEach((p) => next.add(p));
+        groupCodes.forEach((p) => next.add(p));
         return Array.from(next);
       });
     }
@@ -74,15 +97,22 @@ export function RoleFormModal({ isOpen, onClose, role, onSaved }: RoleFormModalP
     setIsSaving(true);
     try {
       const saved = isEdit && role
-        ? await updateRole(role.id, { name: name.trim(), description: description.trim(), permissions: selectedPermissions })
-        : await createRole({ name: name.trim(), description: description.trim(), permissions: selectedPermissions });
+        ? await updateRole(
+            role.id,
+            { name: name.trim(), description: description.trim(), permissionCodes: selectedPermissions },
+            allPerms,
+          )
+        : await createRole(
+            { name: name.trim(), description: description.trim(), permissionCodes: selectedPermissions },
+            allPerms,
+          );
       onSaved(saved);
       onClose();
     } finally {
       setIsSaving(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEdit, role, name, description, selectedPermissions, onSaved, onClose]);
+  }, [isEdit, role, name, description, selectedPermissions, allPerms, onSaved, onClose]);
 
   return (
     <Modal
@@ -102,9 +132,6 @@ export function RoleFormModal({ isOpen, onClose, role, onSaved }: RoleFormModalP
         </>
       }
     >
-      {/* Reset form values when modal re-opens */}
-      {isOpen && <span className="hidden" onLoad={handleOpen as never} />}
-
       <div className="space-y-5">
         {/* Name */}
         <Input
@@ -128,48 +155,52 @@ export function RoleFormModal({ isOpen, onClose, role, onSaved }: RoleFormModalP
         {/* Permissions */}
         <div>
           <p className="mb-3 text-sm font-medium text-secondary-700">
-            Quyền hạn ({selectedPermissions.length} / {PERMISSION_GROUPS.flatMap((g) => g.permissions).length} đã chọn)
+            Quyền hạn ({selectedPermissions.length} / {allPerms.length} đã chọn)
           </p>
           <div className="max-h-72 space-y-4 overflow-y-auto rounded-lg border border-secondary-200 p-4">
-            {PERMISSION_GROUPS.map((group) => {
-              const groupPerms = group.permissions;
-              const selectedCount = groupPerms.filter((p) => selectedPermissions.includes(p)).length;
-              const allSelected = selectedCount === groupPerms.length;
-              const someSelected = selectedCount > 0 && !allSelected;
+            {permsLoading ? (
+              <div className="py-6 text-center text-sm text-secondary-500">Đang tải quyền hạn…</div>
+            ) : (
+              permissionGroups.map((group) => {
+                const groupCodes = group.permissions.map((p) => p.maQuyen);
+                const selectedCount = groupCodes.filter((c) => selectedPermissions.includes(c)).length;
+                const allSelected = selectedCount === groupCodes.length;
+                const someSelected = selectedCount > 0 && !allSelected;
 
-              return (
-                <div key={group.group}>
-                  {/* Group header with select-all */}
-                  <div className="mb-2 flex items-center gap-2">
-                    <Checkbox
-                      size="sm"
-                      checked={allSelected}
-                      indeterminate={someSelected}
-                      onChange={() => toggleGroup(groupPerms)}
-                    />
-                    <span className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
-                      {group.group}
-                    </span>
+                return (
+                  <div key={group.group}>
+                    {/* Group header with select-all */}
+                    <div className="mb-2 flex items-center gap-2">
+                      <Checkbox
+                        size="sm"
+                        checked={allSelected}
+                        indeterminate={someSelected}
+                        onChange={() => toggleGroup(groupCodes)}
+                      />
+                      <span className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
+                        {group.group}
+                      </span>
+                    </div>
+                    {/* Individual permissions */}
+                    <div className="grid grid-cols-2 gap-1.5 pl-6">
+                      {group.permissions.map((p) => (
+                        <label
+                          key={p.maQuyen}
+                          className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-secondary-50"
+                        >
+                          <Checkbox
+                            size="sm"
+                            checked={selectedPermissions.includes(p.maQuyen)}
+                            onChange={() => togglePermission(p.maQuyen)}
+                          />
+                          <span className="text-xs text-secondary-700">{p.tenQuyen}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                  {/* Individual permissions */}
-                  <div className="grid grid-cols-2 gap-1.5 pl-6">
-                    {groupPerms.map((perm) => (
-                      <label
-                        key={perm}
-                        className="flex cursor-pointer items-center gap-2 rounded px-2 py-1 transition-colors hover:bg-secondary-50"
-                      >
-                        <Checkbox
-                          size="sm"
-                          checked={selectedPermissions.includes(perm)}
-                          onChange={() => togglePermission(perm)}
-                        />
-                        <span className="text-xs text-secondary-700">{perm}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </div>

@@ -1,28 +1,30 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import {
   PencilSquareIcon,
   TrashIcon,
   ShieldCheckIcon,
   PlusIcon,
+  ArrowPathIcon,
 } from "@heroicons/react/24/outline";
 import { DataTable, type ColumnDef, type SortDir } from "@/src/components/admin/DataTable";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
-import { AdminEmptyState } from "@/src/components/admin/shared/AdminEmptyState";
 import { Badge } from "@/src/components/ui/Badge";
 import { Button } from "@/src/components/ui/Button";
 import { useToast } from "@/src/components/ui/Toast";
 import { RoleFormModal } from "@/src/components/admin/roles/RoleFormModal";
 import Link from "next/link";
-import { bulkDeleteRoles, deleteRole } from "@/src/services/role.service";
+import { getRoles, bulkDeleteRoles, deleteRole } from "@/src/services/role.service";
 import type { VaiTro, NhanVienVaiTro } from "@/src/types/role.types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface RolesTableProps {
   initialRoles: VaiTro[];
+  initialTotal: number;
+  initialTotalPages: number;
 }
 
 type RoleRow = VaiTro & Record<string, unknown>;
@@ -30,6 +32,7 @@ type RoleRow = VaiTro & Record<string, unknown>;
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatDate(iso: string): string {
+  if (!iso) return "—";
   return new Date(iso).toLocaleDateString("vi-VN", {
     year: "numeric",
     month: "2-digit",
@@ -39,16 +42,26 @@ function formatDate(iso: string): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function RolesTable({ initialRoles }: RolesTableProps) {
+export function RolesTable({ initialRoles, initialTotal, initialTotalPages }: RolesTableProps) {
   const { showToast } = useToast();
 
-  // ── Local data ────────────────────────────────────────────────────────────
+  // ── Server data ───────────────────────────────────────────────────────────
   const [roles, setRoles] = useState<VaiTro[]>(initialRoles);
+  const [loading, setLoading] = useState(false);
+  const [serverTotal, setServerTotal] = useState(initialTotal);
+  const [serverTotalPages, setServerTotalPages] = useState(initialTotalPages);
+
+  // ── Fetch control refs ────────────────────────────────────────────────────
+  const fetchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFirstRender = useRef(true);
+  const prevSearchRef = useRef("");
+  // Set to true when sort/search/pageSize changes — triggers loading overlay
+  const nonPageChangedRef = useRef(false);
 
   // ── Search / sort / page ──────────────────────────────────────────────────
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState("createdAt");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [sortKey, setSortKey] = useState("id");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -62,36 +75,65 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [editRole, setEditRole] = useState<VaiTro | null>(null);
 
-  // ── Filter + sort + paginate ──────────────────────────────────────────────
+  // ── Server fetch on every relevant state change ────────────────────────────
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
 
-  const filtered = useMemo(() => {
-    if (!search) return roles;
-    const lower = search.toLowerCase();
-    return roles.filter(
-      (r) =>
-        r.name.toLowerCase().includes(lower) ||
-        r.description.toLowerCase().includes(lower)
-    );
-  }, [roles, search]);
+    const isSearchChange = search !== prevSearchRef.current;
+    prevSearchRef.current = search;
 
-  const sorted = useMemo(() => {
-    const arr = [...filtered];
-    arr.sort((a, b) => {
-      const av = (a as unknown as Record<string, unknown>)[sortKey];
-      const bv = (b as unknown as Record<string, unknown>)[sortKey];
-      let cmp = 0;
-      if (typeof av === "string" && typeof bv === "string") cmp = av.localeCompare(bv);
-      if (typeof av === "number" && typeof bv === "number") cmp = av - bv;
-      return sortDir === "asc" ? cmp : -cmp;
-    });
-    return arr;
-  }, [filtered, sortKey, sortDir]);
+    const isNonPageChange = nonPageChangedRef.current;
+    nonPageChangedRef.current = false;
 
-  const totalRows = sorted.length;
-  const pageData = useMemo(() => {
-    const start = (page - 1) * pageSize;
-    return sorted.slice(start, start + pageSize);
-  }, [sorted, page, pageSize]);
+    if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    fetchTimerRef.current = setTimeout(async () => {
+      if (isNonPageChange) setLoading(true);
+      try {
+        const result = await getRoles({
+          q: search || undefined,
+          page,
+          limit: pageSize,
+          sortBy: sortKey,
+          sortOrder: sortDir,
+        });
+        setRoles(result.data);
+        setServerTotal(result.total);
+        setServerTotalPages(result.totalPages);
+      } catch {
+        // keep existing data on error
+      } finally {
+        setLoading(false);
+      }
+    }, isSearchChange ? 300 : 0);
+
+    return () => {
+      if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
+    };
+  }, [page, pageSize, search, sortKey, sortDir]);
+
+  // ── Handlers ──────────────────────────────────────────────────────────────
+
+  const handleSearchChange = useCallback((q: string) => {
+    nonPageChangedRef.current = true;
+    setSearch(q);
+    setPage(1);
+  }, []);
+
+  const handleSortChange = useCallback((key: string, dir: SortDir) => {
+    nonPageChangedRef.current = true;
+    setSortKey(key);
+    setSortDir(dir);
+    setPage(1);
+  }, []);
+
+  const handlePageSizeChange = useCallback((size: number) => {
+    nonPageChangedRef.current = true;
+    setPageSize(size);
+    setPage(1);
+  }, []);
 
   // ── Columns ───────────────────────────────────────────────────────────────
 
@@ -158,7 +200,7 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
               type="button"
               aria-label="Chỉnh sửa vai trò"
               onClick={() => { setEditRole(row as VaiTro); setModalOpen(true); }}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-secondary-100 hover:text-secondary-700 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-400"
             >
               <PencilSquareIcon className="h-4 w-4" />
             </button>
@@ -166,7 +208,7 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
               type="button"
               aria-label="Xóa vai trò"
               onClick={() => setDeleteTarget(row as VaiTro)}
-              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error-500"
+              className="flex h-7 w-7 items-center justify-center rounded text-secondary-400 transition-colors hover:bg-error-50 hover:text-error-600 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-error-400"
             >
               <TrashIcon className="h-4 w-4" />
             </button>
@@ -190,14 +232,10 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
   const renderSubRow = useCallback(
     (subRow: Record<string, unknown>): ReactNode => {
       const assignment = subRow as unknown as NhanVienVaiTro;
-      // Span: checkbox(1) + expand(1) + 6 columns = 8 total
       return (
         <tr className="bg-secondary-50/60">
-          {/* Checkbox placeholder */}
           <td className="w-10 px-4 py-2.5" />
-          {/* Expand placeholder */}
           <td className="w-8 px-2 py-2.5" />
-          {/* Employee name — aligns with "Tên vai trò" column */}
           <td className="px-4 py-2.5">
             <div className="flex items-center gap-2">
               <div className="h-6 w-6 flex-shrink-0 rounded-full bg-primary-100 text-center text-xs leading-6 font-medium text-primary-700">
@@ -205,23 +243,18 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
               </div>
               <Link
                 href={`/employees/${assignment.employeeId}`}
-                className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 rounded"
+                className="text-sm font-medium text-primary-600 hover:text-primary-700 hover:underline transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary-400 rounded"
               >
                 {assignment.employeeName}
               </Link>
             </div>
           </td>
-          {/* Email — aligns with "Mô tả" column */}
           <td className="px-4 py-2.5 text-sm text-secondary-500">{assignment.employeeEmail}</td>
-          {/* Empty — aligns with "Số quyền" */}
           <td className="px-4 py-2.5" />
-          {/* Empty — aligns with "Nhân viên" */}
           <td className="px-4 py-2.5" />
-          {/* Assigned date — aligns with "Ngày tạo" */}
           <td className="px-4 py-2.5 text-sm text-secondary-400">
             {formatDate(assignment.assignedAt)}
           </td>
-          {/* Actions placeholder */}
           <td className="px-4 py-2.5" />
         </tr>
       );
@@ -229,7 +262,7 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
     []
   );
 
-  // ── Handlers ──────────────────────────────────────────────────────────────
+  // ── Mutation handlers ──────────────────────────────────────────────────────
 
   const handleDeleteConfirm = useCallback(async () => {
     if (!deleteTarget) return;
@@ -237,8 +270,11 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
     try {
       await deleteRole(deleteTarget.id);
       setRoles((prev) => prev.filter((r) => r.id !== deleteTarget.id));
+      setServerTotal((t) => t - 1);
       setDeleteTarget(null);
       showToast("Đã xóa vai trò.", "success");
+    } catch {
+      showToast("Không thể xóa vai trò. Vui lòng thử lại.", "error");
     } finally {
       setIsDeleting(false);
     }
@@ -253,8 +289,11 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
     try {
       await bulkDeleteRoles(bulkDeleteTargets);
       setRoles((prev) => prev.filter((r) => !bulkDeleteTargets.includes(r.id)));
+      setServerTotal((t) => t - bulkDeleteTargets.length);
       setBulkDeleteTargets([]);
       showToast(`Đã xóa ${bulkDeleteTargets.length} vai trò.`, "success");
+    } catch {
+      showToast("Không thể xóa vai trò. Vui lòng thử lại.", "error");
     } finally {
       setIsBulkDeleting(false);
     }
@@ -268,6 +307,7 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
         next[idx] = { ...prev[idx], ...saved };
         return next;
       }
+      setServerTotal((t) => t + 1);
       return [saved, ...prev];
     });
     showToast(editRole ? "Đã cập nhật vai trò." : "Đã tạo vai trò mới.", "success");
@@ -282,51 +322,55 @@ export function RolesTable({ initialRoles }: RolesTableProps) {
 
   return (
     <>
-      <DataTable
-        data={pageData as unknown as RoleRow[]}
-        columns={columns}
-        keyField="id"
-        selectable
-        bulkActions={[
-          {
-            id: "bulk-delete",
-            label: "Xóa đã chọn",
-            isDanger: true,
-            onClick: handleBulkDelete,
-          },
-        ]}
-        getSubRows={getSubRows}
-        renderSubRow={renderSubRow}
-        expandedByDefault={false}
-        searchQuery={search}
-        onSearchChange={(q) => { setSearch(q); setPage(1); }}
-        searchPlaceholder="Tìm theo tên vai trò…"
-        toolbarActions={
-          <Button
-            variant="primary"
-            size="sm"
-            onClick={openCreateModal}
-          >
-            <PlusIcon className="h-4 w-4" />
-            Thêm vai trò
-          </Button>
-        }
-        sortKey={sortKey}
-        sortDir={sortDir}
-        onSortChange={(k, d) => { setSortKey(k); setSortDir(d); setPage(1); }}
-        page={page}
-        pageSize={pageSize}
-        totalRows={totalRows}
-        onPageChange={setPage}
-        onPageSizeChange={(s) => { setPageSize(s); setPage(1); }}
-        emptyMessage="Không tìm thấy vai trò nào."
-        emptyIcon={<ShieldCheckIcon className="h-12 w-12" />}
-        emptyAction={
-          <Button variant="primary" size="sm" onClick={openCreateModal}>
-            Thêm vai trò đầu tiên
-          </Button>
-        }
-      />
+      <div className="relative">
+        {loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center rounded-xl bg-white/70">
+            <ArrowPathIcon className="h-6 w-6 animate-spin text-primary-600" aria-hidden="true" />
+          </div>
+        )}
+        <DataTable
+          data={roles as unknown as RoleRow[]}
+          columns={columns}
+          keyField="id"
+          selectable
+          bulkActions={[
+            {
+              id: "bulk-delete",
+              label: "Xóa đã chọn",
+              isDanger: true,
+              onClick: handleBulkDelete,
+            },
+          ]}
+          getSubRows={getSubRows}
+          renderSubRow={renderSubRow}
+          expandedByDefault={false}
+          searchQuery={search}
+          onSearchChange={handleSearchChange}
+          searchPlaceholder="Tìm theo tên vai trò, mô tả…"
+          toolbarActions={
+            <Button variant="primary" size="sm" onClick={openCreateModal}>
+              <PlusIcon className="h-4 w-4" />
+              Thêm vai trò
+            </Button>
+          }
+          sortKey={sortKey}
+          sortDir={sortDir}
+          onSortChange={handleSortChange}
+          page={page}
+          pageSize={pageSize}
+          totalRows={serverTotal}
+          pageSizeOptions={[10, 25, 50]}
+          onPageChange={setPage}
+          onPageSizeChange={handlePageSizeChange}
+          emptyMessage="Không tìm thấy vai trò nào."
+          emptyIcon={<ShieldCheckIcon className="h-12 w-12" />}
+          emptyAction={
+            <Button variant="primary" size="sm" onClick={openCreateModal}>
+              Thêm vai trò đầu tiên
+            </Button>
+          }
+        />
+      </div>
 
       {/* Create / Edit modal */}
       <RoleFormModal

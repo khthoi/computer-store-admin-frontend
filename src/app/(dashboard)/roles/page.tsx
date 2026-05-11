@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function RolesPage() {
-  const { data: roles } = await getRoles();
+  const { data: roles, total, totalPages } = await getRoles({ page: 1, limit: 10, sortBy: "id", sortOrder: "asc" });
 
   return (
     <div className="space-y-6 p-6">
@@ -20,7 +20,7 @@ export default async function RolesPage() {
           Quản lý các vai trò, phân quyền và phân công nhân viên.
         </p>
       </div>
-      <RolesTable initialRoles={roles} />
+      <RolesTable initialRoles={roles} initialTotal={total} initialTotalPages={totalPages} />
     </div>
   );
 }
