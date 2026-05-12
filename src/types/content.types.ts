@@ -88,20 +88,24 @@ export type BannerPosition =
   | "side_banner"
   | "promotions_banner";
 
-export type BannerStatus = "draft" | "active" | "scheduled" | "ended";
+export type BannerStatus = "draft" | "active";
 
 export type BannerLinkTarget = "_self" | "_blank";
+export type BannerSidePlacement = "left" | "right";
 
 export interface Banner {
   id: string;
   title: string;
   position: BannerPosition;
   status: BannerStatus;
+  isEnabled: boolean;
   imageUrl: string;
   mobileImageUrl?: string;
+  sidePlacement?: BannerSidePlacement;
   linkUrl?: string;
   linkTarget: BannerLinkTarget;
   altText: string;
+  caption?: string;
   /** Overlay headline (hero, slider, promotions) */
   overlayText?: string;
   overlaySubtext?: string;
@@ -123,8 +127,6 @@ export interface Banner {
   gridW?: number;
   gridH?: number;
   sortOrder: number;
-  startDate?: string | null;
-  endDate?: string | null;
   clickCount: number;
   impressionCount: number;
   createdBy: string;
@@ -136,11 +138,14 @@ export interface BannerFormData {
   title: string;
   position: BannerPosition;
   status: BannerStatus;
+  isEnabled: boolean;
   imageUrl: string;
   mobileImageUrl?: string;
+  sidePlacement?: BannerSidePlacement;
   linkUrl?: string;
   linkTarget: BannerLinkTarget;
   altText: string;
+  caption?: string;
   overlayText?: string;
   overlaySubtext?: string;
   ctaLabel?: string;
@@ -149,8 +154,6 @@ export interface BannerFormData {
   badgeColor?: string;
   badgeTextColor?: string;
   sortOrder: number;
-  startDate?: string | null;
-  endDate?: string | null;
 }
 
 export interface BannerListParams {

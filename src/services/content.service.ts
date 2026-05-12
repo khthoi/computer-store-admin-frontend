@@ -301,6 +301,26 @@ export async function saveBannersLayout(items: BannerGridItem[]): Promise<void> 
   });
 }
 
+// ─── Homepage Hero Mode (mutually-exclusive hero vs slider) ──────────────────
+
+export type HomepageHeroMode = "banner" | "slider";
+const HOMEPAGE_HERO_MODE_KEY = "homepage_hero_mode";
+
+export async function getHomepageHeroMode(): Promise<HomepageHeroMode> {
+  const config = await _fetchSiteConfig();
+  const raw = config[HOMEPAGE_HERO_MODE_KEY];
+  return raw === "slider" ? "slider" : "banner";
+}
+
+export async function setHomepageHeroMode(mode: HomepageHeroMode): Promise<HomepageHeroMode> {
+  await apiFetch(`/admin/site-config/${HOMEPAGE_HERO_MODE_KEY}`, {
+    method: "PUT",
+    body: JSON.stringify({ value: mode }),
+  });
+  _siteConfigCache = null;
+  return mode;
+}
+
 // ─── Static Pages ──────────────────────────────────────────────────────────────
 
 const STATUS_MAP = { draft: "nhap", published: "da_xuat_ban", archived: "an" } as const;

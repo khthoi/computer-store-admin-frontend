@@ -3,6 +3,7 @@
 export interface CategoryNode {
   id: string;
   label: string;
+  slug?: string;
   children?: CategoryNode[];
 }
 

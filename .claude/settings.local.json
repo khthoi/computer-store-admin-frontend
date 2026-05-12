@@ -55,7 +55,9 @@
       "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\[id]\\\\variants\\\\_mock.ts\" -Force)",
       "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_mock.ts\" -Force)",
       "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_mock_spec_templates.ts\" -Force)",
-      "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_categoryMock.ts\" -Force)"
+      "Bash(Remove-Item \"D:\\\\Online PC Store System\\\\Source\\\\computer-store-admin-frontend\\\\src\\\\app\\\\\\(dashboard\\)\\\\products\\\\_categoryMock.ts\" -Force)",
+      "mcp__dbhub__search_objects",
+      "mcp__dbhub__execute_sql"
     ]
   }
 }

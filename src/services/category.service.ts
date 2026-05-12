@@ -118,6 +118,7 @@ function mapDanhMucNodeToNode(n: DanhMucNode): CategoryNode {
   return {
     id: n.id,
     label: n.name,
+    slug: n.slug,
     children: n.children?.length ? n.children.map(mapDanhMucNodeToNode) : undefined,
   };
 }

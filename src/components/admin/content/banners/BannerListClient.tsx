@@ -4,69 +4,100 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Reorder, useDragControls } from "framer-motion";
 import {
-  PlusIcon, InboxIcon, PencilIcon, TrashIcon, Bars3Icon,
+  Bars3Icon,
+  ExclamationTriangleIcon,
+  InboxIcon,
+  PencilIcon,
+  PlusIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { DataTable } from "@/src/components/admin/DataTable";
 import type { ColumnDef, SortDir } from "@/src/components/admin/DataTable";
+import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 import { Badge } from "@/src/components/ui/Badge";
 import { Button } from "@/src/components/ui/Button";
+import { Toggle } from "@/src/components/ui/Toggle";
 import { Tooltip } from "@/src/components/ui/Tooltip";
-import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { useToast } from "@/src/components/ui/Toast";
 import { PromotionsBannerLayout } from "./PromotionsBannerLayout";
-import { getBanners, deleteBanner, reorderBanners } from "@/src/services/content.service";
+import {
+  deleteBanner,
+  getBanners,
+  getHomepageHeroMode,
+  reorderBanners,
+  setHomepageHeroMode,
+  updateBanner,
+  type HomepageHeroMode,
+} from "@/src/services/content.service";
 import type { Banner, BannerPosition, BannerStatus } from "@/src/types/content.types";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type BannerRow = Banner & Record<string, unknown>;
 
-// ─── Config ───────────────────────────────────────────────────────────────────
-
-const STATUS_CONFIG: Record<BannerStatus, { label: string; variant: "success" | "warning" | "error" | "default" | "info" }> = {
-  active:    { label: "Đang hiển thị", variant: "success" },
-  scheduled: { label: "Lên lịch",      variant: "info" },
-  draft:     { label: "Nháp",          variant: "default" },
-  ended:     { label: "Đã kết thúc",   variant: "error" },
-};
-
-export const POSITION_LABELS: Record<BannerPosition, string> = {
-  homepage_hero:        "Hero trang chủ",
-  homepage_hero_slider: "Hero Slider",
-  homepage_small:       "4 banner nhỏ",
-  side_banner:          "Side Banner",
-  promotions_banner:    "Banner Khuyến mãi",
+const STATUS_CONFIG: Record<
+  BannerStatus,
+  { label: string; variant: "success" | "warning" | "error" | "default" | "info" }
+> = {
+  active: { label: "Hoạt động", variant: "success" },
+  draft: { label: "Nháp", variant: "default" },
 };
 
 const STATUS_OPTIONS = [
-  { value: "active",    label: "Đang hiển thị" },
-  { value: "scheduled", label: "Lên lịch" },
-  { value: "draft",     label: "Nháp" },
-  { value: "ended",     label: "Đã kết thúc" },
+  { value: "active", label: "Hoạt động" },
+  { value: "draft", label: "Nháp" },
 ];
 
-// Tab config — 5 positions, 4 separators
+const POSITION_ENABLED_LIMITS: Partial<Record<BannerPosition, number>> = {
+  homepage_hero: 1,
+  homepage_small: 4,
+  side_banner: 2,
+};
+
 const TABS: { position: BannerPosition; label: string; draggable: boolean }[] = [
-  { position: "homepage_hero",        label: "Hero trang chủ",    draggable: false },
-  { position: "homepage_hero_slider", label: "Hero Slider",        draggable: true  },
-  { position: "homepage_small",       label: "4 banner nhỏ",      draggable: true  },
-  { position: "side_banner",          label: "Side Banner",        draggable: true  },
-  { position: "promotions_banner",    label: "Banner Khuyến mãi", draggable: false },
+  { position: "homepage_hero", label: "Hero trang chủ", draggable: false },
+  { position: "homepage_hero_slider", label: "Hero Slider", draggable: true },
+  { position: "homepage_small", label: "4 banner nhỏ", draggable: true },
+  { position: "side_banner", label: "Side Banner", draggable: true },
+  { position: "promotions_banner", label: "Banner Khuyến mãi", draggable: false },
 ];
 
-// ─── Sortable row (drag tabs) ─────────────────────────────────────────────────
+function isHeroPosition(position: BannerPosition): boolean {
+  return position === "homepage_hero" || position === "homepage_hero_slider";
+}
+
+function modeForPosition(position: BannerPosition): HomepageHeroMode {
+  return position === "homepage_hero_slider" ? "slider" : "banner";
+}
+
+function labelForMode(mode: HomepageHeroMode): string {
+  return mode === "slider" ? "Hero Slider" : "Hero trang chủ";
+}
+
+function enabledHint(position: BannerPosition): string | null {
+  const limit = POSITION_ENABLED_LIMITS[position];
+  if (!limit) return null;
+  return `Tối đa ${limit} banner được kích hoạt ở tab này.`;
+}
 
 function SortableBannerRow({
-  banner, index, onDelete,
+  banner,
+  index,
+  disabled,
+  isPending,
+  onDelete,
+  onToggleEnabled,
 }: {
   banner: Banner;
   index: number;
-  onDelete: (b: Banner) => void;
+  disabled?: boolean;
+  isPending?: boolean;
+  onDelete: (banner: Banner) => void;
+  onToggleEnabled: (banner: Banner, enabled: boolean) => void;
 }) {
   const controls = useDragControls();
   const [isDragging, setIsDragging] = useState(false);
-  const cfg = STATUS_CONFIG[banner.status];
+  const statusConfig = STATUS_CONFIG[banner.status];
+  const enableBlocked = disabled || banner.status !== "active" || isPending;
 
   return (
     <Reorder.Item
@@ -79,39 +110,38 @@ function SortableBannerRow({
       animate={
         isDragging
           ? { scale: 1.015, boxShadow: "0 8px 28px rgba(0,0,0,0.10)" }
-          : { scale: 1,     boxShadow: "0 0px  0px rgba(0,0,0,0.00)" }
+          : { scale: 1, boxShadow: "0 0 0 rgba(0,0,0,0)" }
       }
       className="group flex items-center gap-3 rounded-xl border border-secondary-200 bg-white px-4 py-3 transition-colors hover:border-secondary-300"
     >
-      {/* Drag handle */}
       <span
         className="shrink-0 touch-none cursor-grab text-secondary-300 hover:text-secondary-500 active:cursor-grabbing"
-        onPointerDown={(e) => { e.preventDefault(); controls.start(e); }}
+        onPointerDown={(event) => {
+          event.preventDefault();
+          controls.start(event);
+        }}
         aria-label="Kéo để sắp xếp"
       >
         <Bars3Icon className="h-4 w-4" />
       </span>
 
-      {/* Order badge */}
       <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-secondary-100 text-xs font-bold text-secondary-500">
         {index}
       </span>
 
-      {/* Thumbnail */}
       <div className="h-10 w-16 shrink-0 overflow-hidden rounded-lg border border-secondary-100 bg-secondary-100">
         {banner.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={banner.imageUrl} alt={banner.title} className="h-full w-full object-cover" />
         ) : (
-          <div className="flex h-full items-center justify-center text-secondary-300 text-base">🖼</div>
+          <div className="flex h-full items-center justify-center text-base text-secondary-300">🖼</div>
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="truncate text-sm font-semibold text-secondary-800 select-none">{banner.title}</p>
-        <div className="mt-0.5 flex items-center gap-1.5">
-          <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-semibold text-secondary-800">{banner.title}</p>
+        <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+          <Badge variant={statusConfig.variant} size="sm">{statusConfig.label}</Badge>
           {banner.badge && (
             <span
               className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
@@ -123,16 +153,41 @@ function SortableBannerRow({
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="flex shrink-0 items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Tooltip content="Chỉnh sửa" placement="top">
-          <Link href={`/content/banners/${banner.id}/edit`}>
-            <Button variant="ghost" size="xs"><PencilIcon className="h-3.5 w-3.5" /></Button>
-          </Link>
+      <div className="shrink-0">
+        <Toggle
+          checked={banner.isEnabled}
+          disabled={enableBlocked}
+          onChange={(event) => onToggleEnabled(banner, event.target.checked)}
+          labelLeft
+          label="Kích hoạt"
+          size="sm"
+        />
+      </div>
+
+      <div className="flex shrink-0 items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <Tooltip content={disabled ? "Vô hiệu vì đang dùng chế độ hero khác" : "Chỉnh sửa"} placement="top">
+          {disabled ? (
+            <Button variant="ghost" size="xs" disabled>
+              <PencilIcon className="h-3.5 w-3.5" />
+            </Button>
+          ) : (
+            <Link href={`/content/banners/${banner.id}/edit`}>
+              <Button variant="ghost" size="xs">
+                <PencilIcon className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
+          )}
         </Tooltip>
-        <Tooltip content="Xóa" placement="top">
-          <Button variant="ghost" size="xs" color="danger"
-            onClick={(e) => { e.stopPropagation(); onDelete(banner); }}
+        <Tooltip content={disabled ? "Vô hiệu vì đang dùng chế độ hero khác" : "Xóa"} placement="top">
+          <Button
+            variant="ghost"
+            size="xs"
+            color="danger"
+            disabled={disabled}
+            onClick={(event) => {
+              event.stopPropagation();
+              if (!disabled) onDelete(banner);
+            }}
           >
             <TrashIcon className="h-3.5 w-3.5" />
           </Button>
@@ -142,40 +197,71 @@ function SortableBannerRow({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function BannerListClient() {
   const { showToast } = useToast();
 
-  // ── Tab state
   const [activeTab, setActiveTab] = useState<BannerPosition>("homepage_hero");
-  const activeTabCfg = TABS.find((t) => t.position === activeTab)!;
-  const isDragTab      = activeTabCfg.draggable;
+  const activeTabConfig = TABS.find((tab) => tab.position === activeTab)!;
+  const isDragTab = activeTabConfig.draggable;
   const isPromotionsTab = activeTab === "promotions_banner";
-  const isHeroTab      = !isDragTab && !isPromotionsTab;
+  const isHeroTableTab = !isDragTab && !isPromotionsTab;
 
-  // ── Hero DataTable state
   const [tableBanners, setTableBanners] = useState<Banner[]>([]);
-  const [tableTotal, setTableTotal]     = useState(0);
-  const [search, setSearch]             = useState("");
+  const [tableTotal, setTableTotal] = useState(0);
+  const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [page, setPage]                 = useState(1);
-  const [pageSize, setPageSize]         = useState(20);
-  const [sortKey, setSortKey]           = useState("sortOrder");
-  const [sortDir, setSortDir]           = useState<SortDir>("asc");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
+  const [sortKey, setSortKey] = useState("sortOrder");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
 
-  // ── Drag tab state
-  const [dragBanners, setDragBanners]   = useState<Banner[]>([]);
-  const dragBannersRef                  = useRef<Banner[]>([]);
-  const [isDirty, setIsDirty]           = useState(false);
-  const [isSaving, setIsSaving]         = useState(false);
+  const [dragBanners, setDragBanners] = useState<Banner[]>([]);
+  const dragBannersRef = useRef<Banner[]>([]);
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSavingOrder, setIsSavingOrder] = useState(false);
 
-  // ── Shared
-  const [isLoading, setIsLoading]       = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Banner | null>(null);
-  const [isDeleting, setIsDeleting]     = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [pendingToggleIds, setPendingToggleIds] = useState<string[]>([]);
 
-  // ── Reset on tab change
+  const [heroMode, setHeroMode] = useState<HomepageHeroMode | null>(null);
+  const [pendingMode, setPendingMode] = useState<HomepageHeroMode | null>(null);
+  const [isSavingMode, setIsSavingMode] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    getHomepageHeroMode()
+      .then((mode) => {
+        if (!cancelled) setHeroMode(mode);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const isHeroTabPosition = isHeroPosition(activeTab);
+  const currentTabMode = modeForPosition(activeTab);
+  const isHeroLocked = isHeroTabPosition && heroMode !== null && heroMode !== currentTabMode;
+  const otherMode: HomepageHeroMode = currentTabMode === "banner" ? "slider" : "banner";
+  const toggleIsOn = heroMode === currentTabMode;
+
+  async function handleConfirmMode() {
+    if (!pendingMode) return;
+    setIsSavingMode(true);
+    try {
+      await setHomepageHeroMode(pendingMode);
+      setHeroMode(pendingMode);
+      showToast(`Đã kích hoạt ${labelForMode(pendingMode)}`, "success");
+      setPendingMode(null);
+    } catch {
+      showToast("Cập nhật cấu hình thất bại", "error");
+    } finally {
+      setIsSavingMode(false);
+    }
+  }
+
   useEffect(() => {
     setIsDirty(false);
     setSearch("");
@@ -185,46 +271,59 @@ export function BannerListClient() {
     dragBannersRef.current = [];
   }, [activeTab]);
 
-  // ── Reset page when Hero tab filters change
-  useEffect(() => { setPage(1); }, [search, statusFilter]);
-
-  // ── Load: Hero tab (DataTable, server-side)
   useEffect(() => {
-    if (!isHeroTab) return;
+    setPage(1);
+  }, [search, statusFilter]);
+
+  useEffect(() => {
+    if (!isHeroTableTab) return;
+
     let cancelled = false;
     setIsLoading(true);
     getBanners({
       q: search,
       status: statusFilter as BannerStatus[],
       position: [activeTab],
-      page, pageSize,
-    }).then((res) => {
-      if (!cancelled) {
-        setTableBanners(res.data);
-        setTableTotal(res.total);
+      page,
+      pageSize,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        setTableBanners(result.data);
+        setTableTotal(result.total);
         setIsLoading(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [isHeroTab, activeTab, search, statusFilter, page, pageSize]);
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  // ── Load: drag tab (all for position, sorted by sortOrder)
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, isHeroTableTab, page, pageSize, search, statusFilter]);
+
   useEffect(() => {
     if (!isDragTab) return;
+
     let cancelled = false;
     setIsLoading(true);
-    getBanners({ position: [activeTab], pageSize: 200 }).then((res) => {
-      if (!cancelled) {
-        const sorted = [...res.data].sort((a, b) => a.sortOrder - b.sortOrder);
+    getBanners({ position: [activeTab], pageSize: 200 })
+      .then((result) => {
+        if (cancelled) return;
+        const sorted = [...result.data].sort((a, b) => a.sortOrder - b.sortOrder);
         setDragBanners(sorted);
         dragBannersRef.current = sorted;
         setIsLoading(false);
-      }
-    });
-    return () => { cancelled = true; };
-  }, [isDragTab, activeTab]);
+      })
+      .catch(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
-  // ── Reorder handler
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, isDragTab]);
+
   function handleReorder(newOrder: Banner[]) {
     setDragBanners(newOrder);
     dragBannersRef.current = newOrder;
@@ -232,35 +331,54 @@ export function BannerListClient() {
   }
 
   async function handleSaveOrder() {
-    setIsSaving(true);
+    setIsSavingOrder(true);
     try {
-      await reorderBanners(activeTab, dragBannersRef.current.map((b) => b.id));
+      await reorderBanners(activeTab, dragBannersRef.current.map((banner) => banner.id));
       setIsDirty(false);
       showToast("Đã lưu thứ tự banner", "success");
     } catch {
       showToast("Lưu thứ tự thất bại", "error");
     } finally {
-      setIsSaving(false);
+      setIsSavingOrder(false);
     }
   }
 
-  // ── Delete handler
+  const applyBannerPatch = useCallback((bannerId: string, patch: Partial<Banner>) => {
+    setTableBanners((prev) => prev.map((banner) => (banner.id === bannerId ? { ...banner, ...patch } : banner)));
+    setDragBanners((prev) => prev.map((banner) => (banner.id === bannerId ? { ...banner, ...patch } : banner)));
+    dragBannersRef.current = dragBannersRef.current.map((banner) => (banner.id === bannerId ? { ...banner, ...patch } : banner));
+  }, []);
+
+  const handleToggleEnabled = useCallback(async (banner: Banner, enabled: boolean) => {
+    setPendingToggleIds((prev) => [...prev, banner.id]);
+    try {
+      const updated = await updateBanner(banner.id, { isEnabled: enabled });
+      applyBannerPatch(banner.id, { isEnabled: updated.isEnabled, status: updated.status });
+      showToast(enabled ? "Đã kích hoạt banner" : "Đã tắt kích hoạt banner", "success");
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Cập nhật kích hoạt thất bại";
+      showToast(message, "error");
+    } finally {
+      setPendingToggleIds((prev) => prev.filter((id) => id !== banner.id));
+    }
+  }, [applyBannerPatch, showToast]);
+
   const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     setIsDeleting(true);
     try {
       await deleteBanner(deleteTarget.id);
       if (isDragTab) {
-        const next = dragBannersRef.current.filter((b) => b.id !== deleteTarget.id);
+        const next = dragBannersRef.current.filter((banner) => banner.id !== deleteTarget.id);
         setDragBanners(next);
         dragBannersRef.current = next;
         setIsDirty(true);
       } else {
-        setTableBanners((prev) => prev.filter((b) => b.id !== deleteTarget.id));
+        setTableBanners((prev) => prev.filter((banner) => banner.id !== deleteTarget.id));
         setTableTotal((prev) => prev - 1);
       }
-      setDeleteTarget(null);
       showToast(`Đã xóa banner "${deleteTarget.title}"`, "success");
+      setDeleteTarget(null);
     } catch {
       showToast("Xóa banner thất bại", "error");
     } finally {
@@ -268,7 +386,6 @@ export function BannerListClient() {
     }
   }, [deleteTarget, isDragTab, showToast]);
 
-  // ── DataTable columns (Hero tab)
   const columns: ColumnDef<BannerRow>[] = [
     {
       key: "imageUrl",
@@ -286,17 +403,18 @@ export function BannerListClient() {
       header: "Tiêu đề",
       sortable: true,
       render: (value, row) => (
-        <div className="flex flex-col gap-0.5 min-w-0">
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="font-medium text-secondary-800 truncate">{value as string}</span>
-            {activeTab === "homepage_hero" && (
-              <Badge variant="info" size="sm">Duy nhất</Badge>
-            )}
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="truncate font-medium text-secondary-800">{value as string}</span>
+            {activeTab === "homepage_hero" && <Badge variant="info" size="sm">Tối đa 1 kích hoạt</Badge>}
           </div>
           {(row.badge as string) && (
             <span
               className="inline-block w-fit rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-              style={{ backgroundColor: (row.badgeColor as string) ?? "#ef4444", color: (row.badgeTextColor as string) ?? "#fff" }}
+              style={{
+                backgroundColor: (row.badgeColor as string) ?? "#ef4444",
+                color: (row.badgeTextColor as string) ?? "#fff",
+              }}
             >
               {row.badge as string}
             </span>
@@ -310,14 +428,34 @@ export function BannerListClient() {
       width: "w-36",
       align: "center",
       render: (value) => {
-        const cfg = STATUS_CONFIG[value as BannerStatus];
-        return <Badge variant={cfg.variant} size="sm">{cfg.label}</Badge>;
+        const config = STATUS_CONFIG[value as BannerStatus];
+        return <Badge variant={config.variant} size="sm">{config.label}</Badge>;
+      },
+    },
+    {
+      key: "isEnabled",
+      header: "Kích hoạt",
+      width: "w-32",
+      align: "left",
+      render: (value, row) => {
+        const rowBanner = row as unknown as Banner;
+        const disabled = isHeroLocked || rowBanner.status !== "active" || pendingToggleIds.includes(rowBanner.id);
+        return (
+          <Toggle
+            checked={value as boolean}
+            disabled={disabled}
+            onChange={(event) => handleToggleEnabled(rowBanner, event.target.checked)}
+            size="sm"
+            labelLeft
+            label=""
+          />
+        );
       },
     },
     {
       key: "sortOrder",
       header: "Thứ tự",
-      width: "w-24",
+      width: "w-32",
       align: "center",
       sortable: true,
       render: (value) => <span className="text-sm text-secondary-600">{value as number}</span>,
@@ -339,15 +477,31 @@ export function BannerListClient() {
       width: "w-28",
       align: "center",
       render: (_, row) => (
-        <div className="flex items-center gap-1 justify-center">
-          <Tooltip content="Chỉnh sửa" placement="top">
-            <Link href={`/content/banners/${row.id as string}/edit`}>
-              <Button variant="ghost" size="xs"><PencilIcon className="h-3.5 w-3.5" /></Button>
-            </Link>
+        <div className="flex items-center justify-center gap-1">
+          <Tooltip content={isHeroLocked ? "Vô hiệu vì đang dùng chế độ hero khác" : "Chỉnh sửa"} placement="top">
+            {isHeroLocked ? (
+              <Button variant="ghost" size="xs" disabled>
+                <PencilIcon className="h-3.5 w-3.5" />
+              </Button>
+            ) : (
+              <Link href={`/content/banners/${row.id as string}/edit`}>
+                <Button variant="ghost" size="xs">
+                  <PencilIcon className="h-3.5 w-3.5" />
+                </Button>
+              </Link>
+            )}
           </Tooltip>
-          <Tooltip content="Xóa" placement="top">
-            <Button variant="ghost" size="xs" color="danger"
-              onClick={(e) => { e.stopPropagation(); setDeleteTarget(row as unknown as Banner); }}>
+          <Tooltip content={isHeroLocked ? "Vô hiệu vì đang dùng chế độ hero khác" : "Xóa"} placement="top">
+            <Button
+              variant="ghost"
+              size="xs"
+              color="danger"
+              disabled={isHeroLocked}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (!isHeroLocked) setDeleteTarget(row as unknown as Banner);
+              }}
+            >
               <TrashIcon className="h-3.5 w-3.5" />
             </Button>
           </Tooltip>
@@ -356,29 +510,69 @@ export function BannerListClient() {
     },
   ];
 
-  // ── Shared add button
-  const addBannerBtn = (
-    <Link href="/content/banners/create">
+  const addBannerButton = isHeroLocked ? (
+    <Tooltip content="Đang dùng chế độ hero khác nên tab này đang bị khóa" placement="top">
+      <span>
+        <Button size="sm" leftIcon={<PlusIcon className="h-4 w-4" />} disabled>
+          Thêm banner
+        </Button>
+      </span>
+    </Tooltip>
+  ) : (
+    <Link href={`/content/banners/create?position=${activeTab}`}>
       <Button size="sm" leftIcon={<PlusIcon className="h-4 w-4" />}>Thêm banner</Button>
     </Link>
   );
 
+  const heroModeBar = isHeroTabPosition && heroMode !== null && (
+    <div
+      className={[
+        "mb-4 flex flex-col gap-3 rounded-xl border p-4",
+        isHeroLocked ? "border-amber-300 bg-amber-50" : "border-secondary-200 bg-white",
+      ].join(" ")}
+    >
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start gap-2">
+          {isHeroLocked && (
+            <ExclamationTriangleIcon className="mt-0.5 h-5 w-5 shrink-0 text-amber-500" aria-hidden="true" />
+          )}
+          <div>
+            <p className="text-sm font-semibold text-secondary-800">
+              Chế độ hiển thị hero: <span className="text-primary-600">{labelForMode(heroMode)}</span>
+            </p>
+            <p className="mt-0.5 text-xs text-secondary-500">
+              {isHeroLocked
+                ? `${labelForMode(currentTabMode)} đang bị vô hiệu hóa. Banner vẫn được lưu trong CMS nhưng sẽ không hiển thị ở storefront cho đến khi bạn chuyển lại chế độ này.`
+                : `${labelForMode(currentTabMode)} đang được storefront sử dụng.`}
+            </p>
+          </div>
+        </div>
+        <Toggle
+          size="md"
+          labelLeft
+          label={`Kích hoạt ${labelForMode(currentTabMode)}`}
+          checked={toggleIsOn}
+          disabled={isSavingMode}
+          onChange={() => setPendingMode(toggleIsOn ? otherMode : currentTabMode)}
+        />
+      </div>
+    </div>
+  );
+
+  const tabHint = enabledHint(activeTab);
+
   return (
     <>
-      {/* ── Tab bar */}
       <div className="mb-4 overflow-x-auto">
         <div className="flex w-fit min-w-full items-center gap-0 rounded-xl border border-secondary-200 bg-white p-1">
-          {TABS.map((tab, idx) => (
+          {TABS.map((tab, index) => (
             <div key={tab.position} className="flex items-center">
-              {/* Separator */}
-              {idx > 0 && (
-                <div className="mx-1 h-5 w-px bg-secondary-200 shrink-0" />
-              )}
+              {index > 0 && <div className="mx-1 h-5 w-px shrink-0 bg-secondary-200" />}
               <button
                 type="button"
                 onClick={() => setActiveTab(tab.position)}
                 className={[
-                  "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors whitespace-nowrap",
+                  "whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors",
                   activeTab === tab.position
                     ? "bg-primary-600 text-white shadow-sm"
                     : "text-secondary-600 hover:bg-secondary-100",
@@ -391,8 +585,13 @@ export function BannerListClient() {
         </div>
       </div>
 
-      {/* ── Hero trang chủ (DataTable) */}
-      {isHeroTab && (
+      {heroModeBar}
+
+      {tabHint && (
+        <p className="mb-4 text-sm text-secondary-500">{tabHint}</p>
+      )}
+
+      {isHeroTableTab && (
         <DataTable<BannerRow>
           columns={columns}
           data={tableBanners as BannerRow[]}
@@ -405,27 +604,36 @@ export function BannerListClient() {
           searchPlaceholder="Tìm tiêu đề banner..."
           toolbarActions={
             <div className="flex flex-wrap items-center gap-2">
-              <FilterDropdown label="Trạng thái" options={STATUS_OPTIONS} selected={statusFilter} onChange={setStatusFilter} />
-              {addBannerBtn}
+              <FilterDropdown
+                label="Trạng thái"
+                options={STATUS_OPTIONS}
+                selected={statusFilter}
+                onChange={setStatusFilter}
+              />
+              {addBannerButton}
             </div>
           }
           sortKey={sortKey}
           sortDir={sortDir}
-          onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
+          onSortChange={(key, dir) => {
+            setSortKey(key);
+            setSortDir(dir);
+          }}
           page={page}
           pageSize={pageSize}
           totalRows={tableTotal}
           pageSizeOptions={[10, 20, 50]}
           onPageChange={setPage}
-          onPageSizeChange={(size) => { setPageSize(size); setPage(1); }}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
           tableLayout="fixed"
         />
       )}
 
-      {/* ── Drag tabs (Hero Slider, 4 banner nhỏ, Side Banner) */}
       {isDragTab && (
         <div className="flex flex-col gap-3">
-          {/* Toolbar */}
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm text-secondary-500">
               {!isLoading && dragBanners.length > 0 && (
@@ -441,16 +649,15 @@ export function BannerListClient() {
               )}
             </p>
             <div className="flex items-center gap-2">
-              {addBannerBtn}
+              {addBannerButton}
               {isDirty && (
-                <Button size="sm" onClick={handleSaveOrder} isLoading={isSaving}>
+                <Button size="sm" onClick={handleSaveOrder} isLoading={isSavingOrder}>
                   Lưu thứ tự
                 </Button>
               )}
             </div>
           </div>
 
-          {/* Content */}
           {isLoading ? (
             <div className="flex h-32 items-center justify-center">
               <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary-600 border-t-transparent" />
@@ -469,12 +676,15 @@ export function BannerListClient() {
               className="flex flex-col gap-2"
               style={{ touchAction: "none" }}
             >
-              {dragBanners.map((banner, idx) => (
+              {dragBanners.map((banner, index) => (
                 <SortableBannerRow
                   key={banner.id}
                   banner={banner}
-                  index={idx + 1}
+                  index={index + 1}
+                  disabled={isHeroLocked}
+                  isPending={pendingToggleIds.includes(banner.id)}
                   onDelete={setDeleteTarget}
+                  onToggleEnabled={handleToggleEnabled}
                 />
               ))}
             </Reorder.Group>
@@ -482,17 +692,15 @@ export function BannerListClient() {
         </div>
       )}
 
-      {/* ── Banner Khuyến mãi */}
       {isPromotionsTab && (
         <div className="flex flex-col gap-4">
           <div className="flex items-center justify-end">
-            {addBannerBtn}
+            {addBannerButton}
           </div>
           <PromotionsBannerLayout />
         </div>
       )}
 
-      {/* ── Delete confirm */}
       <ConfirmDialog
         isOpen={Boolean(deleteTarget)}
         onClose={() => setDeleteTarget(null)}
@@ -502,6 +710,26 @@ export function BannerListClient() {
         confirmLabel="Xóa"
         variant="danger"
         isConfirming={isDeleting}
+      />
+
+      <ConfirmDialog
+        isOpen={pendingMode !== null}
+        onClose={() => {
+          if (!isSavingMode) setPendingMode(null);
+        }}
+        onConfirm={handleConfirmMode}
+        title={`Kích hoạt ${pendingMode ? labelForMode(pendingMode) : ""}?`}
+        description={
+          pendingMode
+            ? `Kích hoạt ${labelForMode(pendingMode)} sẽ vô hiệu hóa ${labelForMode(
+                pendingMode === "banner" ? "slider" : "banner",
+              )} trên storefront. Banner ở chế độ còn lại vẫn được giữ trong CMS.`
+            : ""
+        }
+        confirmLabel="Kích hoạt"
+        cancelLabel="Hủy"
+        variant="warning"
+        isConfirming={isSavingMode}
       />
     </>
   );

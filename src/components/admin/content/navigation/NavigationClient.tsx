@@ -214,6 +214,8 @@ export function NavigationClient() {
               <SocialLinksEditor
                 value={footerConfig.socialLinks}
                 onChange={(links) => updateFooterConfig({ socialLinks: links })}
+                onSave={handleSaveFooter}
+                isSaving={isSavingFooter}
               />
             </div>
           </div>

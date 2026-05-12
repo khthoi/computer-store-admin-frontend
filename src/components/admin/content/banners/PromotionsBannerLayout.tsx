@@ -1,30 +1,26 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { Puck, ActionBar, usePuck, type Config, type Data, type ComponentData } from "@puckeditor/core";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActionBar, Puck, usePuck, type ComponentData, type Config, type Data } from "@puckeditor/core";
 import {
-  PlusIcon, InboxIcon, CheckCircleIcon, PencilIcon,
+  CheckCircleIcon,
+  InboxIcon,
+  PencilIcon,
+  PlusIcon,
 } from "@heroicons/react/24/outline";
 import Link from "next/link";
 import { Badge } from "@/src/components/ui/Badge";
 import { Button } from "@/src/components/ui/Button";
-import { Tooltip } from "@/src/components/ui/Tooltip";
 import { getBanners, saveBannersLayout, type BannerGridItem } from "@/src/services/content.service";
 import type { Banner, BannerStatus } from "@/src/types/content.types";
-
-// ─── Status badge config ──────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<
   BannerStatus,
   { label: string; variant: "success" | "info" | "default" | "error" }
 > = {
-  active:    { label: "Đang hiển thị", variant: "success" },
-  scheduled: { label: "Lên lịch",      variant: "info" },
-  draft:     { label: "Nháp",          variant: "default" },
-  ended:     { label: "Kết thúc",      variant: "error" },
+  active: { label: "Hoạt động", variant: "success" },
+  draft: { label: "Nháp", variant: "default" },
 };
-
-// ─── BannerItem props (stored in Puck data) ───────────────────────────────────
 
 interface BannerItemProps {
   id: string;
@@ -33,6 +29,7 @@ interface BannerItemProps {
   title: string;
   imageUrl: string;
   status: BannerStatus;
+  isEnabled: boolean;
   badge?: string;
   badgeColor?: string;
   badgeTextColor?: string;
@@ -41,21 +38,15 @@ interface BannerItemProps {
   ctaLabel?: string;
 }
 
-// ─── Puck Config (module-level — never recreated) ─────────────────────────────
-
 const PUCK_CONFIG: Config = {
   components: {
-    /**
-     * BannerRow — a horizontal row that holds BannerItem components.
-     * Uses a CSS-grid DropZone with collisionAxis="x" so items sort left-to-right.
-     */
     BannerRow: {
       label: "Hàng banner",
       fields: {},
       render: (rawProps: Record<string, unknown>) => {
-        const { puck } = rawProps as { puck: { renderDropZone: (p: Record<string, unknown>) => React.ReactNode } };
+        const { puck } = rawProps as { puck: { renderDropZone: (props: Record<string, unknown>) => React.ReactNode } };
         return (
-          <div className="puck-banner-row rounded-xl border-2 border-dashed border-secondary-200 bg-white/60 overflow-visible">
+          <div className="overflow-visible rounded-xl border-2 border-dashed border-secondary-200 bg-white/60">
             {puck.renderDropZone({
               zone: "items",
               allow: ["BannerItem"],
@@ -74,12 +65,6 @@ const PUCK_CONFIG: Config = {
         );
       },
     },
-
-    /**
-     * BannerItem — renders one banner card inside a row.
-     * The `data-col-span` attribute on the root div is targeted by CSS to set
-     * gridColumn on the Puck wrapper so the card spans multiple grid columns.
-     */
     BannerItem: {
       label: "Banner",
       fields: {
@@ -97,19 +82,26 @@ const PUCK_CONFIG: Config = {
       defaultProps: { columnSpan: 2 },
       render: (rawProps: Record<string, unknown>) => {
         const {
-          bannerId, columnSpan, title, imageUrl, status,
-          badge, badgeColor, badgeTextColor,
-          overlayText, overlaySubtext, ctaLabel,
+          columnSpan,
+          title,
+          imageUrl,
+          status,
+          isEnabled,
+          badge,
+          badgeColor,
+          badgeTextColor,
+          overlayText,
+          overlaySubtext,
+          ctaLabel,
         } = rawProps as unknown as BannerItemProps;
 
-        const statusCfg = STATUS_CONFIG[status];
+        const statusConfig = STATUS_CONFIG[status];
 
         return (
           <div
             data-col-span={columnSpan}
-            className="group relative h-44 w-full overflow-hidden rounded-xl border-2 border-secondary-200 bg-secondary-100 shadow-sm transition-shadow hover:shadow-lg hover:border-primary-300"
+            className="group relative h-44 w-full overflow-hidden rounded-xl border-2 border-secondary-200 bg-secondary-100 shadow-sm transition-shadow hover:border-primary-300 hover:shadow-lg"
           >
-            {/* Background image */}
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
@@ -124,10 +116,8 @@ const PUCK_CONFIG: Config = {
               </div>
             )}
 
-            {/* Gradient overlay */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
 
-            {/* Badge — top left */}
             {badge && (
               <div
                 className="absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold shadow"
@@ -137,22 +127,26 @@ const PUCK_CONFIG: Config = {
               </div>
             )}
 
-            {/* Status — top right */}
-            {statusCfg && (
-              <div className="absolute right-2.5 top-2.5">
-                <Badge variant={statusCfg.variant} size="sm">{statusCfg.label}</Badge>
-              </div>
-            )}
+            <div className="absolute right-2.5 top-2.5 flex flex-col items-end gap-1">
+              <Badge variant={statusConfig.variant} size="sm">{statusConfig.label}</Badge>
+              <span
+                className={[
+                  "rounded-full px-2 py-0.5 text-[10px] font-semibold shadow-sm",
+                  isEnabled ? "bg-emerald-500 text-white" : "bg-white/90 text-secondary-700",
+                ].join(" ")}
+              >
+                {isEnabled ? "Đã bật" : "Đang tắt"}
+              </span>
+            </div>
 
-            {/* Content — bottom */}
             <div className="absolute bottom-0 left-0 right-0 px-3 py-3">
               {overlayText && (
-                <p className="text-white text-sm font-bold leading-tight line-clamp-2 drop-shadow mb-1">
+                <p className="mb-1 line-clamp-2 text-sm font-bold leading-tight text-white drop-shadow">
                   {overlayText}
                 </p>
               )}
               {overlaySubtext && (
-                <p className="text-white/80 text-[11px] line-clamp-1 drop-shadow mb-1.5">
+                <p className="mb-1.5 line-clamp-1 text-[11px] text-white/80 drop-shadow">
                   {overlaySubtext}
                 </p>
               )}
@@ -167,54 +161,48 @@ const PUCK_CONFIG: Config = {
       },
     },
   },
-
   root: {
     render: ({ children }: { children: React.ReactNode }) => (
-      <div className="puck-banner-canvas p-3 space-y-3 min-h-[280px]">
-        {children}
-      </div>
+      <div className="min-h-[280px] space-y-3 p-3">{children}</div>
     ),
   },
 };
 
-// ─── Data ↔ Banner conversion helpers ────────────────────────────────────────
-
 function bannersToData(banners: Banner[]): Data {
-  // Group banners by their gridY (row index)
   const rowMap = new Map<number, Banner[]>();
-  for (const b of banners) {
-    const row = b.gridY ?? 0;
+  for (const banner of banners) {
+    const row = banner.gridY ?? 0;
     if (!rowMap.has(row)) rowMap.set(row, []);
-    rowMap.get(row)!.push(b);
+    rowMap.get(row)!.push(banner);
   }
 
   const sortedRows = [...rowMap.entries()].sort(([a], [b]) => a - b);
   const content: ComponentData[] = [];
   const zones: Record<string, ComponentData[]> = {};
 
-  for (let i = 0; i < sortedRows.length; i++) {
-    const [, rowBanners] = sortedRows[i];
-    const rowId = `banner-row-${i}`;
+  for (let index = 0; index < sortedRows.length; index += 1) {
+    const [, rowBanners] = sortedRows[index];
+    const rowId = `banner-row-${index}`;
 
     content.push({ type: "BannerRow", props: { id: rowId } });
-
     zones[`${rowId}:items`] = rowBanners
       .sort((a, b) => (a.gridX ?? 0) - (b.gridX ?? 0))
-      .map((b): ComponentData => ({
+      .map((banner): ComponentData => ({
         type: "BannerItem",
         props: {
-          id: b.id,
-          bannerId: b.id,
-          columnSpan: b.gridW ?? 2,
-          title: b.title,
-          imageUrl: b.imageUrl,
-          status: b.status,
-          badge: b.badge,
-          badgeColor: b.badgeColor,
-          badgeTextColor: b.badgeTextColor,
-          overlayText: b.overlayText,
-          overlaySubtext: b.overlaySubtext,
-          ctaLabel: b.ctaLabel,
+          id: banner.id,
+          bannerId: banner.id,
+          columnSpan: banner.gridW ?? 2,
+          title: banner.title,
+          imageUrl: banner.imageUrl,
+          status: banner.status,
+          isEnabled: banner.isEnabled,
+          badge: banner.badge,
+          badgeColor: banner.badgeColor,
+          badgeTextColor: banner.badgeTextColor,
+          overlayText: banner.overlayText,
+          overlaySubtext: banner.overlaySubtext,
+          ctaLabel: banner.ctaLabel,
         },
       }));
   }
@@ -226,32 +214,32 @@ function dataToLayout(data: Data): BannerGridItem[] {
   const result: BannerGridItem[] = [];
   const rows = data.content ?? [];
 
-  for (let rowIdx = 0; rowIdx < rows.length; rowIdx++) {
-    const row = rows[rowIdx];
+  for (let rowIndex = 0; rowIndex < rows.length; rowIndex += 1) {
+    const row = rows[rowIndex];
     const rowId = row.props.id as string;
     const items = (data.zones ?? {})[`${rowId}:items`] ?? [];
-    let colX = 0;
+    let gridX = 0;
 
     for (const item of items) {
       const span = Number(item.props.columnSpan ?? 2);
       result.push({
         id: item.props.bannerId as string,
-        gridX: colX,
-        gridY: rowIdx,
+        gridX,
+        gridY: rowIndex,
         gridW: span,
         gridH: 1,
       });
-      colX += span;
+      gridX += span;
     }
   }
 
   return result;
 }
 
-// ─── Toolbar (must live inside <Puck> to access usePuck) ─────────────────────
-
 function LayoutToolbar({
-  isDirty, isSaving, saved,
+  isDirty,
+  isSaving,
+  saved,
   onSave,
 }: {
   isDirty: boolean;
@@ -263,9 +251,8 @@ function LayoutToolbar({
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-secondary-200 bg-white px-4 py-3">
       <div>
         <p className="text-sm font-semibold text-secondary-800">Layout trang Khuyến mãi</p>
-        <p className="text-xs text-secondary-500 mt-0.5">
-          <span className="font-medium text-secondary-600">Kéo banner</span> để di chuyển giữa/trong các hàng ·{" "}
-          <span className="font-medium text-secondary-600">Click vào banner</span> để thay đổi số cột chiếm
+        <p className="mt-0.5 text-xs text-secondary-500">
+          Kéo banner để đổi vị trí giữa các hàng. Việc bật/tắt banner được quản lý trong form chỉnh sửa.
         </p>
       </div>
       <div className="flex items-center gap-2">
@@ -292,8 +279,6 @@ function LayoutToolbar({
     </div>
   );
 }
-
-// ─── Puck ActionBar override (must render inside <Puck> context) ──────────────
 
 function BannerActionBar({
   label,
@@ -328,8 +313,6 @@ function BannerActionBar({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function PromotionsBannerLayout() {
   const [banners, setBanners] = useState<Banner[]>([]);
   const [initialData, setInitialData] = useState<Data>({ content: [], root: { props: {} } });
@@ -338,18 +321,17 @@ export function PromotionsBannerLayout() {
   const [saved, setSaved] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
 
-  // Ref holds latest Puck data for saving without causing re-mount
   const latestData = useRef<Data>({ content: [], root: { props: {} } });
 
   useEffect(() => {
-    getBanners({ position: ["promotions_banner"], pageSize: 50 }).then((res) => {
-      const sorted = res.data.sort(
+    getBanners({ position: ["promotions_banner"], pageSize: 50 }).then((result) => {
+      const sorted = result.data.sort(
         (a, b) => (a.gridY ?? 0) - (b.gridY ?? 0) || (a.gridX ?? 0) - (b.gridX ?? 0),
       );
       setBanners(sorted);
-      const data = bannersToData(sorted);
-      setInitialData(data);
-      latestData.current = data;
+      const nextData = bannersToData(sorted);
+      setInitialData(nextData);
+      latestData.current = nextData;
       setIsLoading(false);
     });
   }, []);
@@ -372,24 +354,22 @@ export function PromotionsBannerLayout() {
     }
   }, []);
 
-  // ── Loading skeleton ────────────────────────────────────────────────────────
   if (isLoading) {
     return (
       <div className="space-y-3">
         <div className="h-14 animate-pulse rounded-xl bg-secondary-100" />
-        {[0, 1].map((i) => (
-          <div key={i} className="h-52 animate-pulse rounded-xl bg-secondary-100" />
+        {[0, 1].map((index) => (
+          <div key={index} className="h-52 animate-pulse rounded-xl bg-secondary-100" />
         ))}
       </div>
     );
   }
 
-  // ── Empty state ─────────────────────────────────────────────────────────────
   if (!banners.length) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-secondary-300 py-24">
         <InboxIcon className="h-12 w-12 text-secondary-300" />
-        <p className="text-secondary-500 text-sm">Chưa có banner nào cho trang Khuyến mãi</p>
+        <p className="text-sm text-secondary-500">Chưa có banner nào cho trang Khuyến mãi</p>
         <Link href="/content/banners/create">
           <Button leftIcon={<PlusIcon className="h-4 w-4" />}>Tạo banner đầu tiên</Button>
         </Link>
@@ -397,18 +377,11 @@ export function PromotionsBannerLayout() {
     );
   }
 
-  // ── Editor ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      <LayoutToolbar
-        isDirty={isDirty}
-        isSaving={isSaving}
-        saved={saved}
-        onSave={handleSave}
-      />
+      <LayoutToolbar isDirty={isDirty} isSaving={isSaving} saved={saved} onSave={handleSave} />
 
-      {/* Puck editor — iframe disabled so it renders in the same DOM */}
-      <div className="rounded-xl border border-secondary-200 overflow-hidden bg-white puck-banner-editor">
+      <div className="overflow-hidden rounded-xl border border-secondary-200 bg-white">
         <Puck
           config={PUCK_CONFIG}
           data={initialData}
@@ -418,19 +391,14 @@ export function PromotionsBannerLayout() {
         >
           <Puck.Layout>
             <div className="flex min-h-[400px]">
-              {/* Canvas — drag-and-drop area */}
               <div className="flex-1 overflow-auto bg-secondary-50">
                 <Puck.Preview />
               </div>
-
-              {/* Properties panel — shown when a banner is selected */}
               <div className="w-64 shrink-0 border-l border-secondary-100 bg-white">
-                <div className="px-4 py-3 border-b border-secondary-100">
-                  <p className="text-xs font-semibold text-secondary-500 uppercase tracking-wide">
-                    Thuộc tính
-                  </p>
-                  <p className="text-[11px] text-secondary-400 mt-0.5">
-                    Chọn một banner để chỉnh số cột
+                <div className="border-b border-secondary-100 px-4 py-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">Thuộc tính</p>
+                  <p className="mt-0.5 text-[11px] text-secondary-400">
+                    Chọn một banner để chỉnh số cột chiếm
                   </p>
                 </div>
                 <Puck.Fields />
@@ -442,7 +410,7 @@ export function PromotionsBannerLayout() {
 
       {isDirty && (
         <p className="text-center text-xs text-amber-600">
-          ⚠ Bạn có thay đổi chưa được lưu — nhấn <strong>Lưu layout</strong> để áp dụng
+          Bạn có thay đổi chưa được lưu, nhấn <strong>Lưu layout</strong> để áp dụng.
         </p>
       )}
     </div>

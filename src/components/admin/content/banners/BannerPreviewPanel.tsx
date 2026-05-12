@@ -31,7 +31,7 @@ function getAspectClass(position?: string): string {
 
 export function BannerPreviewPanel({ data }: BannerPreviewPanelProps) {
   const {
-    imageUrl, overlayText, overlaySubtext,
+    imageUrl, altText, caption, overlayText, overlaySubtext,
     ctaLabel, badge, badgeColor, badgeTextColor, position,
   } = data;
 
@@ -52,7 +52,7 @@ export function BannerPreviewPanel({ data }: BannerPreviewPanelProps) {
           <div className={`relative w-full ${aspectClass} overflow-hidden rounded-xl bg-secondary-100 border border-secondary-200`}>
             {imageUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={imageUrl} alt={overlayText ?? "Banner preview"} className="h-full w-full object-cover" />
+              <img src={imageUrl} alt={altText ?? overlayText ?? "Banner preview"} className="h-full w-full object-cover" />
             ) : (
               <div className="flex h-full flex-col items-center justify-center gap-1.5">
                 <div className="h-8 w-8 rounded-full bg-secondary-200 flex items-center justify-center">
@@ -102,6 +102,10 @@ export function BannerPreviewPanel({ data }: BannerPreviewPanelProps) {
               </div>
             )}
           </div>
+
+          {caption && (
+            <p className="text-xs text-secondary-500 text-center">{caption}</p>
+          )}
 
           {/* Context note */}
           <p className="text-[11px] text-secondary-400 text-center">

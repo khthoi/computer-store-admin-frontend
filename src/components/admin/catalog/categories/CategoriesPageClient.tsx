@@ -278,21 +278,29 @@ export function CategoriesPageClient({
     function reorderInTree(nodes: DanhMucNode[]): DanhMucNode[] {
       if (parentId === null) {
         const map = new Map(nodes.map((n) => [n.id, n]));
-        return orderedIds.map((id) => map.get(id)!).filter(Boolean);
+        return orderedIds.map((id, idx) => ({ ...map.get(id)!, displayOrder: idx })).filter(Boolean);
       }
       return nodes.map((node) => {
         if (node.id === parentId) {
           const map = new Map((node.children ?? []).map((n) => [n.id, n]));
           return {
             ...node,
-            children: orderedIds.map((id) => map.get(id)!).filter(Boolean),
+            children: orderedIds.map((id, idx) => ({ ...map.get(id)!, displayOrder: idx })).filter(Boolean),
           };
         }
         return { ...node, children: reorderInTree(node.children ?? []) };
       });
     }
 
+    // Optimistic update: tree position + displayOrder field
     setTree((prev) => reorderInTree(prev));
+
+    // Sync flat so editingCat picks up the new displayOrder when user opens edit modal
+    const orderMap = new Map(orderedIds.map((id, idx) => [id, idx]));
+    setFlat((prev) =>
+      prev.map((c) => (orderMap.has(c.id) ? { ...c, displayOrder: orderMap.get(c.id)! } : c))
+    );
+
     try {
       await reorderCategories(parentId, orderedIds);
     } catch {
@@ -546,7 +554,7 @@ export function CategoriesPageClient({
         isOpen={categoryModalOpen}
         onClose={() => setCategoryModalOpen(false)}
         onSave={handleSaveCategory}
-        initialData={editingCat ? toFormData(editingCat) : undefined}
+        initialData={editingCat ? toFormData(editingCat) : (selectedCategoryId ? { parentId: selectedCategoryId } : undefined)}
         parentCategories={getParentCategories()}
         isSaving={isSavingCategory}
         editingCategoryName={editingCat?.name}
