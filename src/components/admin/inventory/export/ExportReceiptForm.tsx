@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
@@ -10,6 +10,7 @@ import { Textarea } from "@/src/components/ui";
 import { formatVND } from "@/src/lib/format";
 import { getInventoryItems } from "@/src/services/inventory.service";
 import { createExportReceipt } from "@/src/services/inventory-exports.service";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 import { useToast } from "@/src/components/ui/Toast";
 import type { InventoryItem } from "@/src/types/inventory.types";
 import type { SelectOption } from "@/src/components/ui/Select";
@@ -44,20 +45,52 @@ interface LineItem {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+function itemToOption(item: InventoryItem): SelectOption {
+  return {
+    value: item.variantId,
+    label: item.productName,
+    subLabel: item.variantName,
+    description: item.sku,
+    badge:
+      item.alertLevel === "out_of_stock_inv"
+        ? { text: "Hết hàng", variant: "error" as const }
+        : item.alertLevel === "low_stock"
+          ? { text: `${item.quantityOnHand} đơn vị`, variant: "warning" as const }
+          : { text: `${item.quantityOnHand} đơn vị`, variant: "success" as const },
+  };
+}
+
 export function ExportReceiptForm() {
   const router = useRouter();
   const { showToast } = useToast();
 
-  // ── Inventory options ─────────────────────────────────────────────────────
-  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
-  const [isLoadingItems, setIsLoadingItems] = useState(true);
+  // ── Async inventory search ────────────────────────────────────────────────
+  // Cache every item we have seen by variantId so the qty / cost-price logic
+  // can read fields that are not in the SelectOption shape.
+  const seenItemsRef = useRef<Map<string, InventoryItem>>(new Map());
+  const [, bumpSeen] = useState(0);
 
-  useEffect(() => {
-    getInventoryItems({ limit: 200, sortKey: "productName", sortDir: "asc" })
-      .then((r) => setInventoryItems(r.data))
-      .catch(() => {})
-      .finally(() => setIsLoadingItems(false));
+  const inventoryFetcher = useCallback(async (q: string) => {
+    const res = await getInventoryItems({
+      q: q || undefined,
+      limit: 25,
+      sortKey: "productName",
+      sortDir: "asc",
+    });
+    for (const it of res.data) seenItemsRef.current.set(it.variantId, it);
+    bumpSeen((n) => n + 1);
+    return {
+      options: res.data.map(itemToOption),
+      totalCount: res.total,
+    };
   }, []);
+
+  const {
+    options: inventoryOptions,
+    totalCount: inventoryTotal,
+    loading: inventoryLoading,
+    onSearch: onInventorySearch,
+  } = useAsyncSelectOptions({ fetcher: inventoryFetcher });
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [loaiPhieu, setLoaiPhieu] = useState<LoaiXuat>("XuatHuy");
@@ -76,19 +109,13 @@ export function ExportReceiptForm() {
         .map((li) => li.variantId)
         .filter(Boolean),
     );
-    return inventoryItems.map((item) => ({
-      value: item.variantId,
-      label: item.productName,
-      subLabel: item.variantName,
-      description: item.sku,
-      badge:
-        item.alertLevel === "out_of_stock_inv"
-          ? { text: "Hết hàng", variant: "error" as const }
-          : item.alertLevel === "low_stock"
-            ? { text: `${item.quantityOnHand} đơn vị`, variant: "warning" as const }
-            : { text: `${item.quantityOnHand} đơn vị`, variant: "success" as const },
-      disabled: item.quantityOnHand === 0 || selectedElsewhere.has(item.variantId),
-    }));
+    return inventoryOptions.map((opt) => {
+      const item = seenItemsRef.current.get(opt.value);
+      return {
+        ...opt,
+        disabled: (item ? item.quantityOnHand === 0 : false) || selectedElsewhere.has(opt.value),
+      };
+    });
   }
 
   // ── Line item handlers ────────────────────────────────────────────────────
@@ -107,11 +134,11 @@ export function ExportReceiptForm() {
   }
 
   function getMaxQty(variantId: string): number {
-    return inventoryItems.find((i) => i.variantId === variantId)?.quantityOnHand ?? 0;
+    return seenItemsRef.current.get(variantId)?.quantityOnHand ?? 0;
   }
 
   function getItemInfo(variantId: string): InventoryItem | undefined {
-    return inventoryItems.find((i) => i.variantId === variantId);
+    return seenItemsRef.current.get(variantId);
   }
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -217,14 +244,25 @@ export function ExportReceiptForm() {
                 {/* Product select */}
                 <Select
                   label="Sản phẩm"
-                  placeholder={isLoadingItems ? "Đang tải..." : "Chọn sản phẩm..."}
+                  placeholder="Chọn sản phẩm..."
                   options={buildSelectOptions(idx)}
                   value={line.variantId || undefined}
                   onChange={(v) => updateLine(idx, { variantId: v as string, soLuong: 1 })}
                   searchable
+                  asyncSearch
+                  onSearch={onInventorySearch}
+                  loading={inventoryLoading}
+                  totalCount={inventoryTotal}
+                  selectedOption={
+                    line.variantId
+                      ? (() => {
+                          const it = seenItemsRef.current.get(line.variantId);
+                          return it ? itemToOption(it) : undefined;
+                        })()
+                      : undefined
+                  }
                   boldLabel
                   clearable
-                  disabled={isLoadingItems}
                 />
 
                 {/* Quantity + preview */}

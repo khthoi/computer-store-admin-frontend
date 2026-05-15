@@ -9,6 +9,7 @@ import { DateInput } from "@/src/components/ui/DateInput";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
 import type { ImageFieldValue } from "@/src/components/ui/ImageField";
+import { useToast } from "@/src/components/ui/Toast";
 import { RichTextEditor } from "@/src/components/editor/DynamicRichTextEditor";
 import { PopupPreview } from "./PopupPreview";
 import { createPopup, updatePopup } from "@/src/services/content.service";
@@ -57,6 +58,7 @@ const DEFAULT: PopupFormData = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function PopupFormModal({ popup, onClose, onSaved }: PopupFormModalProps) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<PopupFormData>(DEFAULT);
   const [popupImage, setPopupImage] = useState<ImageFieldValue>(emptyImageField());
   const [isSaving, setIsSaving] = useState(false);
@@ -104,8 +106,11 @@ export function PopupFormModal({ popup, onClose, onSaved }: PopupFormModalProps)
       const saved = popup
         ? await updatePopup(popup.id, form)
         : await createPopup(form);
+      showToast(popup ? "Đã cập nhật popup." : "Đã tạo popup mới.", "success");
       onSaved(saved);
       onClose();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Không thể lưu popup.", "error");
     } finally {
       setIsSaving(false);
     }

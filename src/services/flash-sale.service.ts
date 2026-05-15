@@ -91,24 +91,17 @@ export async function updateFlashSaleStatus(
   id: string | number,
   status: FlashSaleStatus
 ): Promise<FlashSale> {
-  if (status === "huy") return cancelFlashSale(id);
-  if (status === "da_ket_thuc") return endFlashSaleEarly(id);
+  if (status === "paused") return pauseFlashSale(id);
+  if (status === "active") return activateFlashSale(id);
   return updateFlashSale(id, { trangThai: status } as Partial<FlashSaleFormPayload>);
 }
 
-export async function deleteFlashSale(id: string | number): Promise<void> {
-  await apiFetch<void>(`/admin/flash-sales/${id}`, { method: "DELETE" });
+export async function pauseFlashSale(id: string | number): Promise<FlashSale> {
+  return apiFetch<FlashSale>(`/admin/flash-sales/${id}/pause`, { method: "PATCH" });
 }
 
-export async function cancelFlashSale(id: string | number): Promise<FlashSale> {
-  await apiFetch<void>(`/admin/flash-sales/${id}`, { method: "DELETE" });
-  const result = await getFlashSaleById(id);
-  if (!result) throw new Error(`Flash Sale #${id} không tìm thấy`);
-  return result;
-}
-
-export async function endFlashSaleEarly(id: string | number): Promise<FlashSale> {
-  return apiFetch<FlashSale>(`/admin/flash-sales/${id}/end`, { method: "PATCH" });
+export async function activateFlashSale(id: string | number): Promise<FlashSale> {
+  return apiFetch<FlashSale>(`/admin/flash-sales/${id}/activate`, { method: "PATCH" });
 }
 
 // ─── Stats ────────────────────────────────────────────────────────────────────

@@ -10,21 +10,26 @@ import type {
 
 // ─── Payload mapper ───────────────────────────────────────────────────────────
 
+function nullIfBlank(value: string | undefined): string | null {
+  return value && value.trim().length > 0 ? value : null;
+}
+
 function toBackendPayload(data: HomepageSectionFormData) {
   return {
     title: data.title,
-    subtitle: data.subtitle || undefined,
-    viewAllUrl: data.viewAllUrl || undefined,
+    subtitle: nullIfBlank(data.subtitle),
+    viewAllUrl: nullIfBlank(data.viewAllUrl),
     type: data.type,
     sourceConfig: data.type === "manual" ? null : data.sourceConfig,
     sortBy: data.sortBy,
     maxProducts: data.maxProducts,
     layout: data.layout,
-    badgeLabel: data.badgeLabel || undefined,
-    badgeColor: data.badgeColor || undefined,
+    badgeLabel: nullIfBlank(data.badgeLabel),
+    badgeColor: nullIfBlank(data.badgeColor),
+    badgeTextColor: nullIfBlank(data.badgeTextColor),
     isVisible: data.isVisible,
-    startAt: data.ngayBatDau || undefined,
-    endAt: data.ngayKetThuc || undefined,
+    startAt: nullIfBlank(data.ngayBatDau),
+    endAt: nullIfBlank(data.ngayKetThuc),
     items:
       data.type === "manual"
         ? data.manualItems.map((item, idx) => ({

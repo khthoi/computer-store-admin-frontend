@@ -29,7 +29,7 @@ export type SpecDataType = "text" | "number" | "boolean" | "enum";
  * Dạng widget bộ lọc hiển thị ở trang danh sách sản phẩm phía cửa hàng.
  * Chỉ có ý nghĩa khi coTheLoc = true.
  */
-export type FilterWidget = "checkbox" | "range" | "toggle" | "select" | "combo-select";
+export type FilterWidget = "checkbox" | "range" | "toggle" | "select";
 
 export interface SpecType {
   id: string;

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { Select, type SelectOptionBadge } from "@/src/components/ui/Select";
+import { Select, type SelectOption, type SelectOptionBadge } from "@/src/components/ui/Select";
 import { CategoryTreeSelect } from "@/src/components/admin/CategoryTreeSelect";
 import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import { getCategoryNodeTree } from "@/src/services/category.service";
-import { getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
+import { getProducts, getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
 import { getBrands } from "@/src/services/brand.service";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 import type { PromotionScope, ScopeType } from "@/src/types/promotion.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -42,45 +43,83 @@ const SCOPE_TYPE_OPTIONS: { value: ScopeType; label: string }[] = [
   { value: "brand",    label: "Thương hiệu" },
 ];
 
+function variantToOption(v: ProductVariantFlat): SelectOption {
+  return {
+    value: v.variantId,
+    label: v.productName,
+    subLabel: v.variantName,
+    description: v.sku,
+    badge: stockBadge(v.stock),
+    disabled: v.status === "inactive",
+  };
+}
+
 export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
   const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
-  const [variantFlats, setVariantFlats] = useState<ProductVariantFlat[]>([]);
-  const [brandOpts, setBrandOpts] = useState<{ value: string; label: string }[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getCategoryNodeTree().catch(() => [] as CategoryNode[]),
-      getProductVariantsFlat(60).catch(() => [] as ProductVariantFlat[]),
-      getBrands().catch(() => ({ data: [] as { id: string; name: string }[] })),
-    ]).then(([cats, variants, brands]) => {
-      setCategoryTree(cats);
-      setVariantFlats(variants);
-      setBrandOpts(brands.data.map((b) => ({ value: b.id, label: b.name })));
-      setLoading(false);
-    });
+    getCategoryNodeTree()
+      .catch(() => [] as CategoryNode[])
+      .then((cats) => { setCategoryTree(cats); setLoadingCats(false); });
   }, []);
 
-  // Deduplicate to get unique products from variant flat list
-  const productOpts = useMemo(() => {
-    const seen = new Set<string>();
-    return variantFlats
-      .filter((v) => { if (seen.has(v.productId)) return false; seen.add(v.productId); return true; })
-      .map((v) => ({ value: v.productId, label: v.productName }));
-  }, [variantFlats]);
+  // ── Seen caches (variants & products) ──
+  const seenVariantsRef = useRef<Map<string, ProductVariantFlat>>(new Map());
+  const seenProductsRef = useRef<Map<string, { id: string; name: string }>>(new Map());
+  const seenBrandsRef   = useRef<Map<string, { id: string; name: string }>>(new Map());
+  const [, bumpSeen] = useState(0);
 
-  const variantOpts = useMemo(
-    () =>
-      variantFlats.map((v) => ({
-        value: v.variantId,
-        label: v.productName,
-        subLabel: v.variantName,
-        description: v.sku,
-        badge: stockBadge(v.stock),
-        disabled: v.status === "inactive",
-      })),
-    [variantFlats]
-  );
+  const variantFetcher = useCallback(async (q: string) => {
+    const res = await getProductVariantsFlat(25, q || undefined);
+    for (const v of res.variants) {
+      seenVariantsRef.current.set(v.variantId, v);
+      seenProductsRef.current.set(v.productId, { id: v.productId, name: v.productName });
+    }
+    bumpSeen((n) => n + 1);
+    return { options: res.variants.map(variantToOption), totalCount: res.totalProducts };
+  }, []);
+
+  const productFetcher = useCallback(async (q: string) => {
+    const res = await getProducts({ q: q || undefined, pageSize: 25 });
+    for (const p of res.data) seenProductsRef.current.set(p.id, { id: p.id, name: p.name });
+    bumpSeen((n) => n + 1);
+    return {
+      options: res.data.map((p) => ({ value: p.id, label: p.name })),
+      totalCount: res.total,
+    };
+  }, []);
+
+  const brandFetcher = useCallback(async (q: string) => {
+    const res = await getBrands({ q: q || undefined, pageSize: 25 });
+    for (const b of res.data) seenBrandsRef.current.set(b.id, { id: b.id, name: b.name });
+    bumpSeen((n) => n + 1);
+    return {
+      options: res.data.map((b) => ({ value: b.id, label: b.name })),
+      totalCount: res.total,
+    };
+  }, []);
+
+  const {
+    options: variantOpts,
+    totalCount: variantTotal,
+    loading: variantLoading,
+    onSearch: onVariantSearch,
+  } = useAsyncSelectOptions({ fetcher: variantFetcher });
+  const {
+    options: productOpts,
+    totalCount: productTotal,
+    loading: productLoading,
+    onSearch: onProductSearch,
+  } = useAsyncSelectOptions({ fetcher: productFetcher });
+  const {
+    options: brandOpts,
+    totalCount: brandTotal,
+    loading: brandLoading,
+    onSearch: onBrandSearch,
+  } = useAsyncSelectOptions({ fetcher: brandFetcher });
+
+  const loading = loadingCats;
 
   function addScope() {
     onChange([...scopes, { draftId: `scope-${Date.now()}`, scopeType: "category" }]);
@@ -144,7 +183,7 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
             </div>
           )}
 
-          {/* Product → Select (deduplicated from variant flat list) */}
+          {/* Product → Select (async search via getProducts) */}
           {scope.scopeType === "product" && (
             <div className="flex-1">
               <Select
@@ -152,22 +191,37 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
                 value={scope.scopeRefId ?? ""}
                 onChange={(v) => {
                   const id = v as string;
-                  const found = productOpts.find((o) => o.value === id);
+                  const product = seenProductsRef.current.get(id);
                   updateScope(scope.draftId, {
                     scopeRefId: id || undefined,
-                    scopeRefLabel: found?.label || undefined,
+                    scopeRefLabel: product?.name || undefined,
                   });
                 }}
                 searchable
+                asyncSearch
+                onSearch={onProductSearch}
+                loading={productLoading}
+                totalCount={productTotal}
+                selectedOption={
+                  scope.scopeRefId
+                    ? (() => {
+                        const p = seenProductsRef.current.get(scope.scopeRefId);
+                        return p
+                          ? { value: p.id, label: p.name }
+                          : scope.scopeRefLabel
+                          ? { value: scope.scopeRefId, label: scope.scopeRefLabel }
+                          : undefined;
+                      })()
+                    : undefined
+                }
                 clearable
                 boldLabel
-                placeholder={loading ? "Đang tải sản phẩm…" : "Tìm sản phẩm…"}
-                disabled={loading}
+                placeholder="Tìm sản phẩm…"
               />
             </div>
           )}
 
-          {/* Variant → Select (same pattern as ConditionBuilder required_products) */}
+          {/* Variant → Select (async search via getProductVariantsFlat) */}
           {scope.scopeType === "variant" && (
             <div className="flex-1">
               <Select
@@ -175,7 +229,7 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
                 value={scope.scopeRefId ?? ""}
                 onChange={(v) => {
                   const id = v as string;
-                  const vdata = variantFlats.find((vf) => vf.variantId === id);
+                  const vdata = seenVariantsRef.current.get(id);
                   updateScope(scope.draftId, {
                     scopeRefId: id || undefined,
                     scopeRefLabel: vdata
@@ -184,15 +238,30 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
                   });
                 }}
                 searchable
+                asyncSearch
+                onSearch={onVariantSearch}
+                loading={variantLoading}
+                totalCount={variantTotal}
+                selectedOption={
+                  scope.scopeRefId
+                    ? (() => {
+                        const vd = seenVariantsRef.current.get(scope.scopeRefId);
+                        return vd
+                          ? variantToOption(vd)
+                          : scope.scopeRefLabel
+                          ? { value: scope.scopeRefId, label: scope.scopeRefLabel }
+                          : undefined;
+                      })()
+                    : undefined
+                }
                 clearable
                 boldLabel
-                placeholder={loading ? "Đang tải phiên bản…" : "Tìm phiên bản / SKU…"}
-                disabled={loading}
+                placeholder="Tìm phiên bản / SKU…"
               />
             </div>
           )}
 
-          {/* Brand → Select (name only, no ID shown) */}
+          {/* Brand → Select (async search via getBrands) */}
           {scope.scopeType === "brand" && (
             <div className="flex-1">
               <Select
@@ -200,17 +269,32 @@ export function ScopeSelector({ scopes, onChange }: ScopeSelectorProps) {
                 value={scope.scopeRefId ?? ""}
                 onChange={(v) => {
                   const id = v as string;
-                  const found = brandOpts.find((o) => o.value === id);
+                  const brand = seenBrandsRef.current.get(id);
                   updateScope(scope.draftId, {
                     scopeRefId: id || undefined,
-                    scopeRefLabel: found?.label || undefined,
+                    scopeRefLabel: brand?.name || undefined,
                   });
                 }}
                 searchable
+                asyncSearch
+                onSearch={onBrandSearch}
+                loading={brandLoading}
+                totalCount={brandTotal}
+                selectedOption={
+                  scope.scopeRefId
+                    ? (() => {
+                        const b = seenBrandsRef.current.get(scope.scopeRefId);
+                        return b
+                          ? { value: b.id, label: b.name }
+                          : scope.scopeRefLabel
+                          ? { value: scope.scopeRefId, label: scope.scopeRefLabel }
+                          : undefined;
+                      })()
+                    : undefined
+                }
                 clearable
                 boldLabel
-                placeholder={loading ? "Đang tải thương hiệu…" : "Tìm thương hiệu…"}
-                disabled={loading}
+                placeholder="Tìm thương hiệu…"
               />
             </div>
           )}

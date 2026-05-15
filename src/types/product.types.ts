@@ -102,7 +102,7 @@ export interface SpecificationItem {
   /** Dùng làm facet filter — ERD: loai_thong_so.co_the_loc */
   coTheLoc?: boolean;
   /** Dạng widget bộ lọc — ERD: loai_thong_so.widget_loc */
-  widgetLoc?: "checkbox" | "range" | "toggle" | "select" | "combo-select";
+  widgetLoc?: "checkbox" | "range" | "toggle" | "select";
   /** Thứ tự trong sidebar bộ lọc — ERD: loai_thong_so.thu_tu_loc */
   thuTuLoc?: number;
   /** Thứ tự hiển thị trong nhóm — ERD: loai_thong_so.thu_tu_hien_thi */

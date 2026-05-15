@@ -6,12 +6,14 @@ import {
   useCallback,
   useEffect,
   useId,
+  useMemo,
   useRef,
   useState,
   type KeyboardEvent,
 } from "react";
 import { createPortal } from "react-dom";
 import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { Spinner } from "@/src/components/ui/Spinner";
 
 import type { SelectProps, SelectOption, SelectOptions } from "./types";
 import { isGrouped, flatOptions } from "./utils";
@@ -88,6 +90,13 @@ export function Select({
   onCreateOption,
   boldLabel = false,
   showDescriptionInTrigger = true,
+  asyncSearch = false,
+  onSearch,
+  loading = false,
+  totalCount,
+  searchDebounceMs = 300,
+  selectedOption: selectedOptionProp,
+  selectedOptions: selectedOptionsProp,
 }: SelectProps) {
   const generatedId = useId();
   const id = idProp ?? generatedId;
@@ -122,14 +131,40 @@ export function Select({
 
   // ── Derived data ──────────────────────────────────────────────────────────
 
-  const allFlat = [...flatOptions(options), ...createdOptions];
+  // Snapshot of options the caller wants kept in lookup even when not present
+  // in the current `options` (async mode after the list scrolled past, edit
+  // forms with pre-filled value, etc.). Falls back gracefully when omitted.
+  const selectedSnapshots: SelectOption[] = useMemo(() => {
+    const list: SelectOption[] = [];
+    if (selectedOptionProp) list.push(selectedOptionProp);
+    if (selectedOptionsProp) list.push(...selectedOptionsProp);
+    return list;
+  }, [selectedOptionProp, selectedOptionsProp]);
+
+  // Merge snapshots without duplicating values that are already in `options`.
+  const allFlat = useMemo(() => {
+    const base = [...flatOptions(options), ...createdOptions];
+    if (selectedSnapshots.length === 0) return base;
+    const seen = new Set(base.map((o) => o.value));
+    for (const snap of selectedSnapshots) {
+      if (!seen.has(snap.value)) {
+        base.push(snap);
+        seen.add(snap.value);
+      }
+    }
+    return base;
+  }, [options, createdOptions, selectedSnapshots]);
 
   const selectedValues: string[] = multiple
     ? Array.isArray(value) ? value : []
     : value !== undefined && value !== "" ? [value as string] : [];
 
+  // In asyncSearch mode the caller already returned a filtered list — do not
+  // re-filter client-side, otherwise we hide rows that matched the server.
   const filtered =
-    searchable && query
+    asyncSearch
+      ? allFlat
+      : searchable && query
       ? allFlat.filter(
           (o) =>
             o.label.toLowerCase().includes(query.toLowerCase()) ||
@@ -216,6 +251,22 @@ export function Select({
       window.removeEventListener("resize", updatePosition);
     };
   }, [open]);
+
+  // ── Async search: debounce query → onSearch ───────────────────────────────
+
+  // Latest onSearch via ref so the debounce effect doesn't re-run on every render.
+  const onSearchRef = useRef(onSearch);
+  useEffect(() => { onSearchRef.current = onSearch; }, [onSearch]);
+
+  // Single effect: when dropdown is open, dispatch the current query. Empty
+  // queries (just opened, or cleared back to empty) fire immediately so the
+  // default page reloads. Non-empty queries are debounced.
+  useEffect(() => {
+    if (!asyncSearch || !open) return;
+    const delay = query === "" ? 0 : searchDebounceMs;
+    const t = setTimeout(() => onSearchRef.current?.(query), delay);
+    return () => clearTimeout(t);
+  }, [asyncSearch, open, query, searchDebounceMs]);
 
   // ── Outside-click close ───────────────────────────────────────────────────
 
@@ -495,15 +546,22 @@ export function Select({
               {/* Search input */}
               {searchable && (
                 <div className="border-b border-secondary-100 p-2">
-                  <input
-                    ref={searchRef}
-                    type="text"
-                    value={query}
-                    onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); }}
-                    onKeyDown={(e) => e.stopPropagation()}
-                    placeholder={creatable ? "Tìm hoặc tạo mới…" : "Search…"}
-                    className="w-full rounded border border-secondary-200 bg-secondary-50 px-2 py-1.5 text-sm placeholder:text-secondary-400 focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-500/15"
-                  />
+                  <div className="relative">
+                    <input
+                      ref={searchRef}
+                      type="text"
+                      value={query}
+                      onChange={(e) => { setQuery(e.target.value); setActiveIndex(-1); }}
+                      onKeyDown={(e) => e.stopPropagation()}
+                      placeholder={creatable ? "Tìm hoặc tạo mới…" : "Tìm kiếm…"}
+                      className="w-full rounded border border-secondary-200 bg-secondary-50 px-2 py-1.5 pr-8 text-sm placeholder:text-secondary-400 focus:border-primary-400 focus:outline-none focus:ring-1 focus:ring-primary-500/15"
+                    />
+                    {asyncSearch && loading && (
+                      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-secondary-400">
+                        <Spinner size="xs" color="secondary" />
+                      </span>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -511,11 +569,20 @@ export function Select({
                 {/* Empty state */}
                 {filtered.length === 0 &&
                   filteredCreated.length === 0 &&
-                  !showCreateRow && (
+                  !showCreateRow &&
+                  !(asyncSearch && loading) && (
                     <li className="px-3 py-2 text-sm text-secondary-400">
                       Không tìm thấy kết quả
                     </li>
                   )}
+
+                {/* Initial loading row in async mode */}
+                {asyncSearch && loading && filtered.length === 0 && (
+                  <li className="flex items-center gap-2 px-3 py-3 text-sm text-secondary-400">
+                    <Spinner size="sm" color="secondary" />
+                    Đang tải…
+                  </li>
+                )}
 
                 {/* Grouped options */}
                 {filtered.length > 0 && isGrouped(displayOptions)
@@ -588,6 +655,27 @@ export function Select({
                   />
                 )}
               </ul>
+
+              {/* Async footer: loaded count / total */}
+              {asyncSearch && (filtered.length > 0 || loading || totalCount !== undefined) && (
+                <div className="flex items-center justify-between gap-2 border-t border-secondary-100 bg-secondary-50/60 px-3 py-1.5 text-xs text-secondary-500">
+                  <span>
+                    Hiển thị <span className="font-semibold text-secondary-700">{filtered.length}</span>
+                    {typeof totalCount === "number"
+                      ? <> / <span className="font-semibold text-secondary-700">{totalCount}</span> mục</>
+                      : <> mục đã tải</>}
+                  </span>
+                  {loading && (
+                    <span className="inline-flex items-center gap-1 text-secondary-400">
+                      <Spinner size="xs" color="secondary" />
+                      Đang tải…
+                    </span>
+                  )}
+                  {!loading && typeof totalCount === "number" && filtered.length < totalCount && (
+                    <span className="text-secondary-400">Gõ để tìm thêm</span>
+                  )}
+                </div>
+              )}
             </div>,
             document.body
           )}

@@ -117,8 +117,12 @@ export function HomepageSectionClient() {
         showToast("Đã cập nhật khối sản phẩm", "success");
       }
       setFormTarget(null);
-    } catch {
-      showToast("Lưu thất bại", "error");
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message.trim().length > 0
+          ? error.message
+          : "Lưu thất bại";
+      showToast(message, "error");
       throw new Error("save failed");
     }
   }

@@ -1,200 +1,156 @@
 # CODING RULES — computer-store-admin
 
-## RULE 1: UI Primitives from local src/components/ui/
-`@computer-store/ui` is NOT installed. Import all base UI locally:
+## RULE 1: UI primitives come from the local `src/components/ui/`
+`@computer-store/ui` is NOT installed. Import every primitive locally:
 ```ts
 import { Button } from "@/src/components/ui/Button";
 import { Modal }  from "@/src/components/ui/Modal";
 ```
-Never recreate components that exist in `src/components/ui/`.
+Never recreate a component that already exists under `src/components/ui/`.
 
 ## RULE 2: Role check on every protected page
-Option A (preferred): `proxy.ts` route-level guard (Next.js 16 — replaces `middleware.ts`).
-`src/proxy.ts` already exists and protects all `(dashboard)/` routes. Add role-specific
-checks there. Do NOT create `middleware.ts` — it conflicts with `proxy.ts`.
-Option B: `useRoleGuard()` hook in page component.
-NEVER skip role check assuming proxy handles it alone — double-check.
+- Preferred: `src/proxy.ts` route guard (Next.js 16 — replaces `middleware.ts`). Add role-specific checks there. Do NOT create `middleware.ts` — it conflicts with `proxy.ts`.
+- Fallback: `useRoleGuard()` hook for component-level gating.
+Always assume the backend enforces authorization too; UI gating is never the sole check.
 
 ## RULE 3: No ISR, no static — admin data must always be fresh
 ```ts
-// DO: React Query with staleTime: 30000
-// DO: export const dynamic = "force-dynamic" on admin pages
-// DON'T: export const revalidate = 3600
-// DON'T: { cache: "force-cache" } in fetch
+export const dynamic = "force-dynamic"; // every admin page
+// Do NOT use export const revalidate = ... or { cache: "force-cache" }.
 ```
 
-## RULE 4: DataTable from admin package
+## RULE 4: DataTable from the admin package
 ```ts
 import { DataTable } from "@/src/components/admin/DataTable";
-// NEVER build a custom table from <table> tags
 ```
+Never build a custom `<table>` from scratch.
 
 ## RULE 5: Form validation is mandatory
-Every admin form MUST use `react-hook-form` + Zod schema.
-Zod schemas go in: `src/lib/validators/{resource}.ts`
+Every admin form uses `react-hook-form` + Zod. Schemas live in `src/lib/validators/{resource}.ts`.
 
 ## RULE 6: Destructive actions require ConfirmDialog
 ```ts
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
-// Delete, reject, ban, close: always wrap in ConfirmDialog
-// Extra-destructive actions: use requiredPhrase for typed confirmation
 ```
+Delete, reject, ban, and close actions are wrapped in `ConfirmDialog`. Extra-destructive actions can require a typed phrase (`requiredPhrase` prop).
 
-## RULE 7: Violet accent — sidebar/header ONLY
-- `--sidebar-bg` / `accent-600` / `accent-700`: AdminSidebar + AdminHeader only
-- Content area buttons use `primary-600` (blue)
-- Never use violet in form fields, tables, or content sections
+## RULE 7: Violet accent — sidebar / header ONLY
+- `--sidebar-bg`, `accent-600`, `accent-700`: AdminSidebar + AdminHeader only.
+- Content area CTAs use `primary-600` (blue).
+- Never use violet inside form fields, tables, or content sections.
 
-## RULE 8: DataTable loading/error/empty states always present
+## RULE 8: DataTable always renders loading / error / empty states
 ```tsx
 <DataTable isLoading={isLoading} error={error} emptyText="Không có kết quả" />
 ```
 
 ## RULE 9: No client-side role escalation
-Role comes from JWT (server-verified). Never compute role client-side.
-Use `const { user } = useSession()` — trust `session.user.role` only.
+Role comes from the JWT (server-verified). Read it from the auth Context store; never compute it client-side.
 
-## RULE 10: Export reports via backend endpoint
-Never generate PDF/Excel in the browser.
+## RULE 10: Export reports via the backend endpoint
+Never generate PDF / Excel in the browser. Trigger a backend download:
 ```ts
-// Trigger: GET /admin/reports/export?type=revenue&format=excel → file download
+// GET /admin/reports/export?type=revenue&format=excel → file download
 ```
 
 ## RULE 11: Icons
 Primary: `@heroicons/react/24/outline` (default) and `/24/solid` (emphasis).
 Allowed secondary: `react-icons` for icons not available in Heroicons.
-Never paste raw `<svg>` code.
+Never paste raw `<svg>` markup.
 
 ## RULE 12: Vietnamese UI text
-All labels, placeholders, tooltips, error messages must be in Vietnamese.
-Use `formatVND()` from `@/src/lib/format.ts` for all monetary values.
+All labels, placeholders, tooltips, and error messages must be in Vietnamese (with diacritics). Use `formatVND()` from `@/src/lib/format.ts` for monetary values.
 
-## RULE 13: Service = transport only — Component owns all UI defaults
-
-Services trong `src/services/*.service.ts` là **pure transport layer** — chúng chỉ được phép build query string, gọi `apiFetch`, và map response về typed interface. Mọi quyết định mang tính UI (page size, debounce delay) phải nằm ở component.
+## RULE 13: Service = transport only — components own all UI defaults
+Services in `src/services/*.service.ts` build the query string, call `apiFetch`, and map the response. They never set UI defaults like `limit = 10`.
 
 ```ts
-// ✗ SAI — limit = 10 là quyết định UI, không thuộc service
+// ✗ Wrong — limit default belongs to the component, not the service
 export async function getList(params: Params = {}) {
   const { page = 1, limit = 10 } = params;
   qs.set("limit", String(limit));
 }
 
-// ✓ ĐÚNG — service chỉ forward, không có UI default
+// ✓ Right — forward only what the caller passes
 export async function getList(params: Params = {}) {
   const { page = 1, limit } = params;
   qs.set("page", String(page));
-  if (limit) qs.set("limit", String(limit)); // chỉ gửi khi component cung cấp
+  if (limit) qs.set("limit", String(limit));
 }
 ```
 
-Component định nghĩa `PAGE_SIZE` — **single source of truth**:
-
+Components declare a single source of truth:
 ```ts
-const PAGE_SIZE = 25; // thay đổi ở đây → áp dụng toàn bộ component
-// ...
+const PAGE_SIZE = 25;
 await getList({ page, limit: PAGE_SIZE, status });
 ```
 
-## RULE 14: No loading flash khi chuyển trang — dùng handler-based pattern
+## RULE 14: No loading flash on page change — use the handler-based pattern
+With server-side pagination, only call `setLoading(true)` when **filter / search / sort / pageSize** changes — never when only `page` changes.
 
-Khi component có server-side pagination, `setLoading(true)` chỉ được gọi khi **filter / search / sort / pageSize** thay đổi — không phải khi chỉ đổi `page`.
+❌ Anti-pattern: two effects (race condition on `prevNonPageKey`).
 
-**❌ Anti-pattern (BUG): hai effect riêng biệt**
-
+✅ Correct: a `nonPageChangedRef` flag set inside each handler:
 ```ts
-// KHÔNG dùng — pattern này có race condition!
-useEffect(() => { setPage(1); }, [search, statusFilter, sortKey, sortDir, pageSize]);
-useEffect(() => {
-  const isPageOnly = nonPageKey === prevNonPageKey.current;
-  // BUG: khi user ở page > 1 và sort, Effect A fire setPage(1) → Effect B chạy LẦN 2
-  // với prevNonPageKey đã cập nhật từ lần 1 → isPageOnly=true sai → không show loading
-}, [page, ...]);
-```
-
-**✅ Đúng: handler-based pattern + `nonPageChangedRef`**
-
-```ts
-// Ref flag — set bởi handlers, clear bởi fetch effect
 const nonPageChangedRef = useRef(false);
 
-// Mỗi handler thay đổi sort/filter/search/pageSize:
 const handleSortChange = useCallback((key, dir) => {
-  nonPageChangedRef.current = true; // đánh dấu trước khi setState
+  nonPageChangedRef.current = true;
   setSortKey(key);
   setSortDir(dir);
-  setPage(1);           // ← cùng batch với setSortKey/setSortDir → 1 render duy nhất
+  setPage(1);
 }, []);
-// Tương tự cho: handleStatusFilterChange, handleCategoryFilterChange,
-//               handleSearchChange, handlePageSizeChange
+// Same shape for status / category / search / pageSize handlers.
 
-// Fetch effect — duy nhất, không cần effect reset page riêng:
 useEffect(() => {
   const isNonPageChange = nonPageChangedRef.current;
-  nonPageChangedRef.current = false; // clear ngay để run tiếp không bị nhiễm
-
-  // ...
-  if (isNonPageChange) setLoading(true); // ← chỉ show loading khi filter/sort/search đổi
+  nonPageChangedRef.current = false;
+  if (isNonPageChange) setLoading(true);
+  // ... fetch
 }, [page, pageSize, search, statusFilter, sortKey, sortDir]);
 ```
+React 18 batches the `setState` calls inside one handler into a single render, so the fetch effect runs once with the correct flag. Apply this pattern to every DataTable that uses server-side pagination.
 
-**Tại sao hoạt động:** Tất cả setState trong cùng 1 handler được React 18 batch → 1 render duy nhất → fetch effect chỉ chạy **1 lần** → `nonPageChangedRef` đọc đúng giá trị không bị nhiễm bởi run thứ 2.
+## RULE 15: Sortable DataTable columns — contract with the backend
+DataTable uses the column `key` as the `sortBy` value sent to the API. Keys must be English strings that match an alias in the backend's `allowedSortBy` map.
 
-Áp dụng rule này cho **mọi DataTable có server-side pagination** trong project.
-
-## RULE 15: Sortable DataTable columns — contract với backend
-
-`DataTable` dùng **column `key`** làm giá trị `sortBy` gửi lên API. Key phải là chuỗi **tiếng Anh** khớp với alias mà backend `allowedSortBy` map sang.
-
-**Frontend — column definition:**
+Frontend column definitions:
 ```ts
-// key "name" → frontend gửi ?sortBy=name&sortOrder=asc lên API
-{ key: "name",       header: "Sản phẩm",  sortable: true }
-{ key: "updatedAt",  header: "Updated",   sortable: true }
-{ key: "totalStock", header: "Tồn kho",   sortable: true }
+{ key: "name",       header: "Sản phẩm", sortable: true }
+{ key: "updatedAt",  header: "Updated",  sortable: true }
+{ key: "totalStock", header: "Tồn kho",  sortable: true }
 ```
 
-**Backend — search service phải có alias tương ứng:**
+Backend search service (e.g. `<feature>-search.service.ts`):
 ```ts
-// src/modules/<feature>/<feature>-search.service.ts
 const allowedSortBy: Record<string, string> = {
-  // Backend-native keys (giữ để backward compat)
-  ngayTao:     'p.ngayTao',
-  ngayCapNhat: 'p.ngayCapNhat',
-  tenSanPham:  'p.tenSanPham',
-  // Frontend-facing aliases — phải khớp với column key ở DataTable
-  name:        'p.tenSanPham',
-  updatedAt:   'p.ngayCapNhat',
-  createdAt:   'p.ngayTao',
+  ngayTao:     "p.ngayTao",
+  ngayCapNhat: "p.ngayCapNhat",
+  tenSanPham:  "p.tenSanPham",
+  // Frontend-facing aliases — must match the DataTable column keys
+  name:        "p.tenSanPham",
+  updatedAt:   "p.ngayCapNhat",
+  createdAt:   "p.ngayTao",
 };
-const orderCol = allowedSortBy[sortBy] ?? 'p.ngayCapNhat'; // default = updatedAt
-qb.orderBy(orderCol, sortOrder.toUpperCase() as 'ASC' | 'DESC');
+const orderCol = allowedSortBy[sortBy] ?? "p.ngayCapNhat"; // default = updatedAt
+qb.orderBy(orderCol, sortOrder.toUpperCase() as "ASC" | "DESC");
 ```
 
-**Aggregate sort** (ví dụ `totalStock` = SUM của cột trong bảng join): dùng `addSelect` subquery thay vì column thẳng:
-```ts
-if (sortBy === 'totalStock') {
-  qb.addSelect(
-    '(SELECT COALESCE(SUM(_pv.so_luong_ton), 0) FROM phien_ban_san_pham _pv WHERE _pv.san_pham_id = p.id)',
-    'total_stock_calc',
-  );
-  qb.orderBy('total_stock_calc', sortOrder.toUpperCase() as 'ASC' | 'DESC');
-}
-```
+For aggregate sorts (e.g. `totalStock` = SUM across joined rows), add a select expression and order by its alias instead of a raw column.
 
-**Khi thêm sortable column mới:** cập nhật `allowedSortBy` ở backend cùng lúc — nếu chỉ thêm `sortable: true` ở frontend mà không thêm alias backend, sort sẽ âm thầm fallback về default mà không báo lỗi.
+When adding a new sortable column, update `allowedSortBy` in the backend at the same time. Without a matching alias, the backend silently falls back to the default sort.
 
 ## Anti-patterns
 ```
 ✗ Import from "@computer-store/ui" — not installed
 ✗ Custom <table> instead of DataTable
-✗ ISR/cache on any admin page
-✗ Hide UI as sole auth check — backend must also check
-✗ Violet outside AdminSidebar/AdminHeader
+✗ ISR / cache on any admin page
+✗ UI hiding as the sole auth check — backend must also enforce
+✗ Violet outside AdminSidebar / AdminHeader
 ✗ Form without Zod validation
 ✗ Destructive action without ConfirmDialog
-✗ Client-side PDF/Excel generation
-✗ Server data in Zustand store
+✗ Client-side PDF / Excel generation
+✗ Storing server data in a global store (use component state + service calls)
 ✗ New admin components under src/components/layout/ or other non-admin dirs
-✗ Pass active prop to AdminSidebar — active state is auto from usePathname()
+✗ Passing an `active` prop to AdminSidebar — active state is derived from usePathname()
 ```

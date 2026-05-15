@@ -1,11 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Reorder, useDragControls } from "framer-motion";
 import {
   PlusIcon, PencilIcon, TrashIcon, Bars3Icon,
   EyeIcon, EyeSlashIcon, PhotoIcon,
 } from "@heroicons/react/24/outline";
+import { CategoryTreeSelect, buildNodeMap } from "@/src/components/admin/CategoryTreeSelect";
+import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import { Button } from "@/src/components/ui/Button";
 import { Input } from "@/src/components/ui/Input";
 import { Toggle } from "@/src/components/ui/Toggle";
@@ -15,6 +17,7 @@ import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components
 import type { ImageFieldValue } from "@/src/components/ui/ImageField";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { useToast } from "@/src/components/ui/Toast";
+import { getAdminCategoryNodeTree } from "@/src/services/category.service";
 import { saveCategoryShortcuts } from "@/src/services/content.service";
 import type { CategoryShortcut, CategoryShortcutFormData } from "@/src/types/content.types";
 
@@ -26,6 +29,33 @@ const DEFAULT_FORM: CategoryShortcutFormData = {
   active: true,
   sortOrder: 0,
 };
+
+function buildCategoryUrl(categoryId: string, categories: CategoryNode[]) {
+  const selectedCategory = buildNodeMap(categories).get(categoryId);
+  const slug = selectedCategory?.slug?.trim();
+  return slug ? `/products/${slug}` : "";
+}
+
+function findCategoryIdByUrl(url: string | undefined, categories: CategoryNode[]): string {
+  const normalizedUrl = (url ?? "").trim().replace(/\/+$/, "");
+  if (!normalizedUrl) return "";
+
+  const stack = [...categories];
+  while (stack.length > 0) {
+    const node = stack.pop();
+    if (!node) continue;
+
+    if (buildCategoryUrl(node.id, categories) === normalizedUrl) {
+      return node.id;
+    }
+
+    if (node.children?.length) {
+      stack.push(...node.children);
+    }
+  }
+
+  return "";
+}
 
 // ─── Shortcut Form Modal ──────────────────────────────────────────────────────
 
@@ -43,15 +73,22 @@ function ShortcutFormModal({
       ? { iconUrl: item.iconUrl, label: item.label, url: item.url, active: item.active, sortOrder: item.sortOrder }
       : DEFAULT_FORM
   );
+  const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [iconImage, setIconImage] = useState<ImageFieldValue>(
     item?.iconUrl ? imageFieldFromUrl(item.iconUrl) : emptyImageField()
   );
+
+  useEffect(() => {
+    getAdminCategoryNodeTree().then(setCategoryTree).catch(() => setCategoryTree([]));
+  }, []);
 
   function set<K extends keyof CategoryShortcutFormData>(k: K, v: CategoryShortcutFormData[K]) {
     setForm((prev) => ({ ...prev, [k]: v }));
   }
 
   const canSave = !!(form.label.trim() && form.url.trim());
+  const resolvedCategoryId = selectedCategoryId || findCategoryIdByUrl(form.url, categoryTree);
 
   const footer = (
     <>
@@ -110,13 +147,29 @@ function ShortcutFormModal({
           placeholder="VD: Laptop, GPU, Bàn phím"
         />
 
+        <CategoryTreeSelect
+          label="Tự động gán từ danh mục"
+          categories={categoryTree}
+          value={resolvedCategoryId || undefined}
+          placeholder="Tùy chọn: chọn danh mục để tự gán URL…"
+          helperText="Khối cây chỉ để dễ hình dung phân cấp. Khi chọn, URL sẽ là /products/{slug-danh-mục}."
+          onChange={(id) => {
+            const nextId = id.trim();
+            setSelectedCategoryId(nextId);
+            set("url", nextId ? buildCategoryUrl(nextId, categoryTree) : "");
+          }}
+        />
+
         <Input
           label="URL đích"
           required
           value={form.url}
-          onChange={(e) => set("url", e.target.value)}
+          onChange={(e) => {
+            setSelectedCategoryId("");
+            set("url", e.target.value);
+          }}
           placeholder="/products/laptop"
-          helperText="Đường dẫn đến trang danh mục khi người dùng nhấp"
+          helperText="Có thể nhập tay hoặc chọn danh mục ở trên để tự gán link theo slug."
         />
 
         <Toggle
@@ -362,16 +415,17 @@ export function CategoryShortcutEditor({
             {items.filter((c) => c.active).map((item) => (
               <div
                 key={item.id}
-                className="flex shrink-0 flex-col items-center gap-1.5 rounded-xl bg-white px-4 py-3 text-center shadow-sm"
-                style={{ minWidth: 72 }}
+                className="flex w-24 shrink-0 flex-col items-center gap-1.5 rounded-xl bg-white px-2 py-3 text-center shadow-sm"
               >
-                <div className="flex h-12 w-12 items-center justify-center rounded-full border border-secondary-100 bg-secondary-50 overflow-hidden">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full border border-secondary-100 bg-secondary-50 overflow-hidden">
                   {item.iconUrl
                     // eslint-disable-next-line @next/next/no-img-element
                     ? <img src={item.iconUrl} alt="" className="h-9 w-9 object-contain" />
                     : <PhotoIcon className="h-6 w-6 text-secondary-300" />}
                 </div>
-                <p className="text-xs font-medium text-secondary-700 whitespace-nowrap">{item.label}</p>
+                <p className="w-full truncate text-xs font-medium text-secondary-700" title={item.label}>
+                  {item.label}
+                </p>
               </div>
             ))}
           </div>

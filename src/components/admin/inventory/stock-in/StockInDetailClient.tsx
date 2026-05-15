@@ -17,6 +17,20 @@ import type { StockBatch, StockInLineItem, StockInRecord } from "@/src/types/inv
 
 type LineItemRow = StockInLineItem & Record<string, unknown>;
 
+function getDefaultInspectionNote(lineItem: StockInLineItem): string {
+  return lineItem.note?.trim() || "Hàng nhập đủ, đã phê chuẩn số lượng và chất lượng hàng.";
+}
+
+function getInitialReceivedQuantity(
+  lineItem: StockInLineItem,
+  status: StockInRecord["status"],
+): number {
+  if (status === "pending") {
+    return lineItem.quantityOrdered;
+  }
+  return lineItem.quantityReceived;
+}
+
 function formatDate(s: string) {
   return new Date(s).toLocaleDateString("vi-VN", {
     year: "numeric", month: "2-digit", day: "2-digit",
@@ -99,10 +113,15 @@ export function StockInDetailClient({
   const router = useRouter();
   const [record, setRecord] = useState(initialRecord);
   const [receivedQtys, setReceivedQtys] = useState<Record<string, number>>(
-    Object.fromEntries(record.lineItems.map((l) => [l.id, l.quantityReceived]))
+    Object.fromEntries(
+      record.lineItems.map((lineItem) => [
+        lineItem.id,
+        getInitialReceivedQuantity(lineItem, record.status),
+      ])
+    )
   );
   const [lineItemNotes, setLineItemNotes] = useState<Record<string, string>>(
-    Object.fromEntries(record.lineItems.map((l) => [l.id, l.note ?? ""]))
+    Object.fromEntries(record.lineItems.map((l) => [l.id, getDefaultInspectionNote(l)]))
   );
   const [lineItemDamaged, setLineItemDamaged] = useState<Record<string, number>>(
     Object.fromEntries(record.lineItems.map((l) => [l.id, l.quantityDamaged ?? 0]))
@@ -344,7 +363,7 @@ export function StockInDetailClient({
             <Textarea
               size="sm"
               label="Ghi chú kiểm kê"
-              placeholder="Nhập ghi chú…"
+              placeholder="Hàng nhập đủ, đã phê chuẩn số lượng và chất lượng hàng."
               value={note}
               onChange={(e) => setLineItemNotes((prev) => ({ ...prev, [id]: e.target.value }))}
               autoResize

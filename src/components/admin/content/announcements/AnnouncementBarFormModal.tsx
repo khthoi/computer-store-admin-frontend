@@ -9,6 +9,7 @@ import { RichTextEditor } from "@/src/components/editor/DynamicRichTextEditor";
 import { DateInput } from "@/src/components/ui/DateInput";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { ColorSelect } from "@/src/components/ui/ColorSelect";
+import { useToast } from "@/src/components/ui/Toast";
 import { AnnouncementBarPreview } from "./AnnouncementBarPreview";
 import { createAnnouncementBar, updateAnnouncementBar } from "@/src/services/content.service";
 import type { AnnouncementBar, AnnouncementBarFormData, BarPosition, BarStatus } from "@/src/types/content.types";
@@ -42,6 +43,7 @@ export function AnnouncementBarFormModal({ bar, onClose, onSaved }: {
   onClose: () => void;
   onSaved: (bar: AnnouncementBar) => void;
 }) {
+  const { showToast } = useToast();
   const [form, setForm] = useState<AnnouncementBarFormData>(DEFAULT);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof AnnouncementBarFormData, string>>>({});
@@ -83,8 +85,11 @@ export function AnnouncementBarFormModal({ bar, onClose, onSaved }: {
       const saved = bar
         ? await updateAnnouncementBar(bar.id, form)
         : await createAnnouncementBar(form);
+      showToast(bar ? "Đã cập nhật thanh thông báo." : "Đã tạo thanh thông báo mới.", "success");
       onSaved(saved);
       onClose();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Không thể lưu thanh thông báo.", "error");
     } finally {
       setIsSaving(false);
     }

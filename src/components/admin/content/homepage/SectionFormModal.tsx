@@ -20,7 +20,10 @@ import type {
   HomepageSectionType,
   SectionLayout,
   SourceConfig,
+  SectionSortBy,
   SectionItem,
+  CategorySourceConfig,
+  BrandSourceConfig,
 } from "@/src/types/homepage.types";
 
 // ─── Badge color presets (bg + text combos) ───────────────────────────────────
@@ -49,6 +52,11 @@ function toDatePart(iso: string | undefined): string {
 }
 
 function defaultForm(section?: HomepageSection | null): HomepageSectionFormData {
+  const sourceSortBy =
+    section?.type === "category" || section?.type === "brand"
+      ? (section.sourceConfig as CategorySourceConfig | BrandSourceConfig | null)?.sortBy
+      : undefined;
+
   if (section) {
     return {
       title: section.title,
@@ -56,7 +64,7 @@ function defaultForm(section?: HomepageSection | null): HomepageSectionFormData 
       viewAllUrl: section.viewAllUrl ?? "",
       type: section.type,
       sourceConfig: section.sourceConfig,
-      sortBy: section.sortBy,
+      sortBy: sourceSortBy ?? section.sortBy,
       maxProducts: section.maxProducts,
       layout: section.layout,
       badgeLabel: section.badgeLabel ?? "",
@@ -85,6 +93,18 @@ function defaultForm(section?: HomepageSection | null): HomepageSectionFormData 
     ngayKetThuc: "",
     manualItems: [],
   };
+}
+
+function getTopLevelSortBy(
+  type: HomepageSectionType,
+  sourceConfig: SourceConfig,
+  fallback: SectionSortBy,
+): SectionSortBy {
+  if (type === "category" || type === "brand") {
+    const configWithSort = sourceConfig as CategorySourceConfig | BrandSourceConfig | null;
+    return configWithSort?.sortBy ?? fallback;
+  }
+  return fallback;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -123,7 +143,16 @@ export function SectionFormModal({ section, onClose, onSave }: SectionFormModalP
       new_arrivals: { danhMucIds: [] },
       best_selling: { danhMucIds: [] },
     };
-    setForm((prev) => ({ ...prev, type, sourceConfig: defaultConfigs[type], manualItems: [] }));
+    setForm((prev) => {
+      const nextSourceConfig = defaultConfigs[type];
+      return {
+        ...prev,
+        type,
+        sourceConfig: nextSourceConfig,
+        sortBy: getTopLevelSortBy(type, nextSourceConfig, prev.sortBy),
+        manualItems: [],
+      };
+    });
   }
 
   function validate(): boolean {
@@ -345,7 +374,13 @@ export function SectionFormModal({ section, onClose, onSave }: SectionFormModalP
               <SourceConfigEditor
                 type={form.type}
                 config={form.sourceConfig}
-                onChange={(cfg) => set("sourceConfig", cfg)}
+                onChange={(cfg) => {
+                  setForm((prev) => ({
+                    ...prev,
+                    sourceConfig: cfg,
+                    sortBy: getTopLevelSortBy(prev.type, cfg, prev.sortBy),
+                  }));
+                }}
               />
             </div>
 

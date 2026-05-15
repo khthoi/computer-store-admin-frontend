@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CategoryTreeSelect, buildBreadcrumb } from "@/src/components/admin/CategoryTreeSelect";
+import { CategoryTreeSelect, buildNodeMap } from "@/src/components/admin/CategoryTreeSelect";
 import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import { Modal } from "@/src/components/ui/Modal";
 import { Button } from "@/src/components/ui/Button";
@@ -10,7 +10,13 @@ import { Select } from "@/src/components/ui/Select";
 import { Toggle } from "@/src/components/ui/Toggle";
 import { useToast } from "@/src/components/ui/Toast";
 import { getAdminCategoryNodeTree } from "@/src/services/category.service";
-import { addMenuItem, updateMenuItem } from "@/src/services/content.service";
+import {
+  addMenuItem,
+  buildStaticPageUrl,
+  getStaticPageMenuOptions,
+  type StaticPageMenuOption,
+  updateMenuItem,
+} from "@/src/services/content.service";
 import type { MenuItem, MenuItemFormData, MenuItemType } from "@/src/types/content.types";
 
 export interface MenuItemFormModalProps {
@@ -24,17 +30,17 @@ export interface MenuItemFormModalProps {
 const TYPE_OPTIONS = [
   { value: "link", label: "Liên kết tùy chỉnh", description: "URL bất kỳ, nội bộ hoặc ngoài" },
   { value: "page", label: "Trang tĩnh", description: "Trang nội dung của website" },
-  { value: "category", label: "Danh mục sản phẩm", description: "URL tự sinh theo cây danh mục" },
+  { value: "category", label: "Danh mục sản phẩm", description: "URL tự sinh theo slug của danh mục được chọn" },
 ];
 
 const URL_HINT: Record<string, string> = {
   link: "/promotions hoặc https://example.com",
-  page: "/chinh-sach-bao-hanh",
-  category: "/products/linh-kien-may-tinh/gpu",
+  page: "/info/chinh-sach-bao-hanh",
+  category: "/products/gpu",
 };
 
 const URL_HELPER: Record<string, string> = {
-  category: "Cấu trúc: /products/{slug-cha}/{slug-con}/{slug-chắt}",
+  category: "Cấu trúc: /products/{slug-danh-mục-được-chọn}",
 };
 
 const DEFAULT: MenuItemFormData = {
@@ -47,15 +53,15 @@ const DEFAULT: MenuItemFormData = {
   isVisible: true,
 };
 
-type FormErrors = Partial<Record<keyof MenuItemFormData | "categoryId", string>>;
+URL_HELPER.page = "Chọn trang tĩnh để tự động gán đúng đường dẫn đích";
+
+type FormErrors = Partial<Record<keyof MenuItemFormData | "categoryId" | "pageId", string>>;
 
 function buildCategoryUrl(categoryId: string, categories: CategoryNode[]) {
-  const breadcrumb = buildBreadcrumb(categoryId, categories) ?? [];
-  const slugPath = breadcrumb
-    .map((node) => node.slug?.trim())
-    .filter((slug): slug is string => Boolean(slug));
+  const selectedCategory = buildNodeMap(categories).get(categoryId);
+  const slug = selectedCategory?.slug?.trim();
 
-  return slugPath.length > 0 ? `/products/${slugPath.join("/")}` : "";
+  return slug ? `/products/${slug}` : "";
 }
 
 function findCategoryIdByUrl(url: string | undefined, categories: CategoryNode[]): string {
@@ -79,6 +85,22 @@ function findCategoryIdByUrl(url: string | undefined, categories: CategoryNode[]
   return "";
 }
 
+function findStaticPageIdByUrl(
+  url: string | undefined,
+  staticPages: StaticPageMenuOption[],
+): string {
+  const normalizedUrl = (url ?? "").trim().replace(/\/+$/, "");
+  if (!normalizedUrl) return "";
+
+  const matched = staticPages.find((page) => {
+    const pageUrl = page.url.trim().replace(/\/+$/, "");
+    const slugUrl = buildStaticPageUrl(page.slug).trim().replace(/\/+$/, "");
+    return pageUrl === normalizedUrl || slugUrl === normalizedUrl;
+  });
+
+  return matched?.id ?? "";
+}
+
 export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSaved }: MenuItemFormModalProps) {
   const { showToast } = useToast();
   const [form, setForm] = useState<MenuItemFormData>(DEFAULT);
@@ -86,9 +108,12 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
   const [errors, setErrors] = useState<FormErrors>({});
   const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
+  const [staticPages, setStaticPages] = useState<StaticPageMenuOption[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState("");
 
   useEffect(() => {
     getAdminCategoryNodeTree().then(setCategoryTree).catch(() => setCategoryTree([]));
+    getStaticPageMenuOptions().then(setStaticPages).catch(() => setStaticPages([]));
   }, []);
 
   useEffect(() => {
@@ -107,6 +132,7 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
     }
 
     setSelectedCategoryId("");
+    setSelectedPageId("");
     setErrors({});
   }, [item, nextSortOrder]);
 
@@ -114,6 +140,11 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
     if (form.type !== "category" || categoryTree.length === 0 || selectedCategoryId) return;
     setSelectedCategoryId(findCategoryIdByUrl(form.url, categoryTree));
   }, [form.type, form.url, categoryTree, selectedCategoryId]);
+
+  useEffect(() => {
+    if (form.type !== "page" || staticPages.length === 0 || selectedPageId) return;
+    setSelectedPageId(findStaticPageIdByUrl(form.url, staticPages));
+  }, [form.type, form.url, staticPages, selectedPageId]);
 
   function set<K extends keyof MenuItemFormData>(key: K, value: MenuItemFormData[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -127,6 +158,9 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
     if (form.type === "category") {
       if (!selectedCategoryId) nextErrors.categoryId = "Vui lòng chọn danh mục sản phẩm";
       if (!form.url?.trim()) nextErrors.url = "Không thể tự sinh URL cho danh mục đã chọn";
+    } else if (form.type === "page") {
+      if (!selectedPageId) nextErrors.pageId = "Vui lòng chọn trang tĩnh";
+      if (!form.url?.trim()) nextErrors.url = "Không thể tự động gán URL cho trang tĩnh đã chọn";
     } else if (!form.url?.trim()) {
       nextErrors.url = "URL không được để trống";
     }
@@ -146,8 +180,8 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
       onSaved(saved);
       onClose();
       showToast(item ? "Đã cập nhật mục menu" : "Đã thêm mục menu", "success");
-    } catch {
-      showToast("Lưu thất bại", "error");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Lưu thất bại", "error");
     } finally {
       setIsSaving(false);
     }
@@ -172,17 +206,34 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
 
             if (nextType !== "category") {
               setSelectedCategoryId("");
+            }
+            if (nextType !== "page") {
+              setSelectedPageId("");
+            }
+
+            if (nextType === "category") {
+              if (selectedCategoryId) {
+                set("url", buildCategoryUrl(selectedCategoryId, categoryTree));
+                return;
+              }
+
+              const matchedCategoryId = findCategoryIdByUrl(form.url, categoryTree);
+              setSelectedCategoryId(matchedCategoryId);
+              set("url", matchedCategoryId ? buildCategoryUrl(matchedCategoryId, categoryTree) : "");
               return;
             }
 
-            if (selectedCategoryId) {
-              set("url", buildCategoryUrl(selectedCategoryId, categoryTree));
-              return;
-            }
+            if (nextType === "page") {
+              if (selectedPageId) {
+                const selectedPage = staticPages.find((page) => page.id === selectedPageId);
+                set("url", selectedPage?.url ?? "");
+                return;
+              }
 
-            const matchedCategoryId = findCategoryIdByUrl(form.url, categoryTree);
-            setSelectedCategoryId(matchedCategoryId);
-            set("url", matchedCategoryId ? buildCategoryUrl(matchedCategoryId, categoryTree) : "");
+              const matchedPageId = findStaticPageIdByUrl(form.url, staticPages);
+              setSelectedPageId(matchedPageId);
+              set("url", staticPages.find((page) => page.id === matchedPageId)?.url ?? "");
+            }
           }}
           options={TYPE_OPTIONS}
         />
@@ -204,7 +255,7 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
               categories={categoryTree}
               value={selectedCategoryId || undefined}
               placeholder="Chọn danh mục để tự sinh URL…"
-              helperText="URL sẽ tự sinh theo đúng cây danh mục đã chọn"
+              helperText="Cây danh mục chỉ dùng để chọn nhanh, URL sẽ lấy theo slug của danh mục được chọn"
               errorMessage={errors.categoryId}
               onChange={(id) => {
                 const nextId = id.trim();
@@ -221,6 +272,42 @@ export function MenuItemFormModal({ menuId, item, nextSortOrder, onClose, onSave
               onChange={() => undefined}
               placeholder={URL_HINT.category}
               helperText={URL_HELPER.category}
+              errorMessage={errors.url}
+              disabled
+            />
+          </>
+        ) : form.type === "page" ? (
+          <>
+            <Select
+              label="Trang tĩnh"
+              required
+              searchable
+              boldLabel
+              value={selectedPageId}
+              onChange={(value) => {
+                const nextId = String(value);
+                const selectedPage = staticPages.find((page) => page.id === nextId);
+                setSelectedPageId(nextId);
+                set("url", selectedPage?.url ?? "");
+                setErrors((prev) => ({ ...prev, pageId: undefined, url: undefined }));
+              }}
+              options={staticPages.map((page) => ({
+                value: page.id,
+                label: page.title,
+                description: page.slug,
+              }))}
+              placeholder="Chọn trang tĩnh để liên kết…"
+              helperText="Tên trang hiển thị ở dòng trên, slug tương ứng nằm ở dòng dưới"
+              errorMessage={errors.pageId}
+            />
+
+            <Input
+              label="URL"
+              required
+              value={form.url ?? ""}
+              onChange={() => undefined}
+              placeholder={URL_HINT.page}
+              helperText={URL_HELPER.page}
               errorMessage={errors.url}
               disabled
             />

@@ -95,14 +95,14 @@ export async function reorderCategories(
 
 interface CategoryApiNode {
   id: number;
-  tenDanhMuc: string;
+  name: string;
   children?: CategoryApiNode[];
 }
 
 function mapToNode(c: CategoryApiNode): CategoryNode {
   return {
     id: String(c.id),
-    label: c.tenDanhMuc,
+    label: c.name,
     children: c.children?.length ? c.children.map(mapToNode) : undefined,
   };
 }

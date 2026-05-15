@@ -1,13 +1,25 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { PlusIcon, TrashIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { Select, type SelectOptionBadge } from "@/src/components/ui/Select";
+import { Select, type SelectOption, type SelectOptionBadge } from "@/src/components/ui/Select";
 import type { PromotionCondition, ConditionType, ConditionOperator } from "@/src/types/promotion.types";
 import { getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
 import { getCategoryNodeTree } from "@/src/services/category.service";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 import { CategoryTreeSelect, buildNodeMap } from "@/src/components/admin/CategoryTreeSelect";
 import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
+
+function variantToOption(v: ProductVariantFlat): SelectOption {
+  return {
+    value: v.variantId,
+    label: v.productName,
+    subLabel: v.variantName,
+    description: v.sku,
+    badge: stockBadge(v.stock),
+    disabled: v.status === "inactive",
+  };
+}
 
 // ─── Stock badge helper ────────────────────────────────────────────────────────
 
@@ -139,36 +151,78 @@ interface ConditionBuilderProps {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export function ConditionBuilder({ conditions, onChange, onVariantsLoaded, onCategoriesLoaded }: ConditionBuilderProps) {
-  const [variantFlats, setVariantFlats] = useState<ProductVariantFlat[]>([]);
   const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getProductVariantsFlat(60).catch(() => [] as ProductVariantFlat[]),
-      getCategoryNodeTree().catch(() => [] as CategoryNode[]),
-    ]).then(([variants, cats]) => {
-      setVariantFlats(variants);
-      setCategoryTree(cats);
-      setLoading(false);
-      onVariantsLoaded?.(variants);
-      onCategoriesLoaded?.(cats);
-    });
+    getCategoryNodeTree()
+      .catch(() => [] as CategoryNode[])
+      .then((cats) => {
+        setCategoryTree(cats);
+        setLoadingCats(false);
+        onCategoriesLoaded?.(cats);
+      });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const variantOpts = useMemo(
-    () =>
-      variantFlats.map((v) => ({
-        value: v.variantId,
-        label: v.productName,
-        subLabel: v.variantName,
-        description: v.sku,
-        badge: stockBadge(v.stock),
-        disabled: v.status === "inactive",
-      })),
-    [variantFlats]
-  );
+  // ── Async variant search ─────────────────────────────────────────────────
+  // Variants flow in incrementally as the user searches. We accumulate
+  // everything we have seen into a map so the parent's review screen can
+  // still resolve labels for previously-selected ids that have rotated out
+  // of the current page.
+  const seenVariantsRef = useRef<Map<string, ProductVariantFlat>>(new Map());
+  const [seenVersion, setSeenVersion] = useState(0);
+
+  const variantFetcher = useCallback(async (q: string) => {
+    const res = await getProductVariantsFlat(25, q || undefined);
+    let changed = false;
+    for (const v of res.variants) {
+      if (!seenVariantsRef.current.has(v.variantId)) {
+        seenVariantsRef.current.set(v.variantId, v);
+        changed = true;
+      }
+    }
+    if (changed) {
+      setSeenVersion((n) => n + 1);
+      onVariantsLoaded?.(Array.from(seenVariantsRef.current.values()));
+    }
+    return {
+      options: res.variants.map(variantToOption),
+      totalCount: res.totalProducts,
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const {
+    options: variantOpts,
+    totalCount: variantTotal,
+    loading: variantLoading,
+    onSearch: onVariantSearch,
+  } = useAsyncSelectOptions({ fetcher: variantFetcher });
+
+  // Selected snapshot options derived from seenVariants — keeps trigger labels
+  // even after the search rotates the visible options.
+  const selectedVariantSnapshots = useMemo(() => {
+    const ids = new Set<string>();
+    for (const c of conditions) {
+      if (c.type !== "required_products") continue;
+      try {
+        const arr = JSON.parse(c.value);
+        if (Array.isArray(arr)) for (const v of arr) ids.add(String(v));
+      } catch { /* ignore */ }
+    }
+    const out: SelectOption[] = [];
+    for (const id of ids) {
+      const v = seenVariantsRef.current.get(id);
+      // Fallback to a bare value-only option so chips still render for saved
+      // ids that have not been searched yet (e.g. edit-mode initial load).
+      out.push(v ? variantToOption(v) : { value: id, label: id });
+    }
+    return out;
+  // re-derive when conditions change or new variants are observed
+  }, [conditions, seenVersion]);
+
+  const loading = loadingCats;
 
   const conditionConfigs: ConditionConfig[] = useMemo(
     () => [
@@ -315,15 +369,19 @@ export function ConditionBuilder({ conditions, onChange, onVariantsLoaded, onCat
                   <Select
                     multiple
                     searchable
+                    asyncSearch
+                    onSearch={onVariantSearch}
+                    loading={variantLoading}
+                    totalCount={variantTotal}
+                    selectedOptions={selectedVariantSnapshots}
                     clearable
                     boldLabel
-                    options={config.selectOptions ?? []}
+                    options={variantOpts}
                     value={selectedValues}
                     onChange={(v) =>
                       updateCondition(cond.draftId, { value: JSON.stringify(v as string[]) })
                     }
-                    placeholder={loading ? "Đang tải phiên bản…" : config.placeholder}
-                    disabled={loading}
+                    placeholder={config.placeholder}
                   />
                 )}
 

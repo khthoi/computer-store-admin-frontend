@@ -3,12 +3,13 @@
 
 // ── Enums ──────────────────────────────────────────────────────────────────────
 
-export type FlashSaleStatus =
-  | "nhap"
-  | "sap_dien_ra"
-  | "dang_dien_ra"
-  | "da_ket_thuc"
-  | "huy";
+/**
+ * Flash sale admin status.
+ * - `active`:  approved by admin. Storefront visibility additionally gated by the
+ *              (batDau, ketThuc) time window — both must be satisfied.
+ * - `paused`:  hidden from storefront regardless of time window.
+ */
+export type FlashSaleStatus = "active" | "paused";
 
 // ── Core entities ──────────────────────────────────────────────────────────────
 

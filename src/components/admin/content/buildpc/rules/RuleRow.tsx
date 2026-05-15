@@ -39,18 +39,25 @@ export function RuleRow({ rule, onEdit, onDelete, onToggleActive }: RuleRowProps
     >
       {/* Slot flow */}
       <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-        {/* Source → Destination */}
+        {/* Source.maKt → Destination.maKt */}
         <div className="flex items-center gap-2 flex-wrap">
           <span className="rounded-lg border border-secondary-200 bg-secondary-50 px-2 py-0.5 text-xs font-semibold text-secondary-700">
             {rule.slotNguonTen}
+            <code className="ml-1 font-mono text-[10px] text-secondary-500">.{rule.maKtNguon}</code>
           </span>
           <ArrowRightIcon className="h-3 w-3 shrink-0 text-secondary-400" />
-          <span className="rounded-lg border border-secondary-200 bg-secondary-50 px-2 py-0.5 text-xs font-semibold text-secondary-700">
-            {rule.slotDichTen}
-          </span>
-          <code className="rounded bg-secondary-100 px-1.5 py-0.5 text-[10px] font-mono text-secondary-500">
-            {rule.maKyThuat}
-          </code>
+          {rule.slotDichTen ? (
+            <span className="rounded-lg border border-secondary-200 bg-secondary-50 px-2 py-0.5 text-xs font-semibold text-secondary-700">
+              {rule.slotDichTen}
+              {rule.maKtDich && (
+                <code className="ml-1 font-mono text-[10px] text-secondary-500">.{rule.maKtDich}</code>
+              )}
+            </span>
+          ) : (
+            <span className="rounded-lg border border-dashed border-secondary-200 px-2 py-0.5 text-xs italic text-secondary-400">
+              Toàn bộ build
+            </span>
+          )}
         </div>
 
         {/* Badges + meta */}

@@ -34,14 +34,22 @@ export function FolderSidebar({
 
     return (
       <>
-        <div className="group relative flex items-center">
-          <Tooltip content={<span className="font-mono">/{folder.slug}</span>} placement="right">
+        <div className="group relative flex w-full min-w-0 items-center">
+          <Tooltip
+            content={
+              <div className="flex flex-col gap-0.5">
+                <p className="font-semibold">{folder.name}</p>
+                <p className="font-mono text-xs opacity-80">/{folder.slug}</p>
+              </div>
+            }
+            placement="right"
+          >
             <button
               type="button"
               onClick={() => onSelect(folder.id)}
               style={{ paddingLeft: `${8 + depth * 12}px` }}
               className={[
-                "flex flex-1 items-center gap-2 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors",
+                "flex w-full min-w-0 items-center gap-2 rounded-lg py-1.5 pr-2 text-left text-sm transition-colors",
                 "focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
                 isSelected
                   ? "bg-primary-50 text-primary-700 font-medium"
@@ -49,11 +57,11 @@ export function FolderSidebar({
               ].join(" ")}
             >
               <Icon className={`h-4 w-4 shrink-0 ${isSelected ? "text-primary-600" : "text-secondary-400"}`} />
-              <span className="flex-1 truncate">{folder.name}</span>
+              <span className="min-w-0 flex-1 truncate">{folder.name}</span>
               {(onEditFolder || onDeleteFolder) ? (
-                <span className="text-xs text-secondary-400 group-hover:hidden">{folder.fileCount}</span>
+                <span className="shrink-0 text-xs text-secondary-400 group-hover:invisible">{folder.fileCount}</span>
               ) : (
-                <span className="text-xs text-secondary-400">{folder.fileCount}</span>
+                <span className="shrink-0 text-xs text-secondary-400">{folder.fileCount}</span>
               )}
             </button>
           </Tooltip>

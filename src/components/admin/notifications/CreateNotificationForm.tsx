@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 import {
   UsersIcon,
   UserGroupIcon,
@@ -394,47 +395,77 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
   const [form, setForm] = useState<FormState>(INITIAL);
   const [submitting, setSubmitting] = useState(false);
 
-  // ── Customer data ─────────────────────────────────────────────────────────
-  const [customers, setCustomers]               = useState<SelectOption[]>([]);
-  const [customersLoading, setCustomersLoading] = useState(false);
-  const [customersError, setCustomersError]     = useState(false);
-  const [customersTotal, setCustomersTotal]     = useState(0);
+  // ── Customer data (async-search) ──────────────────────────────────────────
+  // The multi-select picks a few customers at a time from up to thousands. We
+  // fetch one page on demand via the Select's async-search, and keep snapshots
+  // of every option the user has actually selected so the trigger keeps a
+  // proper label even after the user searches for something else.
+  const [customersError, setCustomersError] = useState(false);
+  const [selectedCustomersMap, setSelectedCustomersMap] = useState<
+    Record<string, SelectOption>
+  >({});
+  // Unfiltered total — used to estimate audience size. Only updated when the
+  // search query is empty so it stays stable while the user is searching.
+  const [unfilteredCustomerTotal, setUnfilteredCustomerTotal] = useState(0);
 
-  const loadCustomers = useCallback(() => {
-    setCustomersLoading(true);
-    setCustomersError(false);
-    // backend PaginationDto has @Max(100) — fetch 2 pages in parallel for up to 200 customers
-    Promise.all([
-      getCustomers({ limit: 100, page: 1 }),
-      getCustomers({ limit: 100, page: 2 }),
-    ])
-      .then(([p1, p2]) => {
-        const merged = [
-          ...p1.data,
-          ...(p2.data.length > 0 ? p2.data : []),
-        ];
-        setCustomers(
-          merged.map((c) => ({
-            value: String(c.id),
-            label: c.fullName,
-            description: `${c.phone ?? ""} · ${c.email}`,
-          }))
-        );
-        setCustomersTotal(p1.total);
-      })
-      .catch(() => {
-        setCustomers([]);
-        setCustomersError(true);
-      })
-      .finally(() => setCustomersLoading(false));
+  const customersFetcher = useCallback(async (q: string) => {
+    try {
+      const res = await getCustomers({ q: q || undefined, limit: 25 });
+      setCustomersError(false);
+      if (!q) setUnfilteredCustomerTotal(res.total);
+      return {
+        options: res.data.map((c) => ({
+          value: String(c.id),
+          label: c.fullName,
+          description: `${c.phone ?? ""} · ${c.email}`,
+        })),
+        totalCount: res.total,
+      };
+    } catch (err) {
+      setCustomersError(true);
+      throw err;
+    }
   }, []);
 
-  useEffect(() => { loadCustomers(); }, [loadCustomers]);
+  const {
+    options: customerOptions,
+    totalCount: customersTotalCount,
+    loading: customersLoading,
+    onSearch: onCustomerSearch,
+    refresh: refreshCustomers,
+  } = useAsyncSelectOptions({ fetcher: customersFetcher });
 
-  // ── Entity options ────────────────────────────────────────────────────────
-  const [entityOptions, setEntityOptions]               = useState<SelectOption[]>([]);
-  const [entityOptionsLoading, setEntityOptionsLoading] = useState(false);
+  const customersTotal = unfilteredCustomerTotal;
 
+  // Capture each newly selected customer into the snapshot map so the trigger
+  // and review screen can render its label even after the option list rotates.
+  const captureCustomerSnapshots = useCallback(
+    (ids: string[]) => {
+      setSelectedCustomersMap((prev) => {
+        let next = prev;
+        for (const id of ids) {
+          if (next[id]) continue;
+          const opt = customerOptions.find((o) => o.value === id);
+          if (!opt) continue;
+          if (next === prev) next = { ...prev };
+          next[id] = opt;
+        }
+        return next;
+      });
+    },
+    [customerOptions],
+  );
+
+  const selectedCustomerOptions = useMemo(
+    () => Object.values(selectedCustomersMap),
+    [selectedCustomersMap],
+  );
+
+  // Kick off one fetch on mount so the audience estimate has a real total
+  // before the user opens the customer dropdown.
+  useEffect(() => { onCustomerSearch(""); }, [onCustomerSearch]);
+
+  // ── Entity options (async-search per entity type) ────────────────────────
   const isSingleSpecific =
     form.targetType === "specific" && form.specificCustomerIds.length === 1;
 
@@ -449,58 +480,71 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
       ? form.entityType
       : "";
 
-  useEffect(() => {
-    if (!effectiveEntityType) {
-      setEntityOptions([]);
-      return;
-    }
-    setEntityOptionsLoading(true);
-    setEntityOptions([]);
-
-    async function load() {
-      try {
-        let opts: SelectOption[] = [];
-
-        if (effectiveEntityType === "DonHang") {
-          const result = await getOrders({ pageSize: 100 });
-          opts = result.data.map((o) => ({
+  // One fetcher per active entity type. Empty type → no fetch (Select disabled).
+  const entityFetcher = useCallback(
+    async (q: string) => {
+      if (!effectiveEntityType) return { options: [], totalCount: 0 };
+      const query = q || undefined;
+      if (effectiveEntityType === "DonHang") {
+        const result = await getOrders({ q: query, pageSize: 25 });
+        return {
+          options: result.data.map((o) => ({
             value: String(o.numericId),
             label: o.id,
             description: `ID: ${o.numericId} · ${o.grandTotal.toLocaleString("vi-VN")} ₫ · ${o.customerName}`,
-          }));
-        } else if (effectiveEntityType === "GiaoDich") {
-          const result = await getTransactions({ pageSize: 100 });
-          opts = result.data.map((row) => ({
+          })),
+          totalCount: result.total,
+        };
+      }
+      if (effectiveEntityType === "GiaoDich") {
+        const result = await getTransactions({ q: query, pageSize: 25 });
+        return {
+          options: result.data.map((row) => ({
             value: String(row.giaoDichId),
             label: row.maGiaoDichNgoai ?? `TX-${row.giaoDichId}`,
             description: `ID: ${row.giaoDichId} · ${row.soTien.toLocaleString("vi-VN")} ₫ · ${row.tenKhachHang}`,
-          }));
-        } else if (effectiveEntityType === "HoanHang") {
-          const result = await getReturns({ limit: 100 });
-          opts = result.items.map((r) => ({
+          })),
+          totalCount: result.total,
+        };
+      }
+      if (effectiveEntityType === "HoanHang") {
+        // returns.service has no `q` param yet — fetch first page only.
+        const result = await getReturns({ limit: 25 });
+        return {
+          options: result.items.map((r) => ({
             value: r.id,
             label: r.orderCode ?? `RET-${r.id}`,
             description: `ID: ${r.id} · ${r.customerName ?? ""}`,
-          }));
-        } else if (effectiveEntityType === "KhuyenMai") {
-          const result = await getPromotionList({ limit: 100 });
-          opts = result.data.map((p) => ({
+          })),
+          totalCount: result.total,
+        };
+      }
+      if (effectiveEntityType === "KhuyenMai") {
+        const result = await getPromotionList({ search: query, limit: 25 });
+        return {
+          options: result.data.map((p) => ({
             value: p.id,
             label: p.name,
             description: `ID: ${p.id}${p.code ? ` · Mã: ${p.code}` : ""}`,
-          }));
-        }
-
-        setEntityOptions(opts);
-      } catch {
-        setEntityOptions([]);
-      } finally {
-        setEntityOptionsLoading(false);
+          })),
+          totalCount: result.total,
+        };
       }
-    }
+      return { options: [], totalCount: 0 };
+    },
+    [effectiveEntityType],
+  );
 
-    load();
-  }, [effectiveEntityType]);
+  const {
+    options: entityOptions,
+    totalCount: entityTotalCount,
+    loading: entityOptionsLoading,
+    onSearch: onEntitySearch,
+  } = useAsyncSelectOptions({ fetcher: entityFetcher });
+
+  // Snapshot of the picked entity option, retained across queries / type swaps.
+  const [selectedEntityOption, setSelectedEntityOption] = useState<SelectOption | undefined>(undefined);
+  useEffect(() => { setSelectedEntityOption(undefined); }, [effectiveEntityType]);
 
   function set<K extends keyof FormState>(key: K, val: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: val }));
@@ -568,7 +612,10 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
   const estimatedCount   = estimateCount(form, customersTotal);
   const loaiInfo         = LOAI_OPTIONS.find((o) => o.value === form.loaiThongBao);
   const entityTypelabel  = ENTITY_TYPE_SELECT_OPTIONS.find((o) => o.value === effectiveEntityType)?.label;
-  const entityName       = entityOptions.find((o) => o.value === form.entityId)?.label;
+  const entityName       =
+    selectedEntityOption?.value === form.entityId
+      ? selectedEntityOption.label
+      : entityOptions.find((o) => o.value === form.entityId)?.label;
 
   // ── Helpers for step 3 audience description ──────────────────────────────
   const audienceDescription = (() => {
@@ -673,7 +720,7 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
                     </div>
                     <button
                       type="button"
-                      onClick={loadCustomers}
+                      onClick={refreshCustomers}
                       className="inline-flex items-center gap-1 rounded-lg border border-error-300 bg-white px-2.5 py-1.5 text-[11px] font-medium text-error-600 hover:bg-error-50 transition-colors"
                     >
                       <ArrowPathIcon className="h-3 w-3" />
@@ -684,15 +731,23 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
                   <Select
                     label="Chọn khách hàng"
                     required
-                    placeholder={customersLoading ? "Đang tải..." : "Tìm kiếm theo tên hoặc email..."}
-                    options={customers}
+                    placeholder="Tìm kiếm theo tên hoặc email..."
+                    options={customerOptions}
                     value={form.specificCustomerIds}
-                    onChange={(v) => set("specificCustomerIds", v as string[])}
+                    onChange={(v) => {
+                      const ids = v as string[];
+                      captureCustomerSnapshots(ids);
+                      set("specificCustomerIds", ids);
+                    }}
                     multiple
                     searchable
+                    asyncSearch
+                    onSearch={onCustomerSearch}
+                    loading={customersLoading}
+                    totalCount={customersTotalCount}
+                    selectedOptions={selectedCustomerOptions}
                     clearable
                     boldLabel
-                    disabled={customersLoading}
                   />
                 )}
                 {form.specificCustomerIds.length > 0 && (
@@ -814,19 +869,26 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
               />
               <Select
                 label="Thực thể liên kết"
-                placeholder={
-                  !effectiveEntityType ? "— Chọn loại trước —" :
-                  entityOptionsLoading  ? "Đang tải..."          :
-                  "Tìm kiếm..."
-                }
+                placeholder={!effectiveEntityType ? "— Chọn loại trước —" : "Tìm kiếm..."}
                 options={entityOptions}
                 value={effectiveEntityType === form.entityType ? form.entityId : ""}
-                onChange={(v) => set("entityId", v as string)}
+                onChange={(v) => {
+                  const id = v as string;
+                  set("entityId", id);
+                  const opt = entityOptions.find((o) => o.value === id);
+                  if (opt) setSelectedEntityOption(opt);
+                  else if (!id) setSelectedEntityOption(undefined);
+                }}
                 searchable
+                asyncSearch
+                onSearch={onEntitySearch}
+                loading={entityOptionsLoading}
+                totalCount={entityTotalCount}
+                selectedOption={selectedEntityOption}
                 clearable
                 boldLabel
                 showDescriptionInTrigger={false}
-                disabled={!effectiveEntityType || entityOptionsLoading}
+                disabled={!effectiveEntityType}
               />
             </div>
           </Section>
@@ -893,7 +955,7 @@ export function CreateNotificationForm({ membershipTiers }: { membershipTiers: M
                   <p className="text-xs text-secondary-500 mt-0.5">
                     {form.specificCustomerIds
                       .slice(0, 3)
-                      .map((id) => customers.find((c) => c.value === id)?.label ?? `#${id}`)
+                      .map((id) => selectedCustomersMap[id]?.label ?? `#${id}`)
                       .join(", ")}
                     {form.specificCustomerIds.length > 3 && ` và ${form.specificCustomerIds.length - 3} người khác`}
                   </p>

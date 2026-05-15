@@ -10,8 +10,8 @@ import {
   ChartBarIcon,
   CubeIcon,
   InformationCircleIcon,
-  NoSymbolIcon,
-  StopCircleIcon
+  PauseCircleIcon,
+  PlayCircleIcon,
 } from "@heroicons/react/24/outline";
 import { Button }   from "@/src/components/ui/Button";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
@@ -23,8 +23,8 @@ import { ConfirmDialog }            from "@/src/components/admin/ConfirmDialog";
 import { DataTable, type ColumnDef } from "@/src/components/admin/DataTable";
 import {
   getFlashSaleById,
-  cancelFlashSale,
-  endFlashSaleEarly,
+  pauseFlashSale,
+  activateFlashSale,
 } from "@/src/services/flash-sale.service";
 import { formatVND, formatDateTime } from "@/src/lib/format";
 import type { FlashSale, FlashSaleItem } from "@/src/types/flash-sale.types";
@@ -252,8 +252,8 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
   const [loading,   setLoading]   = useState(true);
   const [isBusy,    setIsBusy]    = useState(false);
 
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [showEndDialog,    setShowEndDialog]    = useState(false);
+  const [showPauseDialog,    setShowPauseDialog]    = useState(false);
+  const [showActivateDialog, setShowActivateDialog] = useState(false);
 
   useEffect(() => {
     getFlashSaleById(flashSaleId).then((data) => {
@@ -301,10 +301,12 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
     );
   }
 
-  const canEdit   = flashSale.trangThai === "nhap" || flashSale.trangThai === "sap_dien_ra";
-  const canCancel = flashSale.trangThai === "sap_dien_ra";
-  const canEnd    = flashSale.trangThai === "dang_dien_ra";
-  const showStats = flashSale.trangThai !== "nhap";
+  const isActive = flashSale.trangThai === "active";
+  const isPaused = flashSale.trangThai === "paused";
+  const canEdit   = true;
+  const canPause  = isActive;
+  const canResume = isPaused;
+  const showStats = true;
 
   const totalSold  = flashSale.items.reduce((s, i) => s + i.soLuongDaBan, 0);
   const totalLimit = flashSale.items.reduce((s, i) => s + i.soLuongGioiHan, 0);
@@ -368,26 +370,27 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
             </Button>
           )}
 
-          {canEnd && (
+          {canPause && (
             <Button
               variant="danger"
-              onClick={() => setShowEndDialog(true)}
+              onClick={() => setShowPauseDialog(true)}
               disabled={isBusy}
               className="rounded-lg"
             >
-              <StopCircleIcon className="w-4 h-4 mr-1.5" />
-              Kết thúc sớm
+              <PauseCircleIcon className="w-4 h-4 mr-1.5" />
+              Tạm dừng
             </Button>
           )}
 
-          {canCancel && (
+          {canResume && (
             <Button
-              variant="danger"
-              onClick={() => setShowCancelDialog(true)}
+              variant="primary"
+              onClick={() => setShowActivateDialog(true)}
               disabled={isBusy}
+              className="rounded-lg"
             >
-              <NoSymbolIcon className="w-4 h-4 mr-1.5" />
-              Hủy sự kiện
+              <PlayCircleIcon className="w-4 h-4 mr-1.5" />
+              Kích hoạt lại
             </Button>
           )}
         </div>
@@ -531,35 +534,35 @@ export function FlashSaleDetailClient({ flashSaleId }: { flashSaleId: string }) 
 
       {/* ── Confirm dialogs ────────────────────────────────────────────────── */}
       <ConfirmDialog
-        isOpen={showCancelDialog}
-        title="Hủy sự kiện Flash Sale?"
-        description="Sự kiện sẽ bị hủy ngay lập tức. Thao tác này không thể hoàn tác."
-        confirmLabel="Hủy sự kiện"
+        isOpen={showPauseDialog}
+        title="Tạm dừng Flash Sale?"
+        description="Sự kiện sẽ bị ẩn khỏi storefront ngay lập tức. Bạn có thể kích hoạt lại bất cứ lúc nào."
+        confirmLabel="Tạm dừng"
         variant="danger"
         onConfirm={() => {
-          setShowCancelDialog(false);
+          setShowPauseDialog(false);
           handleAction(
-            () => cancelFlashSale(flashSale.flashSaleId),
-            "Flash sale đã bị hủy."
+            () => pauseFlashSale(flashSale.flashSaleId),
+            "Đã tạm dừng flash sale.",
           );
         }}
-        onClose={() => setShowCancelDialog(false)}
+        onClose={() => setShowPauseDialog(false)}
       />
 
       <ConfirmDialog
-        isOpen={showEndDialog}
-        title="Kết thúc Flash Sale sớm?"
-        description="Flash sale sẽ kết thúc ngay lập tức. Khách hàng sẽ không mua được nữa."
-        confirmLabel="Kết thúc sớm"
-        variant="warning"
+        isOpen={showActivateDialog}
+        title="Kích hoạt lại Flash Sale?"
+        description="Sự kiện sẽ hiển thị trở lại trên storefront khi nằm trong khung thời gian đã cấu hình."
+        confirmLabel="Kích hoạt"
+        variant="info"
         onConfirm={() => {
-          setShowEndDialog(false);
+          setShowActivateDialog(false);
           handleAction(
-            () => endFlashSaleEarly(flashSale.flashSaleId),
-            "Flash sale đã kết thúc sớm."
+            () => activateFlashSale(flashSale.flashSaleId),
+            "Đã kích hoạt flash sale.",
           );
         }}
-        onClose={() => setShowEndDialog(false)}
+        onClose={() => setShowActivateDialog(false)}
       />
     </div>
   );

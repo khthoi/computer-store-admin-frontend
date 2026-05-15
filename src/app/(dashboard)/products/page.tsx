@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PlusIcon } from "@heroicons/react/24/outline";
 import { getProducts } from "@/src/services/product.service";
-import { getCategories } from "@/src/services/category.service";
+import { getAdminCategoryNodeTree } from "@/src/services/category.service";
 import { ProductsTable } from "@/src/components/admin/products/list/ProductsTable";
 
 // ─── Route config ─────────────────────────────────────────────────────────────
@@ -23,12 +23,10 @@ export const metadata: Metadata = {
  * search, filtering, sorting, and deletion.
  */
 export default async function ProductsPage() {
-  const [productsResult, categories] = await Promise.all([
+  const [productsResult, categoryTree] = await Promise.all([
     getProducts(),
-    getCategories().catch(() => []),
+    getAdminCategoryNodeTree().catch(() => []),
   ]);
-
-  const initialCategories = categories.map((c) => ({ id: c.id, name: c.name }));
 
   return (
     <div className="space-y-6 p-6">
@@ -55,7 +53,7 @@ export default async function ProductsPage() {
         initialProducts={productsResult.data}
         initialTotal={productsResult.total}
         initialTotalPages={productsResult.totalPages}
-        initialCategories={initialCategories}
+        initialCategoryTree={categoryTree}
       />
     </div>
   );

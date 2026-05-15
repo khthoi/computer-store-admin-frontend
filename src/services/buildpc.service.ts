@@ -76,39 +76,33 @@ export async function fetchRules(): Promise<BuildPCRule[]> {
   return apiFetch<BuildPCRule[]>("/admin/build-pc/rules");
 }
 
+function ruleFormToPayload(data: BuildPCRuleFormData) {
+  return {
+    tenQuyTac: `${data.slotNguonId}.${data.maKtNguon} → ${data.slotDichId || "*"}.${data.maKtDich || data.maKtNguon}`,
+    slotNguonId: Number(data.slotNguonId),
+    slotDichId: data.slotDichId ? Number(data.slotDichId) : undefined,
+    maKtNguon: data.maKtNguon,
+    maKtDich: data.maKtDich || undefined,
+    loaiKiemTra: data.loaiKiemTra,
+    heSo: data.heSo !== "" ? parseFloat(data.heSo) : undefined,
+    giaTriMacDinh: data.giaTriMacDinh || undefined,
+    moTa: data.moTa || undefined,
+    batBuoc: data.batBuoc,
+    isActive: data.isActive,
+  };
+}
+
 export async function createRule(data: BuildPCRuleFormData): Promise<BuildPCRule> {
   return apiFetch<BuildPCRule>("/admin/build-pc/rules", {
     method: "POST",
-    body: JSON.stringify({
-      tenQuyTac: `${data.slotNguonId} → ${data.slotDichId} [${data.maKyThuat}]`,
-      slotNguonId: Number(data.slotNguonId),
-      slotDichId: data.slotDichId ? Number(data.slotDichId) : undefined,
-      maKyThuat: data.maKyThuat,
-      loaiKiemTra: data.loaiKiemTra,
-      heSo: data.heSo !== "" ? parseFloat(data.heSo) : undefined,
-      giaTriMacDinh: data.giaTriMacDinh || undefined,
-      moTa: data.moTa || undefined,
-      batBuoc: data.batBuoc,
-      isActive: data.isActive,
-    }),
+    body: JSON.stringify(ruleFormToPayload(data)),
   });
 }
 
 export async function updateRule(id: string, data: BuildPCRuleFormData): Promise<BuildPCRule> {
   return apiFetch<BuildPCRule>(`/admin/build-pc/rules/${id}`, {
     method: "PUT",
-    body: JSON.stringify({
-      tenQuyTac: `${data.slotNguonId} → ${data.slotDichId} [${data.maKyThuat}]`,
-      slotNguonId: Number(data.slotNguonId),
-      slotDichId: data.slotDichId ? Number(data.slotDichId) : undefined,
-      maKyThuat: data.maKyThuat,
-      loaiKiemTra: data.loaiKiemTra,
-      heSo: data.heSo !== "" ? parseFloat(data.heSo) : undefined,
-      giaTriMacDinh: data.giaTriMacDinh || undefined,
-      moTa: data.moTa || undefined,
-      batBuoc: data.batBuoc,
-      isActive: data.isActive,
-    }),
+    body: JSON.stringify(ruleFormToPayload(data)),
   });
 }
 

@@ -55,7 +55,8 @@ const CHECK_TYPE_OPTIONS = (Object.entries(CHECK_TYPE_INFO) as [RuleCheckType, {
 const EMPTY_FORM: BuildPCRuleFormData = {
   slotNguonId: "",
   slotDichId: "",
-  maKyThuat: "",
+  maKtNguon: "",
+  maKtDich: "",
   loaiKiemTra: "exact_match",
   giaTriMacDinh: "",
   heSo: "",
@@ -68,7 +69,8 @@ function ruleToForm(r: BuildPCRule): BuildPCRuleFormData {
   return {
     slotNguonId: r.slotNguonId,
     slotDichId: r.slotDichId,
-    maKyThuat: r.maKyThuat,
+    maKtNguon: r.maKtNguon,
+    maKtDich: r.maKtDich,
     loaiKiemTra: r.loaiKiemTra,
     giaTriMacDinh: r.giaTriMacDinh ?? "",
     heSo: r.heSo !== undefined ? String(r.heSo) : "",
@@ -98,36 +100,44 @@ export function RuleFormModal({
   const [form, setForm] = useState<BuildPCRuleFormData>(EMPTY_FORM);
   const [errors, setErrors] = useState<Partial<Record<keyof BuildPCRuleFormData, string>>>({});
   const [isSaving, setIsSaving] = useState(false);
-  const [techKeys, setTechKeys] = useState<TechKeyOption[]>([]);
-  const [isFiltered, setIsFiltered] = useState(false);
-  const prevSlotKey = useRef("");
+  const [techKeysNguon, setTechKeysNguon] = useState<TechKeyOption[]>([]);
+  const [techKeysDich, setTechKeysDich] = useState<TechKeyOption[]>([]);
+  const prevNguonCat = useRef<number | null>(null);
+  const prevDichCat = useRef<number | null>(null);
 
-  // Re-fetch tech keys when selected slots change — filter to relevant categories
+  // ── Fetch tech keys filtered by slot nguồn's category ─────────────────────
   useEffect(() => {
     const nguon = slots.find((s) => s.id === form.slotNguonId);
-    const dich = slots.find((s) => s.id === form.slotDichId);
-    const categoryIds = [...new Set([nguon?.danhMucId, dich?.danhMucId].filter((id): id is number => id !== undefined))];
-
-    const slotKey = categoryIds.sort().join(",");
-    if (slotKey === prevSlotKey.current) return;
-
-    // prevSlotKey === "" means this is the first run after modal open — don't clear
-    const isUserSlotChange = prevSlotKey.current !== "";
-    prevSlotKey.current = slotKey;
-
-    if (isUserSlotChange && slotKey !== "") {
-      setForm((f) => ({ ...f, maKyThuat: "" }));
-      setErrors((e) => ({ ...e, maKyThuat: undefined }));
+    const catId = nguon?.danhMucId ?? null;
+    if (catId === prevNguonCat.current) return;
+    const isUserChange = prevNguonCat.current !== null;
+    prevNguonCat.current = catId;
+    if (isUserChange) {
+      setForm((f) => ({ ...f, maKtNguon: "" }));
+      setErrors((e) => ({ ...e, maKtNguon: undefined }));
     }
+    if (catId == null) { setTechKeysNguon([]); return; }
+    fetchTechKeys([catId]).then(setTechKeysNguon).catch(() => {});
+  }, [form.slotNguonId, slots]);
 
-    setIsFiltered(categoryIds.length > 0);
-    fetchTechKeys(categoryIds.length > 0 ? categoryIds : undefined)
-      .then(setTechKeys)
-      .catch(() => {});
-  }, [form.slotNguonId, form.slotDichId, slots]);
+  // ── Fetch tech keys filtered by slot đích's category ──────────────────────
+  useEffect(() => {
+    const dich = slots.find((s) => s.id === form.slotDichId);
+    const catId = dich?.danhMucId ?? null;
+    if (catId === prevDichCat.current) return;
+    const isUserChange = prevDichCat.current !== null;
+    prevDichCat.current = catId;
+    if (isUserChange) {
+      setForm((f) => ({ ...f, maKtDich: "" }));
+      setErrors((e) => ({ ...e, maKtDich: undefined }));
+    }
+    if (catId == null) { setTechKeysDich([]); return; }
+    fetchTechKeys([catId]).then(setTechKeysDich).catch(() => {});
+  }, [form.slotDichId, slots]);
 
   const slotOptions = slotsToOptions(slots).map((o) => ({ value: o.value, label: o.label, description: o.description }));
-  const techKeyGroupedOptions = groupTechKeys(techKeys);
+  const techKeyNguonOptions = groupTechKeys(techKeysNguon);
+  const techKeyDichOptions = groupTechKeys(techKeysDich);
 
   const checkTypeInfo = CHECK_TYPE_INFO[form.loaiKiemTra];
   const needsHeSo = form.loaiKiemTra === "min_sum" || form.loaiKiemTra === "min_value";
@@ -137,17 +147,17 @@ export function RuleFormModal({
     const nextForm = editing ? ruleToForm(editing) : EMPTY_FORM;
     setForm(nextForm);
     setErrors({});
-    // Reset slot key so the tech-key effect fires fresh on open
-    prevSlotKey.current = "";
+    prevNguonCat.current = null;
+    prevDichCat.current = null;
   }, [isOpen, editing]);
 
   function validate(): boolean {
     const next: typeof errors = {};
-    if (!form.slotNguonId) next.slotNguonId = "Chọn khe nguồn.";
-    if (!form.slotDichId)  next.slotDichId  = "Chọn khe đích.";
-    if (form.slotNguonId && form.slotDichId && form.slotNguonId === form.slotDichId)
+    if (!form.slotNguonId) next.slotNguonId = "Vui lòng chọn khe nguồn.";
+    if (form.slotDichId && form.slotNguonId === form.slotDichId)
       next.slotDichId = "Khe nguồn và khe đích phải khác nhau.";
-    if (!form.maKyThuat) next.maKyThuat = "Chọn thông số kỹ thuật.";
+    if (!form.maKtNguon) next.maKtNguon = "Vui lòng chọn mã kỹ thuật slot nguồn.";
+    if (form.slotDichId && !form.maKtDich) next.maKtDich = "Vui lòng chọn mã kỹ thuật slot đích.";
     if (needsHeSo && form.heSo !== "" && isNaN(parseFloat(form.heSo)))
       next.heSo = "Hệ số phải là số hợp lệ.";
     setErrors(next);
@@ -189,56 +199,61 @@ export function RuleFormModal({
       }
     >
       <div className="space-y-4">
-        {/* Slot pair */}
-        <div className="grid grid-cols-2 gap-4">
-          <Select
-            label="Khe nguồn"
-            placeholder="Chọn khe nguồn…"
-            options={slotOptions}
-            value={form.slotNguonId}
-            onChange={(v) => set("slotNguonId", Array.isArray(v) ? v[0] : v)}
-            errorMessage={errors.slotNguonId}
-            required
-          />
-          <Select
-            label="Khe đích"
-            placeholder="Chọn khe đích…"
-            options={slotOptions}
-            value={form.slotDichId}
-            onChange={(v) => set("slotDichId", Array.isArray(v) ? v[0] : v)}
-            errorMessage={errors.slotDichId}
-            required
-          />
+        {/* Source slot + tech key */}
+        <div className="rounded-xl border border-secondary-200 bg-secondary-50/50 p-3 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">Slot nguồn</p>
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Khe nguồn"
+              placeholder="Chọn khe nguồn…"
+              options={slotOptions}
+              value={form.slotNguonId}
+              onChange={(v) => set("slotNguonId", Array.isArray(v) ? v[0] : v)}
+              errorMessage={errors.slotNguonId}
+              required
+            />
+            <Select
+              label="Mã kỹ thuật slot nguồn"
+              placeholder={form.slotNguonId ? "Chọn thông số…" : "Chọn khe nguồn trước…"}
+              options={techKeyNguonOptions}
+              value={form.maKtNguon}
+              onChange={(v) => set("maKtNguon", Array.isArray(v) ? v[0] : v)}
+              errorMessage={errors.maKtNguon}
+              disabled={!form.slotNguonId}
+              searchable
+              clearable
+              required
+            />
+          </div>
         </div>
 
-        {/* Tech key — grouped by spec group, filtered to selected slot categories */}
-        <div className="space-y-1.5">
-          <Select
-            label="Thông số kỹ thuật"
-            placeholder={
-              form.slotNguonId || form.slotDichId
-                ? "Chọn thông số cần kiểm tra…"
-                : "Chọn khe trước để lọc thông số…"
-            }
-            options={techKeyGroupedOptions}
-            value={form.maKyThuat}
-            onChange={(v) => set("maKyThuat", Array.isArray(v) ? v[0] : v)}
-            errorMessage={errors.maKyThuat}
-            searchable
-            clearable
-            required
-          />
-          {isFiltered && (
-            <p className="text-xs text-info-600">
-              Đang hiển thị thông số của{" "}
-              {[
-                slots.find((s) => s.id === form.slotNguonId)?.tenKhe,
-                slots.find((s) => s.id === form.slotDichId)?.tenKhe,
-              ]
-                .filter(Boolean)
-                .join(" + ")}
-            </p>
-          )}
+        {/* Destination slot + tech key */}
+        <div className="rounded-xl border border-secondary-200 bg-secondary-50/50 p-3 space-y-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-secondary-500">
+            Slot đích <span className="font-normal normal-case text-secondary-400">(tuỳ chọn — bỏ trống cho quy tắc một-slot như tổng công suất)</span>
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Select
+              label="Khe đích"
+              placeholder="Chọn khe đích…"
+              options={slotOptions}
+              value={form.slotDichId}
+              onChange={(v) => set("slotDichId", Array.isArray(v) ? v[0] : v)}
+              errorMessage={errors.slotDichId}
+              clearable
+            />
+            <Select
+              label="Mã kỹ thuật slot đích"
+              placeholder={form.slotDichId ? "Chọn thông số…" : "Chọn khe đích trước…"}
+              options={techKeyDichOptions}
+              value={form.maKtDich}
+              onChange={(v) => set("maKtDich", Array.isArray(v) ? v[0] : v)}
+              errorMessage={errors.maKtDich}
+              disabled={!form.slotDichId}
+              searchable
+              clearable
+            />
+          </div>
         </div>
 
         {/* Check type */}

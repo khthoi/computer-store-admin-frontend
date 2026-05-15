@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Squares2X2Icon } from "@heroicons/react/24/outline";
 import { Tabs, TabPanel } from "@/src/components/ui/Tabs";
-import { Input } from "@/src/components/ui/Input";
 import { Button } from "@/src/components/ui/Button";
 import { ImageField, emptyImageField, imageFieldFromUrl } from "@/src/components/ui/ImageField";
 import type { ImageFieldValue } from "@/src/components/ui/ImageField";
@@ -25,7 +24,8 @@ import type { Menu, TrustBadge, CategoryShortcut, FooterConfig } from "@/src/typ
 
 // ─── Logo header preview ──────────────────────────────────────────────────────
 
-function LogoHeaderPreview({ logoUrl, logoAlt, className }: { logoUrl?: string; logoAlt?: string; className?: string }) {
+function LogoHeaderPreview({ logoUrl, className }: { logoUrl?: string; className?: string }) {
+  const socialColors = ["#0068ff", "#ff0000", "#1877f2", "#010101"];
   return (
     <div className={`overflow-hidden rounded-xl border border-secondary-200 bg-secondary-50 p-3 ${className || ""}`}>
       <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-secondary-400">
@@ -33,34 +33,54 @@ function LogoHeaderPreview({ logoUrl, logoAlt, className }: { logoUrl?: string; 
       </p>
       {/* Simulated nav bar */}
       <div className="rounded-lg border border-secondary-200 bg-white shadow-sm">
-        <div className="flex h-14 items-center gap-4 px-5">
-          {/* Logo */}
-          <div className="flex h-8 shrink-0 items-center">
+        <div className="flex h-16 items-center gap-3 px-4">
+          {/* Logo (shifted right with ml-2) */}
+          <div className="ml-2 flex h-12 shrink-0 items-center">
             {logoUrl
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={logoUrl} alt={logoAlt ?? "Logo"} className="h-8 object-contain" />
-              : <span className="text-base font-bold text-secondary-800">{logoAlt || "PC Store"}</span>
+              ? <img src={logoUrl} alt="Logo" className="h-12 object-contain" />
+              : <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary-600 text-sm font-extrabold text-white">PC</div>
             }
           </div>
-          {/* Fake nav items */}
-          <div className="flex flex-1 items-center gap-4">
-            {["Danh mục ▾", "Laptop", "PC", "Gaming"].map((label) => (
-              <span key={label} className="text-xs text-secondary-500">{label}</span>
+          {/* Wide search bar */}
+          <div className="flex min-w-0 flex-1 items-center">
+            <div className="flex h-9 flex-1 items-center rounded-l-lg border border-r-0 border-secondary-300 bg-white px-3">
+              <span className="truncate text-[10px] text-secondary-400">Nhập tên sản phẩm, từ khoá cần tìm…</span>
+            </div>
+            <button
+              type="button"
+              className="flex h-9 w-10 shrink-0 items-center justify-center rounded-r-lg bg-primary-600 text-white"
+              aria-hidden="true"
+            >
+              <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m21 21-4.3-4.3" />
+              </svg>
+            </button>
+          </div>
+          {/* Social icons */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            {socialColors.map((c, i) => (
+              <span key={i} className="h-5 w-5 rounded-full" style={{ backgroundColor: c }} />
             ))}
           </div>
-          {/* Fake search bar */}
-          <div className="flex w-40 items-center gap-2 rounded-full border border-secondary-200 bg-secondary-50 px-3 py-1.5">
-            <span className="text-[10px] text-secondary-400">Tìm kiếm…</span>
+          {/* Build PC pill */}
+          <div className="flex shrink-0 items-center gap-1 rounded-full bg-primary-600 px-3 py-1.5 text-[10px] font-semibold text-white">
+            <span className="text-xs">⚙</span> Build PC
           </div>
-          {/* Fake icons */}
-          <div className="flex items-center gap-3">
-            <div className="h-5 w-5 rounded-full bg-secondary-200" />
-            <div className="h-5 w-5 rounded-full bg-secondary-200" />
+          {/* Action icons */}
+          <div className="flex shrink-0 items-center gap-3">
+            {["So sánh", "Yêu thích", "Tài khoản", "Giỏ hàng"].map((label) => (
+              <div key={label} className="flex flex-col items-center gap-0.5">
+                <div className="h-4 w-4 rounded-sm bg-secondary-300" />
+                <span className="text-[8px] text-secondary-500">{label}</span>
+              </div>
+            ))}
           </div>
         </div>
       </div>
       <p className="mt-2 text-[10px] text-secondary-400">
-        Logo hiển thị ở chiều cao 32 px — tỷ lệ 3:1 (ví dụ: 180 × 60 px) cho kết quả tốt nhất.
+        Logo hiển thị ở chiều cao 48 px — tỷ lệ 3:1 (ví dụ: 240 × 80 px) cho kết quả tốt nhất.
       </p>
     </div>
   );
@@ -185,24 +205,14 @@ export function NavigationClient() {
                     setHeaderLogoImage(v);
                     updateFooterConfig({ brand: { ...footerConfig.brand, logoUrl: v.displayUrl ?? "" } });
                   }}
-                  aspectRatioHint="3:1 — Đề nghị 180 × 60 px"
+                  aspectRatioHint="3:1 — Đề nghị 240 × 80 px"
                   allowedTypes={["image"]}
-                />
-                <Input
-                  label="Alt text logo"
-                  value={footerConfig.brand.logoAlt}
-                  onChange={(e) =>
-                    updateFooterConfig({ brand: { ...footerConfig.brand, logoAlt: e.target.value } })
-                  }
-                  placeholder="PC Store"
-                  helperText="Văn bản thay thế khi ảnh không tải được"
                 />
               </div>
               {/* Right: storefront preview (3/5) */}
               <div className="col-span-3">
                 <LogoHeaderPreview
                   logoUrl={footerConfig.brand.logoUrl}
-                  logoAlt={footerConfig.brand.logoAlt || "PC Store"}
                   className="mt-8"
                 />
               </div>
@@ -226,7 +236,7 @@ export function NavigationClient() {
           <Squares2X2Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary-500" />
           <div>
             <p className="text-sm font-semibold text-primary-800">
-              Mega menu "Danh mục ▾" — tự động sinh từ cây danh mục
+              Mega menu &quot;Danh mục ▾&quot; — tự động sinh từ cây danh mục
             </p>
             <p className="mt-1 text-xs text-primary-600">
               Nút <strong>Danh mục</strong> không cần cấu hình thủ công.
@@ -292,7 +302,7 @@ export function NavigationClient() {
             </h3>
             <p className="mt-0.5 text-xs text-secondary-500">
               Slider icon danh mục bên dưới trust badges: CPU, GPU, Laptop, SSD…
-              Mỗi mục có icon ảnh, nhãn và URL đích.
+              Mỗi mục có icon ảnh, nhãn và URL đích. Có thể tự gán nhanh link theo slug của danh mục được chọn.
             </p>
           </div>
           <CategoryShortcutEditor initialItems={shortcuts} />

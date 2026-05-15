@@ -1,12 +1,12 @@
 # Graph Report - src/components/admin  (2026-04-18)
 
 ## Corpus Check
-- Large corpus: 285 files · ~180,518 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
+- Large corpus: 285 files Â· ~180,518 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
 
 ## Summary
-- 992 nodes · 804 edges · 285 communities detected
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
-- Token cost: 0 input · 0 output
+- 992 nodes Â· 804 edges Â· 285 communities detected
+- Extraction: 100% EXTRACTED Â· 0% INFERRED Â· 0% AMBIGUOUS
+- Token cost: 0 input Â· 0 output
 
 ## Community Hubs (Navigation)
 - [[_COMMUNITY_Category Tree Management|Category Tree Management]]

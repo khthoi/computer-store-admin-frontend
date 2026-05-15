@@ -46,8 +46,16 @@ export function FlashSaleCountdownTimer({
   trangThai,
   onExpire,
 }: FlashSaleCountdownTimerProps) {
-  const isLive     = trangThai === "dang_dien_ra";
-  const isUpcoming = trangThai === "sap_dien_ra";
+  // Visibility is derived from the time window: countdown to start when in the
+  // future, otherwise countdown to end. Admin status (active/paused) only
+  // affects storefront visibility, not the timer itself — admins still want to
+  // see the time even when paused.
+  const now        = Date.now();
+  const startMs    = new Date(batDau).getTime();
+  const endMs      = new Date(ketThuc).getTime();
+  const isLive     = now >= startMs && now <= endMs;
+  const isUpcoming = now < startMs;
+  const isPaused   = trangThai === "paused";
 
   const targetISO  = isLive ? ketThuc : batDau;
   const label      = isLive ? "Còn lại" : "Bắt đầu sau";
@@ -93,13 +101,17 @@ export function FlashSaleCountdownTimer({
 
   if (!timeLeft) return null;
 
-  const accentClass = isLive
-    ? "bg-success-50 border border-success-200 text-success-800"
-    : "bg-warning-50 border border-warning-200 text-warning-800";
+  const accentClass = isPaused
+    ? "bg-secondary-50 border border-secondary-200 text-secondary-700"
+    : isLive
+      ? "bg-success-50 border border-success-200 text-success-800"
+      : "bg-warning-50 border border-warning-200 text-warning-800";
 
-  const digitClass = isLive
-    ? "bg-success-100 text-success-800"
-    : "bg-warning-100 text-warning-800";
+  const digitClass = isPaused
+    ? "bg-secondary-100 text-secondary-700"
+    : isLive
+      ? "bg-success-100 text-success-800"
+      : "bg-warning-100 text-warning-800";
 
   return (
     <div className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 ${accentClass}`}>

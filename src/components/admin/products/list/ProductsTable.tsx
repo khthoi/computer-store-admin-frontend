@@ -16,6 +16,7 @@ import { DataTable, type SortDir } from "@/src/components/admin/DataTable";
 import { BulkBar, type BulkBarAction } from "@/src/components/admin/BulkBar";
 import { ConfirmDialog } from "@/src/components/admin/ConfirmDialog";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
+import { CategoryTreeSelect, type CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import {
   getProducts,
   deleteProduct,
@@ -37,7 +38,7 @@ export interface ProductsTableProps {
   initialProducts: Product[];
   initialTotal: number;
   initialTotalPages: number;
-  initialCategories: { id: string; name: string }[];
+  initialCategoryTree: CategoryNode[];
 }
 
 type SelectionMode = "none" | "products" | "variants";
@@ -54,7 +55,7 @@ type SelectionMode = "none" | "products" | "variants";
  *   checkbox clears any product selections. The bulk-action bar adapts to
  *   show the correct actions for whichever entity type is currently selected.
  */
-export function ProductsTable({ initialProducts, initialTotal, initialTotalPages, initialCategories }: ProductsTableProps) {
+export function ProductsTable({ initialProducts, initialTotal, initialTotalPages, initialCategoryTree }: ProductsTableProps) {
   const { showToast } = useToast();
 
   // ── Local product list (current page from server) ──────────────────────────
@@ -72,7 +73,7 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
   // ── Filter / search / sort state ───────────────────────────────────────────
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string[]>([]);
-  const [categoryFilter, setCategoryFilter] = useState<string[]>([]);
+  const [categoryId, setCategoryId] = useState<string | undefined>(undefined);
   const [sortKey, setSortKey] = useState("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [page, setPage] = useState(1);
@@ -138,7 +139,7 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
         const result = await getProducts({
           q: search || undefined,
           status: statusFilter.length === 1 ? statusFilter[0] : undefined,
-          category: categoryFilter.length === 1 ? categoryFilter[0] : undefined,
+          categoryId: categoryId || undefined,
           page,
           pageSize,
           sortBy: sortKey,
@@ -156,7 +157,7 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
     return () => {
       if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
     };
-  }, [page, pageSize, search, statusFilter, categoryFilter, sortKey, sortDir]);
+  }, [page, pageSize, search, statusFilter, categoryId, sortKey, sortDir]);
 
   // ── Filter options ─────────────────────────────────────────────────────────
   // Counts are not available without loading all data; omitted intentionally.
@@ -167,10 +168,6 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
     { value: "archived", label: "Archived" },
   ];
 
-  const categoryOptions = useMemo(
-    () => initialCategories.map((c) => ({ value: c.name, label: c.name })),
-    [initialCategories]
-  );
 
   // ── Total rows comes from server ───────────────────────────────────────────
   const totalRows = serverTotal;
@@ -190,9 +187,9 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
     setPage(1);
   }, []);
 
-  const handleCategoryFilterChange = useCallback((values: string[]) => {
+  const handleCategoryChange = useCallback((id: string, _node: CategoryNode) => {
     nonPageChangedRef.current = true;
-    setCategoryFilter(values);
+    setCategoryId(id || undefined);
     setPage(1);
   }, []);
 
@@ -538,13 +535,14 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
 
   const handleExport = useCallback(async () => {
     try {
-      const { data: allData } = await getProducts({ q: search || undefined, pageSize: 1000 });
+      const { data: allData } = await getProducts({
+        q: search || undefined,
+        categoryId: categoryId || undefined,
+        pageSize: 1000,
+      });
       let exportRows = allData;
       if (statusFilter.length) {
         exportRows = exportRows.filter((p) => statusFilter.includes(p.status));
-      }
-      if (categoryFilter.length) {
-        exportRows = exportRows.filter((p) => categoryFilter.includes(p.category));
       }
       const headers = ["ID", "Name", "Slug", "Category", "Brand", "Base Price", "Total Stock", "Status", "Created At", "Updated At"];
       const rows = exportRows.map((p) => {
@@ -565,7 +563,7 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
     } catch {
       showToast("Không thể xuất dữ liệu. Vui lòng thử lại.", "error");
     }
-  }, [search, statusFilter, categoryFilter, showToast]);
+  }, [search, statusFilter, categoryId, showToast]);
 
   // ── Column definitions (built from sub-module) ─────────────────────────────
 
@@ -629,13 +627,14 @@ export function ProductsTable({ initialProducts, initialTotal, initialTotalPages
         selected={statusFilter}
         onChange={handleStatusFilterChange}
       />
-      <FilterDropdown
-        label="Danh mục"
-        options={categoryOptions}
-        selected={categoryFilter}
-        onChange={handleCategoryFilterChange}
-        searchable
-      />
+      <div className="w-150">
+        <CategoryTreeSelect
+          categories={initialCategoryTree}
+          value={categoryId}
+          onChange={handleCategoryChange}
+          placeholder="Lọc theo danh mục"
+        />
+      </div>
       <button
         type="button"
         onClick={() => void handleExport()}

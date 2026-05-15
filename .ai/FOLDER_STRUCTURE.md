@@ -20,36 +20,36 @@ src/app/
 │   ├── orders/                 # AD-05/06 Orders
 │   │   ├── page.tsx
 │   │   ├── [id]/page.tsx
-│   │   ├── returns/            # AD-13 Return requests
+│   │   ├── returns/            # Return requests
 │   │   └── transactions/       # Transaction list
-│   ├── inventory/              # AD-08/09 Inventory
+│   ├── inventory/              # AD-07 Inventory
 │   │   ├── page.tsx
-│   │   ├── items/              # Stock items
-│   │   ├── stock-in/           # Import stock
-│   │   ├── stock-out/          # Export stock
-│   │   ├── movements/          # Movement history
-│   │   ├── low-stock/          # Low stock alerts
-│   │   └── suppliers/          # Supplier management
-│   ├── promotions/             # AD-10/11 Promotions
+│   │   ├── items/
+│   │   ├── stock-in/
+│   │   ├── stock-out/
+│   │   ├── movements/
+│   │   ├── low-stock/
+│   │   └── suppliers/
+│   ├── promotions/             # AD-08 Promotions
 │   │   ├── page.tsx
 │   │   ├── new/page.tsx
 │   │   ├── [id]/edit/page.tsx
 │   │   ├── coupons/page.tsx
 │   │   ├── flash-sales/page.tsx
 │   │   └── earn-rules/page.tsx
-│   ├── customers/              # AD-12 Customer management
+│   ├── customers/              # AD-09 Customer management
 │   │   ├── page.tsx
 │   │   └── [id]/page.tsx
-│   ├── support/                # AD-14 Support tickets
+│   ├── support/                # AD-10 Support tickets
 │   │   ├── page.tsx
 │   │   └── [id]/page.tsx
-│   ├── reviews/page.tsx        # AD-15 Review moderation
-│   ├── reports/page.tsx        # AD-16 Business reports
-│   ├── employees/              # Staff accounts
+│   ├── reviews/page.tsx        # AD-11 Review moderation
+│   ├── reports/page.tsx        # AD-12 Business reports
+│   ├── employees/              # AD-13 Staff accounts
 │   │   ├── page.tsx
 │   │   └── [id]/page.tsx
-│   ├── roles/page.tsx          # Role & permission management
-│   ├── content/                # CMS content
+│   ├── roles/page.tsx          # AD-13 Role & permission management
+│   ├── content/                # AD-14 CMS content
 │   │   ├── banners/
 │   │   ├── homepage/
 │   │   ├── announcements/
@@ -57,8 +57,9 @@ src/app/
 │   │   ├── faq/
 │   │   ├── navigation/
 │   │   ├── media/
-│   │   └── buildpc/
+│   │   └── buildpc/            # AD-15 PC builder configuration
 │   ├── audit-logs/page.tsx     # System audit trail
+│   ├── profile/                # Authenticated user profile
 │   └── settings/               # AD-17 Settings
 │       ├── general/
 │       ├── payments/
@@ -76,18 +77,19 @@ src/app/
 
 ```
 src/components/
-├── ui/                         # Local UI primitives
+├── ui/                         # Local UI primitives — @computer-store/ui is NOT installed
 │   └── [Accordion, Alert, Avatar, Badge, Button, Checkbox,
-│      ColorSelect, DateInput, Drawer, DropdownAction, Dropzone,
-│      Image, ImageField, Input, LayoutPicker, Lightbox, Modal,
-│      PasswordInput, Popover, ProgressBar, Radio, Select,
-│      Skeleton, Slider, Spinner, StarRating, Tabs, Textarea,
-│      Toast, Toggle, Tooltip, SectionTypePicker, SideBanner]
+│       ColorSelect, DateInput, Drawer, DropdownAction, Dropzone,
+│       Image, ImageField, Input, LayoutPicker, Lightbox, Modal,
+│       PasswordInput, Popover, ProgressBar, Radio, Select,
+│       Skeleton, Slider, Spinner, StarRating, Tabs, Textarea,
+│       Toast, Toggle, Tooltip, SectionTypePicker, SideBanner]
 │
 └── admin/                      # Admin-specific components
-    ├── AdminSidebar.tsx         # violet-700, usePathname active, 10 nav domains
+    ├── AdminSidebar.tsx        # violet bg, active state via usePathname()
+    ├── BulkBar.tsx
     ├── ConfirmDialog.tsx
-    ├── DataTable.tsx            # TanStack Table headless
+    ├── DataTable.tsx           # Custom headless table
     ├── FileUpload.tsx
     ├── FilterDropdown.tsx
     ├── StatCard.tsx
@@ -95,17 +97,15 @@ src/components/
     ├── CategoryTreeSelect/
     ├── index.ts
     │
-    ├── layout/                  # Shell layout
-    │   ├── SidebarContext.tsx
+    ├── layout/                 # Shell layout
     │   ├── AdminLayout.tsx
     │   ├── AdminHeader.tsx
     │   ├── AdminBreadcrumb.tsx
     │   ├── AdminUserMenu.tsx
-    │   ├── NotificationBell.tsx (→ notifications/)
     │   ├── AdminPageWrapper.tsx
     │   └── AdminDetailLayout.tsx
     │
-    ├── shared/                  # Cross-domain reusables
+    ├── shared/                 # Cross-domain reusables
     │   ├── AdminSearchBar.tsx
     │   ├── TableToolbar.tsx
     │   ├── BulkActionBar.tsx
@@ -119,79 +119,95 @@ src/components/
     │   ├── RolePermissionSelector.tsx
     │   └── ColumnConfigurator.tsx
     │
-    ├── dashboard/               # KPI widgets
-    ├── products/                # Product form sections
-    ├── catalog/                 # Category + brand modals
-    ├── orders/                  # Order detail components
-    ├── users/                   # Customer + employee panels
-    ├── employees/               # Employee management
-    ├── inventory/               # Stock management
-    ├── promotions/              # Promotion forms
-    ├── flash-sale/              # Flash sale scheduler
-    ├── reports/                 # Analytics charts
-    ├── support/                 # Ticket management
-    ├── notifications/           # Notification components
-    ├── roles/                   # Role/permission management
-    ├── audit-logs/              # Audit log viewer
-    ├── content/                 # CMS content forms
-    ├── variant/                 # Product variant components
-    ├── variantEdit/             # Variant edit forms
-    └── settings/                # Store config forms
+    ├── audit-logs/             # Audit log viewer
+    ├── auth/                   # Login UI
+    ├── catalog/                # Category + brand modals
+    ├── content/                # CMS content forms
+    ├── customers/              # Customer detail panels
+    ├── dashboard/              # KPI widgets + charts
+    ├── employees/              # Employee management
+    ├── flash-sale/             # Flash sale scheduler
+    ├── inventory/              # Stock management
+    ├── notifications/          # Notification components (bell, broadcast)
+    ├── orders/                 # Order detail components
+    ├── products/               # Product form sections
+    ├── profile/                # Profile screens
+    ├── promotions/             # Promotion forms
+    ├── reports/                # Analytics charts
+    ├── reviews/                # Review moderation
+    ├── roles/                  # Role / permission management
+    ├── settings/               # Store config forms
+    ├── support/                # Ticket management
+    ├── users/                  # Customer + employee panels
+    ├── variant/                # Product variant components
+    └── variantEdit/            # Variant edit forms
 ```
 
 ---
 
-## Data Layer (src/)
+## Data layer (src/)
 
 ```
 src/
-├── services/           # API abstraction (one per domain)
-│   ├── product.service.ts
-│   ├── variant.service.ts
+├── services/           # API abstraction (one per domain) — pure transport
+│   ├── api.ts          # apiFetch helper (cookie auth, auto-refresh, server/client safe)
+│   ├── admin-auth.service.ts
+│   ├── audit-log.service.ts
+│   ├── brand.service.ts
+│   ├── buildpc.service.ts
 │   ├── category.service.ts
 │   ├── category_spec.service.ts
-│   ├── brand.service.ts
-│   ├── order.service.ts
-│   ├── inventory.service.ts
-│   ├── promotion.service.ts
-│   ├── promotionEngine.ts
-│   ├── coupon.service.ts
-│   ├── flash-sale.service.ts
-│   ├── customer.service.ts
-│   ├── employee.service.ts
-│   ├── role.service.ts
-│   ├── ticket.service.ts
-│   ├── review.service.ts
-│   ├── report.service.ts
-│   ├── image.service.ts
 │   ├── content.service.ts
+│   ├── coupon.service.ts
+│   ├── customer.service.ts
+│   ├── dashboard/
+│   ├── employee.service.ts
+│   ├── flash-sale.service.ts
 │   ├── homepage.service.ts
+│   ├── image.service.ts
+│   ├── inventory.service.ts
+│   ├── inventory-exports.service.ts
 │   ├── loyalty.service.ts
 │   ├── notification.service.ts
-│   ├── transaction.service.ts
-│   ├── audit-log.service.ts
+│   ├── order.service.ts
+│   ├── product.service.ts
+│   ├── profile.service.ts
+│   ├── promotion.service.ts
+│   ├── promotionEngine.ts
+│   ├── report.service.ts
+│   ├── returns.service.ts
+│   ├── review.service.ts
+│   ├── role.service.ts
 │   ├── spec_group.service.ts
-│   └── buildpc.service.ts
+│   ├── ticket.service.ts
+│   ├── transaction.service.ts
+│   └── variant.service.ts
 │
-├── types/              # Domain type contracts
-│   └── {domain}.types.ts (one per service)
+├── types/              # Domain type contracts ({domain}.types.ts)
 │
-├── store/              # Zustand client state
+├── store/              # Context + useReducer stores
 │   ├── auth.store.tsx
-│   └── (cart/checkout/compare — shared pattern)
+│   ├── cart.store.tsx
+│   ├── checkout.store.tsx
+│   └── compare.store.tsx
 │
-└── lib/
-    ├── api.ts          # Axios instance with JWT interceptor
-    ├── auth.ts         # NextAuth admin config
-    ├── format.ts       # formatVND(), formatDate(), formatNumber()
-    ├── design-tokens.ts # JS tokens for charts
-    ├── validators/     # Zod schemas per domain
-    └── auth-validation.ts
+├── navigation/
+│   └── megamenu.config.ts
+│
+├── lib/
+│   ├── auth-validation.ts
+│   ├── design-tokens.ts # JS tokens for Recharts
+│   ├── format.ts        # formatVND(), formatDate(), formatNumber()
+│   ├── media-file.ts
+│   ├── validateAddress.ts
+│   └── validators/      # Zod schemas per domain
+│
+└── proxy.ts            # Next.js 16 route guard (JWT + role check)
 ```
 
 ---
 
-## Placement Rules
+## Placement rules
 
 | What | Where |
 |------|-------|

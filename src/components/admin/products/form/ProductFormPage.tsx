@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
@@ -22,6 +22,7 @@ import {
   createProduct,
   updateProduct,
   deleteVariant,
+  checkProductSlug,
   type BrandOption,
 } from "@/src/services/product.service";
 import { formatVND } from "@/src/lib/format";
@@ -38,6 +39,7 @@ export interface ProductFormPageProps {
 
 interface FormErrors {
   name?: string;
+  slug?: string;
   category?: string;
   brand?: string;
 }
@@ -85,14 +87,16 @@ export function ProductFormPage({
   // ── Field state ─────────────────────────────────────────────────────────
   const [name,     setName]     = useState(product?.name     ?? "");
   const [slug,     setSlug]     = useState(product?.slug     ?? "");
-  const [category, setCategory] = useState(product?.categoryId ?? "");
+  const [category, setCategory] = useState(
+    product?.categoryId != null ? String(product.categoryId) : ""
+  );
   const [brand,    setBrand]    = useState<string[]>(product?.brandIds ?? []);
   const [status,   setStatus]   = useState<string>(product?.status ?? "draft");
   const [errors,   setErrors]   = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  // Track whether the user has manually edited the slug field
-  const slugTouched = useRef(mode === "edit");
+  const [slugCheckMessage, setSlugCheckMessage] = useState("");
+  const [slugCheckTone, setSlugCheckTone] = useState<"default" | "success" | "error">("default");
+  const [isCheckingSlug, setIsCheckingSlug] = useState(false);
 
   // ── Variant list state (edit mode — deletions reflected immediately) ─────
   const [variantList, setVariantList] = useState<ProductVariant[]>(
@@ -103,15 +107,47 @@ export function ProductFormPage({
 
   // ── Name → auto-slug ────────────────────────────────────────────────────
   const handleNameChange = useCallback((value: string) => {
+    const nextSlug = slugify(value);
     setName(value);
-    if (!slugTouched.current) setSlug(slugify(value));
-    setErrors((prev) => ({ ...prev, name: undefined }));
+    setSlug(nextSlug);
+    setSlugCheckMessage("");
+    setSlugCheckTone("default");
+    setErrors((prev) => ({ ...prev, name: undefined, slug: undefined }));
   }, []);
 
-  const handleSlugChange = useCallback((value: string) => {
-    slugTouched.current = true;
-    setSlug(slugify(value));
-  }, []);
+  const handleCheckSlug = useCallback(async () => {
+    const normalizedSlug = slugify(slug.trim() || name.trim());
+    if (!normalizedSlug) {
+      setErrors((prev) => ({ ...prev, slug: "Slug là bắt buộc." }));
+      setSlugCheckMessage("");
+      setSlugCheckTone("default");
+      return;
+    }
+
+    setIsCheckingSlug(true);
+    setSlugCheckMessage("");
+    setSlugCheckTone("default");
+
+    try {
+      const result = await checkProductSlug(normalizedSlug, product?.id);
+      setSlug(result.slug);
+
+      if (result.exists) {
+        setErrors((prev) => ({ ...prev, slug: "Slug này đã tồn tại." }));
+        setSlugCheckMessage("Slug này đã tồn tại trong hệ thống.");
+        setSlugCheckTone("error");
+      } else {
+        setErrors((prev) => ({ ...prev, slug: undefined }));
+        setSlugCheckMessage("Slug này hiện chưa được sử dụng.");
+        setSlugCheckTone("success");
+      }
+    } catch {
+      setSlugCheckMessage("Không thể kiểm tra slug lúc này.");
+      setSlugCheckTone("error");
+    } finally {
+      setIsCheckingSlug(false);
+    }
+  }, [name, product?.id, slug]);
 
   // ── Variant delete ───────────────────────────────────────────────────────
   const handleVariantDeleteConfirm = async () => {
@@ -121,19 +157,19 @@ export function ProductFormPage({
       await deleteVariant(deleteTarget.id);
       setVariantList((prev) => prev.filter((v) => v.id !== deleteTarget.id));
       setDeleteTarget(null);
-      showToast("Đã xoá phiên bản.", "success");
+      showToast("Đã xóa phiên bản.", "success");
     } catch {
-      showToast("Không thể xoá phiên bản. Vui lòng thử lại.", "error");
+      showToast("Không thể xóa phiên bản. Vui lòng thử lại.", "error");
     } finally {
       setIsDeleting(false);
     }
   };
 
-  // ── Submit ───────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     const newErrors: FormErrors = {};
+    if (!slug.trim())       newErrors.slug     = "Slug là bắt buộc.";
     if (!name.trim())       newErrors.name     = "Tên sản phẩm là bắt buộc.";
     if (!category.trim())   newErrors.category = "Danh mục là bắt buộc.";
     if (brand.length === 0) newErrors.brand    = "Thương hiệu là bắt buộc.";
@@ -143,39 +179,42 @@ export function ProductFormPage({
 
     setIsSubmitting(true);
     try {
-      const finalSlug = slug.trim() || slugify(name.trim());
+      const finalSlug = slugify(slug.trim() || name.trim());
 
       if (mode === "create") {
         const created = await createProduct({
-          name:     name.trim(),
-          slug:     finalSlug,
+          name: name.trim(),
+          slug: finalSlug,
           category: category.trim(),
-          brands:   brand,
-          status:   status as Product["status"],
+          brands: brand,
+          status: status as Product["status"],
           variants: [],
         });
         showToast("Tạo sản phẩm thành công.", "success");
         router.push(`/products/${created.id}`);
-        // Keep spinner until navigation unmounts the component
       } else {
         const updated = await updateProduct(product!.id, {
-          name:     name.trim(),
-          slug:     finalSlug,
+          name: name.trim(),
+          slug: finalSlug,
           category: category.trim(),
-          brands:   brand,
-          status:   status as Product["status"],
-          // variants intentionally omitted — managed via the detail page
+          brands: brand,
+          status: status as Product["status"],
         });
         showToast("Cập nhật sản phẩm thành công.", "success");
         router.push(`/products/${updated.id}`);
-        // Keep spinner until navigation unmounts the component
       }
-    } catch {
-      showToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.toLowerCase().includes("slug")) {
+        setErrors((prev) => ({ ...prev, slug: "Slug này đã tồn tại." }));
+        setSlugCheckMessage("Slug này đã tồn tại trong hệ thống.");
+        setSlugCheckTone("error");
+      } else {
+        showToast("Đã xảy ra lỗi. Vui lòng thử lại.", "error");
+      }
       setIsSubmitting(false);
     }
   };
-
   const backHref = mode === "edit" ? `/products/${product!.id}` : "/products";
 
   // ── Render ────────────────────────────────────────────────────────────────
@@ -221,13 +260,41 @@ export function ProductFormPage({
                 fullWidth
                 errorMessage={errors.name}
               />
+
               <Input
                 label="Slug"
                 value={slug}
-                onChange={(e) => handleSlugChange(e.target.value)}
-                placeholder="auto-generated from name"
+                placeholder="Tự động tạo từ tên sản phẩm"
+                required
+                readOnly
+                errorMessage={errors.slug}
                 fullWidth
-                helperText="Dùng trong URL, chỉ chứa chữ thường, số, và dấu gạch ngang."
+                helperText={
+                  <span className="inline-flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span>Sử dụng trong URL, tự động tạo từ tên sản phẩm và không thể chỉnh sửa.</span>
+                    <button
+                      type="button"
+                      onClick={handleCheckSlug}
+                      disabled={isCheckingSlug || !slug.trim()}
+                      className="font-medium text-primary-600 underline underline-offset-2 transition-colors hover:text-primary-700 disabled:cursor-not-allowed disabled:text-secondary-400"
+                    >
+                      {isCheckingSlug ? "Đang kiểm tra..." : "Kiểm tra slug này"}
+                    </button>
+                    {slugCheckMessage ? (
+                      <span
+                        className={[
+                          slugCheckTone === "success"
+                            ? "text-success-700"
+                            : slugCheckTone === "error"
+                              ? "text-error-600"
+                              : "text-secondary-500",
+                        ].join(" ")}
+                      >
+                        {slugCheckMessage}
+                      </span>
+                    ) : null}
+                  </span>
+                }
               />
             </div>
 

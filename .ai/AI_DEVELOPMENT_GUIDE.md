@@ -7,6 +7,7 @@
 □ Check src/components/admin/{domain}/ for existing components
 □ Check src/components/ui/ for available UI primitives
 □ Identify required role(s) for this feature
+□ For backend endpoints: read computer-store-backend/src/modules/<module>/ (controller + dto/) directly
 □ Confirm page type: list (TableToolbar + DataTable) | detail (AdminDetailLayout) | settings
 ```
 
@@ -14,43 +15,43 @@
 
 ## RECIPE: New CRUD list page
 
-1. Find spec in FEATURE_SPEC.md
-2. Add types → `src/types/{resource}.types.ts`
-3. Add service → `src/services/{resource}.service.ts`
-4. Create page at `src/app/(dashboard)/{route}/page.tsx`:
-```tsx
-export const dynamic = "force-dynamic";
+1. Find the spec in FEATURE_SPEC.md.
+2. Add types → `src/types/{resource}.types.ts`.
+3. Add service → `src/services/{resource}.service.ts` (transport only, no UI defaults).
+4. Create the page at `src/app/(dashboard)/{route}/page.tsx`:
+   ```tsx
+   export const dynamic = "force-dynamic";
 
-<AdminPageWrapper title="..." action={<Button>Thêm mới</Button>}>
-  <TableToolbar
-    search={<AdminSearchBar />}
-    filters={<FilterDropdown />}
-    actions={<ExportButton />}
-    selectedCount={selectedRows.length}
-    bulkActions={[{ label: "Xóa đã chọn", icon: <TrashIcon />, onClick: handleBulkDelete, variant: "danger" }]}
-    onClearSelection={() => setSelectedRows([])}
-  />
-  <DataTable columns={columns} data={data} isLoading={isLoading} />
-</AdminPageWrapper>
-```
-5. Create `loading.tsx` with Skeleton rows
-6. Add role guard to `proxy.ts` if route needs restriction
+   <AdminPageWrapper title="..." action={<Button>Thêm mới</Button>}>
+     <TableToolbar
+       search={<AdminSearchBar />}
+       filters={<FilterDropdown />}
+       actions={<ExportButton />}
+       selectedCount={selectedRows.length}
+       bulkActions={[{ label: "Xóa đã chọn", icon: <TrashIcon />, onClick: handleBulkDelete, variant: "danger" }]}
+       onClearSelection={() => setSelectedRows([])}
+     />
+     <DataTable columns={columns} data={data} isLoading={isLoading} />
+   </AdminPageWrapper>
+   ```
+5. Create a `loading.tsx` with Skeleton rows.
+6. Add role gating to `proxy.ts` if the route needs restriction.
 
 ---
 
 ## RECIPE: New detail / edit page
 
-1. Create `src/app/(dashboard)/{route}/[id]/page.tsx`
-2. Fetch record server-side, pass as `initialData`
+1. Create `src/app/(dashboard)/{route}/[id]/page.tsx`.
+2. Fetch the record server-side and pass it as `initialData`.
 3. Wrap in `<AdminDetailLayout main={...} aside={...} />`:
-   - `main`: form, tabs, DataTable sub-sections
-   - `aside`: status panel, metadata, AuditLogViewer
-4. Use `InlineEditField` for quick single-field corrections
-5. Destructive actions: always `ConfirmDialog`
+   - `main`: form, tabs, DataTable sub-sections.
+   - `aside`: status panel, metadata, AuditLogViewer.
+4. Use `InlineEditField` for quick single-field edits.
+5. Destructive actions always go through `ConfirmDialog`.
 
 ---
 
-## RECIPE: Product form (create/edit)
+## RECIPE: Product form (create / edit)
 
 ```
 Left (ProductFormTabs):
@@ -62,8 +63,7 @@ Left (ProductFormTabs):
 Right:
   → ProductStatusPanel (publish / draft / schedule)
 ```
-
-Routes: `/products/new` (create) | `/products/:id/edit` (edit)
+Routes: `/products/new` (create) | `/products/:id/edit` (edit).
 
 ---
 
@@ -71,8 +71,8 @@ Routes: `/products/new` (create) | `/products/:id/edit` (edit)
 
 ```tsx
 // src/components/admin/dashboard/{WidgetName}.tsx
-// Use StatCard for KPI boxes
-// Use Recharts (LineChart / BarChart / PieChart) for charts
+// Use StatCard for KPI boxes.
+// Use Recharts (LineChart / BarChart / PieChart) for charts.
 // Dashboard page: src/app/(dashboard)/page.tsx
 // export const dynamic = "force-dynamic"
 ```
@@ -82,14 +82,12 @@ Routes: `/products/new` (create) | `/products/:id/edit` (edit)
 ## RECIPE: Role-protected page
 
 ```ts
-// Option A — proxy.ts (Next.js 16 route guard, replaces middleware.ts):
-// proxy.ts already exists at src/proxy.ts — add role checks there.
-// Example pattern already in proxy.ts:
+// Option A — proxy.ts (preferred, replaces middleware.ts):
 if (pathname.startsWith("/employees") && token.role !== "admin") {
-  return NextResponse.redirect(new URL("/dashboard", req.url));
+  return NextResponse.redirect(new URL("/", req.url));
 }
 
-// Option B — page level with hook:
+// Option B — component-level guard:
 const { hasRole } = useRoleGuard();
 if (!hasRole("admin")) return <Unauthorized />;
 ```
@@ -98,14 +96,14 @@ if (!hasRole("admin")) return <Unauthorized />;
 
 ## RECIPE: New settings sub-page
 
-1. `src/app/(dashboard)/settings/{section}/page.tsx`
-2. `src/components/admin/settings/{Section}Form.tsx`
-3. Add nav entry to `SettingsLayout.tsx` (href, label, icon)
-4. Form: react-hook-form + Zod + `onSave` callback
+1. Create `src/app/(dashboard)/settings/{section}/page.tsx`.
+2. Build `src/components/admin/settings/{Section}Form.tsx`.
+3. Add a nav entry to `SettingsLayout.tsx` (`href`, `label`, `icon`).
+4. The form uses `react-hook-form` + Zod + an `onSave` callback.
 
 ---
 
-## RECIPE: Promotion form (create/edit)
+## RECIPE: Promotion form (create / edit)
 
 ```
 Left (PromotionFormTabs):
@@ -114,7 +112,7 @@ Left (PromotionFormTabs):
            CouponCodeManager (when type = coupon)
            FlashSaleScheduler (when type = flash_sale)
   → Applicability: PromotionApplicabilityPicker
-  → Schedule: start/end AdminDateRangePicker
+  → Schedule: start / end via AdminDateRangePicker
   → Stats: read-only redemption count + revenue impact
 Right:
   → Promotion status panel (publish / draft / archive)
@@ -122,18 +120,18 @@ Right:
 
 ---
 
-## Common Anti-patterns
+## Common anti-patterns
 
 ```
-✗ import from "@computer-store/ui" — not installed
+✗ Importing from "@computer-store/ui" — not installed
 ✗ Custom <table> instead of DataTable
-✗ ISR / cache on admin pages → must be force-dynamic
-✗ UI hiding as sole auth check — backend must also enforce
-✗ violet outside AdminSidebar/AdminHeader
+✗ ISR / cache on admin pages — must be force-dynamic
+✗ UI hiding as the sole auth check — backend must also enforce
+✗ Violet outside AdminSidebar / AdminHeader
 ✗ Form without Zod validation
 ✗ Destructive action without ConfirmDialog
-✗ Client-side PDF/Excel generation
-✗ Server data in Zustand
+✗ Client-side PDF / Excel generation
+✗ Server data in a global store
 ✗ Admin components under src/components/layout/ (use src/components/admin/)
-✗ Passing active prop to AdminSidebar nav items
+✗ Passing an active prop to AdminSidebar nav items
 ```

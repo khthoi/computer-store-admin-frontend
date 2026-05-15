@@ -65,9 +65,12 @@ export interface BuildPCRule {
   /** Slot that must satisfy the rule (đích) */
   slotDichId: string;
   slotDichTen: string;
-  /** loai_thong_so.ma_ky_thuat — machine-readable spec key (e.g. "cpu_socket") */
-  maKyThuat: string;
-  maKyThuatTen: string;     // Human-readable label for the spec key
+  /** loai_thong_so.ma_ky_thuat ở slot nguồn (vd. "socket") */
+  maKtNguon: string;
+  maKtNguonTen: string;
+  /** loai_thong_so.ma_ky_thuat ở slot đích (vd. "mb_socket"). Rỗng khi quy tắc một-slot. */
+  maKtDich: string;
+  maKtDichTen: string;
   loaiKiemTra: RuleCheckType;
   giaTriMacDinh?: string;   // Optional static reference value (overrides slot's spec)
   /** Coefficient — only relevant for min_sum / min_value */
@@ -82,7 +85,8 @@ export interface BuildPCRule {
 export interface BuildPCRuleFormData {
   slotNguonId: string;
   slotDichId: string;
-  maKyThuat: string;
+  maKtNguon: string;
+  maKtDich: string;
   loaiKiemTra: RuleCheckType;
   giaTriMacDinh: string;
   heSo: string;             // string because it's a form <input>

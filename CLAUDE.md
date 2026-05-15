@@ -38,4 +38,4 @@ Port: 3001 | Backend: NestJS port 4000 | Auth: NextAuth.js JWT + RBAC
 - `.ai/COMPONENT_GUIDELINES.md` — DataTable, StatCard, form code patterns
 - `.ai/DESIGN_SYSTEM.md` — color tokens, typography, layout
 - `.ai/FOLDER_STRUCTURE.md` — where to place new files
-- `.ai/API_CONTRACT.md` — backend endpoint reference
+- For backend endpoints: read `computer-store-backend/src/modules/<module>/` directly (controller + dto/)

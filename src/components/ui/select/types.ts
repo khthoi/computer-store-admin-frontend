@@ -140,4 +140,50 @@ export interface SelectProps {
    * @default true
    */
   showDescriptionInTrigger?: boolean;
+  /**
+   * Enable async (server-side) search mode. When `true`:
+   * - Disables built-in client-side filtering — caller is responsible for
+   *   providing already-filtered `options` based on the query.
+   * - The component calls `onSearch(query)` debounced as the user types,
+   *   and once with an empty string when the dropdown first opens.
+   * - Dropdown footer shows "Hiển thị X / Y" using `options.length` and
+   *   `totalCount`, plus a spinner while `loading` is true.
+   * Requires `searchable` to also be enabled.
+   * @default false
+   */
+  asyncSearch?: boolean;
+  /**
+   * Called with the current search query (debounced) when `asyncSearch` is enabled.
+   * Use this to fetch matching options from the server.
+   */
+  onSearch?: (query: string) => void;
+  /**
+   * When `true`, the dropdown shows a loading spinner. Used together with
+   * `asyncSearch` to communicate in-flight fetches.
+   */
+  loading?: boolean;
+  /**
+   * Total number of items available on the server (across all pages). Used by
+   * the dropdown footer to render "Hiển thị X / Y" when `asyncSearch` is on.
+   * Pass `undefined` to show only the loaded count.
+   */
+  totalCount?: number;
+  /**
+   * Debounce delay (ms) before invoking `onSearch` after a keystroke.
+   * @default 300
+   */
+  searchDebounceMs?: number;
+  /**
+   * Snapshot of the currently-selected option (single-select). Used in
+   * `asyncSearch` mode so the trigger can show the proper label even when the
+   * selected value is not present in the current `options` list (e.g. after
+   * the user searches and the previously-selected item is filtered out, or
+   * on an edit form where the value was loaded but the option list starts empty).
+   */
+  selectedOption?: SelectOption;
+  /**
+   * Snapshot of currently-selected options (multi-select). Same purpose as
+   * `selectedOption` but for multi-select mode.
+   */
+  selectedOptions?: SelectOption[];
 }

@@ -70,12 +70,10 @@ function Section({
 
 function LogoFooterPreview({
   logoUrl,
-  logoAlt,
   description,
   className,
 }: {
   logoUrl?: string;
-  logoAlt?: string;
   description?: string;
   className?: string;
 }) {
@@ -86,11 +84,11 @@ function LogoFooterPreview({
       </p>
       {/* Simulated footer brand column */}
       <div className="rounded-lg bg-slate-800 p-4">
-        <div className="mb-3 flex h-8 items-center">
+        <div className="mb-3 flex h-16 items-center">
           {logoUrl
             // eslint-disable-next-line @next/next/no-img-element
-            ? <img src={logoUrl} alt={logoAlt ?? "Logo"} className="h-8 object-contain" />
-            : <span className="text-base font-bold text-white">{logoAlt || "PC Store"}</span>
+            ? <img src={logoUrl} alt="Logo" className="h-16 object-contain" />
+            : <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary-600 text-lg font-extrabold text-white">PC</div>
           }
         </div>
         {description ? (
@@ -110,7 +108,7 @@ function LogoFooterPreview({
         </div>
       </div>
       <p className="mt-2 text-[10px] text-secondary-400">
-        Logo hiển thị ở chiều cao 32 px trên nền tối — tỷ lệ 3:1 (ví dụ: 180 × 60 px) cho kết quả tốt nhất.
+        Logo hiển thị ở chiều cao 64 px trên nền tối — tỷ lệ 3:1 (ví dụ: 240 × 80 px) cho kết quả tốt nhất.
       </p>
     </div>
   );
@@ -138,11 +136,11 @@ function FooterPreview({
       <div className="grid grid-cols-4 gap-6 border-b border-slate-700 pb-6">
         {/* Brand column */}
         <div className="col-span-1">
-          <div className="mb-3 flex h-8 items-center">
+          <div className="mb-3 flex h-16 items-center">
             {config.brand.logoUrl
               // eslint-disable-next-line @next/next/no-img-element
-              ? <img src={config.brand.logoUrl} alt={config.brand.logoAlt} className="h-8 object-contain" />
-              : <span className="text-base font-bold text-white">{config.brand.storeName || "PC Store"}</span>
+              ? <img src={config.brand.logoUrl} alt="Logo" className="h-16 object-contain" />
+              : <div className="flex h-16 w-16 items-center justify-center rounded-xl bg-primary-600 text-lg font-extrabold text-white">PC</div>
             }
           </div>
           <p className="text-xs text-slate-400 leading-relaxed line-clamp-4">
@@ -294,16 +292,9 @@ export function FooterEditor({
       <Section
         icon={<BuildingStorefrontIcon className="h-5 w-5" />}
         title="Thông tin thương hiệu"
-        subtitle="Logo, tên cửa hàng, mô tả hiển thị ở cột đầu footer"
+        subtitle="Logo và mô tả hiển thị ở cột đầu footer"
       >
         <div className="flex flex-col gap-4">
-          <Input
-            label="Tên cửa hàng"
-            value={config.brand.storeName}
-            onChange={(e) => updateBrand({ storeName: e.target.value })}
-            placeholder="PC Store"
-          />
-
           {/* Logo upload + live preview */}
           <div className="grid grid-cols-5 gap-6 items-start">
             {/* Left: uploader (1/5) */}
@@ -315,22 +306,14 @@ export function FooterEditor({
                   setLogoImage(v);
                   updateBrand({ logoUrl: v.displayUrl ?? "" });
                 }}
-                aspectRatioHint="3:1 — Đề nghị 180 × 60 px"
+                aspectRatioHint="3:1 — Đề nghị 240 × 80 px"
                 allowedTypes={["image"]}
-              />
-              <Input
-                label="Alt text logo"
-                value={config.brand.logoAlt}
-                onChange={(e) => updateBrand({ logoAlt: e.target.value })}
-                placeholder="PC Store"
-                helperText="Văn bản thay thế khi ảnh không tải được"
               />
             </div>
             {/* Right: storefront preview (3/5) */}
             <div className="col-span-3">
               <LogoFooterPreview
                 logoUrl={config.brand.logoUrl}
-                logoAlt={config.brand.logoAlt || config.brand.storeName || "PC Store"}
                 description={config.brand.description}
                 className="mt-3"
               />

@@ -162,6 +162,7 @@ const PUCK_CONFIG: Config = {
     },
   },
   root: {
+    fields: {},
     render: ({ children }: { children: React.ReactNode }) => (
       <div className="min-h-[280px] space-y-3 p-3">{children}</div>
     ),
@@ -322,6 +323,7 @@ export function PromotionsBannerLayout() {
   const [isDirty, setIsDirty] = useState(false);
 
   const latestData = useRef<Data>({ content: [], root: { props: {} } });
+  const baselineLayoutRef = useRef<string>("[]");
 
   useEffect(() => {
     getBanners({ position: ["promotions_banner"], pageSize: 50 }).then((result) => {
@@ -332,20 +334,28 @@ export function PromotionsBannerLayout() {
       const nextData = bannersToData(sorted);
       setInitialData(nextData);
       latestData.current = nextData;
+      baselineLayoutRef.current = JSON.stringify(dataToLayout(nextData));
       setIsLoading(false);
     });
   }, []);
 
   const handleChange = useCallback((data: Data) => {
     latestData.current = data;
-    setIsDirty(true);
-    setSaved(false);
+    // Compare semantic layout (id+gridX+gridY+gridW+gridH) instead of relying
+    // on Puck's onChange — Puck fires onChange during initial mount when it
+    // normalizes the data tree, which would incorrectly mark the layout as dirty.
+    const nextLayout = JSON.stringify(dataToLayout(data));
+    const dirty = nextLayout !== baselineLayoutRef.current;
+    setIsDirty(dirty);
+    if (dirty) setSaved(false);
   }, []);
 
   const handleSave = useCallback(async () => {
     setIsSaving(true);
     try {
-      await saveBannersLayout(dataToLayout(latestData.current));
+      const layout = dataToLayout(latestData.current);
+      await saveBannersLayout(layout);
+      baselineLayoutRef.current = JSON.stringify(layout);
       setIsDirty(false);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);

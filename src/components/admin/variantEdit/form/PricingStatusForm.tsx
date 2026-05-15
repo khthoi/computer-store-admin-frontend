@@ -80,7 +80,7 @@ export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatu
         {/* Live discount preview — always occupies space to prevent layout shift */}
         <div className="min-h-[36px]">
           {discount > 0 && (
-            <div className="flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 px-3 py-2">
+            <div className="flex items-center gap-2 rounded-lg border border-success-200 bg-success-50 px-3 py-2 w-fit">
               <span className="text-sm text-success-700">Giảm giá:</span>
               <Badge variant="success" size="sm">−{discount}%</Badge>
             </div>

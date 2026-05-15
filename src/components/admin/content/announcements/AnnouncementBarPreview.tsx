@@ -26,20 +26,19 @@ export function AnnouncementBarPreview({ data }: AnnouncementBarPreviewProps) {
         style={{
           backgroundColor: bg,
           color: fg,
-          paddingLeft: isScrolling ? 0 : "1.5rem",
-          paddingRight: isScrolling ? 0 : "1.5rem",
+          paddingLeft: isScrolling ? "1rem" : "1.5rem",
+          paddingRight: isScrolling ? "3rem" : "1.5rem",
         }}
       >
         {isScrolling ? (
-          /* Marquee — 6 copies in a 200%-wide container; each copy is exactly 1/3 of
-             the visible area so precisely 3 copies are on-screen at all times, evenly
-             spaced. The keyframe moves -50% (= 100% of visible area = 3 copy-widths)
-             for a seamless right-to-left loop. */
+          /* Marquee preview — keep only ~3 visible repeats with an explicit gap so
+             duplicated ribbons do not visually collide with each other. */
           <div className="w-full overflow-hidden">
             <div
               style={{
                 display: "flex",
-                width: "200%",
+                width: "max-content",
+                gap: "4rem",
                 animation: "marquee 16s linear infinite",
                 willChange: "transform",
               }}
@@ -47,8 +46,7 @@ export function AnnouncementBarPreview({ data }: AnnouncementBarPreviewProps) {
               {Array.from({ length: 6 }, (_, i) => (
                 <span
                   key={i}
-                  className="flex items-center justify-center whitespace-nowrap text-center"
-                  style={{ flex: "0 0 16.6667%" }}
+                  className="flex shrink-0 items-center whitespace-nowrap"
                   aria-hidden={i >= 3 ? "true" : undefined}
                 >
                   {plainText}

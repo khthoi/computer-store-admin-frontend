@@ -64,5 +64,5 @@ NEXTAUTH_URL=http://localhost:3001
 6. `.ai/DESIGN_SYSTEM.md` — color tokens, typography, layout
 7. `.ai/UI_DESIGN_SYSTEM.md` — admin-specific token quick reference
 8. `.ai/ICON_SYSTEM.md` — Heroicons rules
-9. `.ai/API_CONTRACT.md` — backend endpoint reference
-10. `.ai/FOLDER_STRUCTURE.md` — where to place new files
+9. `.ai/FOLDER_STRUCTURE.md` — where to place new files
+10. For backend endpoints: read `computer-store-backend/src/modules/<module>/` directly (controller + dto/)

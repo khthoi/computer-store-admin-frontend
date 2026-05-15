@@ -15,8 +15,8 @@ export type InputSize = "sm" | "md" | "lg";
 export interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "size"> {
   /** Visible label rendered above the input */
   label?: string;
-  /** Supplementary text rendered below the input. Hidden when errorMessage is set. */
-  helperText?: string;
+  /** Supplementary content rendered below the input. Hidden when errorMessage is set. */
+  helperText?: ReactNode;
   /** Validation error message. Sets aria-invalid and red border. */
   errorMessage?: string;
   /** Icon or element placed inside the left edge of the input */

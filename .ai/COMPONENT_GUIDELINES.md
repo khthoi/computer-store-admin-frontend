@@ -1,9 +1,9 @@
 # COMPONENT GUIDELINES — computer-store-admin
 
-## Import Paths (Critical)
+## Import paths
 
 ```ts
-// UI primitives — local only (@computer-store/ui NOT installed)
+// UI primitives — local only (@computer-store/ui is NOT installed)
 import { Button }       from "@/src/components/ui/Button";
 import { Input }        from "@/src/components/ui/Input";
 import { Modal }        from "@/src/components/ui/Modal";
@@ -19,34 +19,34 @@ import { FileUpload }     from "@/src/components/admin/FileUpload";
 import { FilterDropdown } from "@/src/components/admin/FilterDropdown";
 
 // Shared admin
-import { TableToolbar }          from "@/src/components/admin/shared/TableToolbar";
-import { AdminSearchBar }        from "@/src/components/admin/shared/AdminSearchBar";
-import { AdminEmptyState }       from "@/src/components/admin/shared/AdminEmptyState";
-import { ExportButton }          from "@/src/components/admin/shared/ExportButton";
-import { InlineEditField }       from "@/src/components/admin/shared/InlineEditField";
-import { AuditLogViewer }        from "@/src/components/admin/shared/AuditLogViewer";
-import { MediaUploadPanel }      from "@/src/components/admin/shared/MediaUploadPanel";
-import { BulkActionBar }         from "@/src/components/admin/shared/BulkActionBar";
-import { AdminDateRangePicker }  from "@/src/components/admin/shared/AdminDateRangePicker";
+import { TableToolbar }         from "@/src/components/admin/shared/TableToolbar";
+import { AdminSearchBar }       from "@/src/components/admin/shared/AdminSearchBar";
+import { AdminEmptyState }      from "@/src/components/admin/shared/AdminEmptyState";
+import { ExportButton }         from "@/src/components/admin/shared/ExportButton";
+import { InlineEditField }      from "@/src/components/admin/shared/InlineEditField";
+import { AuditLogViewer }       from "@/src/components/admin/shared/AuditLogViewer";
+import { MediaUploadPanel }     from "@/src/components/admin/shared/MediaUploadPanel";
+import { BulkActionBar }        from "@/src/components/admin/shared/BulkActionBar";
+import { AdminDateRangePicker } from "@/src/components/admin/shared/AdminDateRangePicker";
 
 // Layout
-import { AdminPageWrapper }   from "@/src/components/admin/layout/AdminPageWrapper";
-import { AdminDetailLayout }  from "@/src/components/admin/layout/AdminDetailLayout";
+import { AdminPageWrapper }  from "@/src/components/admin/layout/AdminPageWrapper";
+import { AdminDetailLayout } from "@/src/components/admin/layout/AdminDetailLayout";
 ```
 
 ---
 
-## DataTable Pattern
+## DataTable pattern
 
 ```tsx
 const columns: ColumnDef<Product>[] = [
-  { accessorKey: "name", header: "Tên sản phẩm" },
+  { key: "name", header: "Tên sản phẩm", sortable: true },
   {
-    accessorKey: "status",
+    key: "status",
     header: "Trạng thái",
-    cell: ({ row }) => <StatusBadge status={row.original.status} />,
+    cell: ({ row }) => <StatusBadge status={row.status} />,
   },
-  { id: "actions", cell: ({ row }) => <ActionMenu item={row.original} /> },
+  { key: "actions", cell: ({ row }) => <ActionMenu item={row} /> },
 ];
 
 <TableToolbar
@@ -62,7 +62,7 @@ const columns: ColumnDef<Product>[] = [
 
 ---
 
-## StatCard Pattern
+## StatCard
 
 ```tsx
 <StatCard
@@ -76,16 +76,13 @@ const columns: ColumnDef<Product>[] = [
 
 ---
 
-## Chart Pattern (Recharts)
+## Chart pattern (Recharts)
 
 ```tsx
 // Dashboard: src/components/admin/dashboard/{ChartName}.tsx
 // Reports:   src/components/admin/reports/{ChartName}.tsx
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-// Primary chart color in admin: accent-500 (#8b5cf6)
-// Grid lines: secondary-200 (#e2e8f0)
-// Font: DM Sans
 <ResponsiveContainer width="100%" height={300}>
   <LineChart data={data}>
     <Line type="monotone" dataKey="revenue" stroke="#8b5cf6" strokeWidth={2} dot={false} />
@@ -95,26 +92,27 @@ import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'rec
   </LineChart>
 </ResponsiveContainer>
 ```
+Admin chart primary series: `accent-500` (`#8b5cf6`). Grid lines: `secondary-200` (`#e2e8f0`).
 
 ---
 
-## Admin Form Pattern
+## Admin form pattern
 
 ```tsx
-import { useForm }     from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { productSchema } from '@/src/lib/validators/product';
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { productSchema } from "@/src/lib/validators/product";
 
 const form = useForm<ProductForm>({ resolver: zodResolver(productSchema) });
 
-<Input {...form.register("name")} label="Tên sản phẩm" error={form.formState.errors.name?.message} />
+<Input  {...form.register("name")}   label="Tên sản phẩm" error={form.formState.errors.name?.message} />
 <Select {...form.register("status")} options={statusOptions} label="Trạng thái" />
 <Button type="submit" loading={form.formState.isSubmitting}>Lưu</Button>
 ```
 
 ---
 
-## Page Templates
+## Page templates
 
 ### List page
 ```tsx
@@ -142,7 +140,7 @@ export default function ProductsPage() {
 
 ---
 
-## Shared Component Quick Reference
+## Shared component quick reference
 
 ```tsx
 // InlineEditField — quick single-field edit in detail views
@@ -168,75 +166,70 @@ export default function ProductsPage() {
 
 ---
 
-## Server-side Pagination Pattern
+## Server-side pagination pattern
 
-Dùng khi DataTable cần fetch dữ liệu mới từ API mỗi khi đổi trang, filter, hoặc sort. Đây là pattern chuẩn cho mọi list page trong admin.
+Use this every time a DataTable needs to refetch on page / filter / sort change.
 
-### Phân tách trách nhiệm
-
+### Responsibilities
 ```
 Service (src/services/*.service.ts)
-  ├── Build URLSearchParams từ params được truyền vào
-  ├── Gọi apiFetch
-  ├── Map raw response → typed result
-  └── KHÔNG có default cho limit/pageSize — component quyết định
+  ├─ Build URLSearchParams from the params it receives.
+  ├─ Call apiFetch.
+  ├─ Map the raw response to a typed result.
+  └─ NO default for limit / pageSize — that is a UI decision.
 
 Component (src/components/admin/*/...Table.tsx)
-  ├── Khai báo PAGE_SIZE (single source of truth)
-  ├── Sở hữu state: page, pageSize, search, filters, sort, loading, data
-  ├── Gọi service với limit: PAGE_SIZE mỗi khi state thay đổi
-  └── Kiểm soát khi nào setLoading(true) — không flash khi chỉ đổi trang
+  ├─ Declares PAGE_SIZE (single source of truth).
+  ├─ Owns: page, pageSize, search, filters, sort, loading, data.
+  ├─ Calls the service with limit: PAGE_SIZE whenever state changes.
+  └─ Controls when to setLoading(true) — never flash on page change.
 ```
 
-### Boilerplate đầy đủ
+### Boilerplate
 
 ```tsx
-// ── Constants ────────────────────────────────────────────────────────────────
-const PAGE_SIZE = 10; // chỉ định nghĩa ở đây — không để trong service
+const PAGE_SIZE = 10;
 
-// ── Refs ─────────────────────────────────────────────────────────────────────
-const fetchTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
-const isFirstRender  = useRef(true);
-const prevSearchRef  = useRef("");
-// Serialise tất cả params ngoài "page" — dùng để phát hiện page-only change
-const prevNonPageKey = useRef(
-  JSON.stringify({ search: "", statusFilter: [], sortKey: "updatedAt", sortDir: "desc", pageSize: PAGE_SIZE })
-);
+const fetchTimerRef     = useRef<ReturnType<typeof setTimeout> | null>(null);
+const isFirstRender     = useRef(true);
+const prevSearchRef     = useRef("");
+const nonPageChangedRef = useRef(false);
 
-// ── State ─────────────────────────────────────────────────────────────────────
-const [data,       setData]       = useState<T[]>(initialData);
-const [total,      setTotal]      = useState(initialTotal);
-const [loading,    setLoading]    = useState(false);
-const [page,       setPage]       = useState(1);
-const [pageSize,   setPageSize]   = useState(PAGE_SIZE);
-const [search,     setSearch]     = useState("");
+const [data,         setData]         = useState<T[]>(initialData);
+const [total,        setTotal]        = useState(initialTotal);
+const [loading,      setLoading]      = useState(false);
+const [page,         setPage]         = useState(1);
+const [pageSize,     setPageSize]     = useState(PAGE_SIZE);
+const [search,       setSearch]       = useState("");
 const [statusFilter, setStatusFilter] = useState<string[]>([]);
-const [sortKey,    setSortKey]    = useState("updatedAt");
-const [sortDir,    setSortDir]    = useState<SortDir>("desc");
+const [sortKey,      setSortKey]      = useState("updatedAt");
+const [sortDir,      setSortDir]      = useState<SortDir>("desc");
 
-// ── Reset page khi filter/sort/pageSize thay đổi ──────────────────────────────
-useEffect(() => {
+// Each handler that changes a non-page param flags the ref and resets page in the same batch.
+const handleSortChange = useCallback((key: string, dir: SortDir) => {
+  nonPageChangedRef.current = true;
+  setSortKey(key);
+  setSortDir(dir);
   setPage(1);
-}, [search, statusFilter, sortKey, sortDir, pageSize]);
+}, []);
+// Repeat the same shape for: handleStatusFilterChange, handleSearchChange, handlePageSizeChange, …
 
-// ── Fetch effect ──────────────────────────────────────────────────────────────
 useEffect(() => {
   if (isFirstRender.current) { isFirstRender.current = false; return; }
 
-  const nonPageKey     = JSON.stringify({ search, statusFilter, sortKey, sortDir, pageSize });
-  const isPageOnly     = nonPageKey === prevNonPageKey.current;
-  prevNonPageKey.current = nonPageKey;
+  const isNonPageChange = nonPageChangedRef.current;
+  nonPageChangedRef.current = false;
 
   const isSearchChange = search !== prevSearchRef.current;
   prevSearchRef.current = search;
 
   if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current);
   fetchTimerRef.current = setTimeout(async () => {
-    if (!isPageOnly) setLoading(true);   // không flash khi chỉ đổi trang
+    if (isNonPageChange) setLoading(true); // never flash on a page-only change
     try {
       const result = await getResource({
         page,
-        limit: pageSize,                 // component truyền xuống, service không tự đặt default
+        limit: pageSize,
         q: search || undefined,
         status: statusFilter[0],
         sortBy: sortKey,
@@ -244,14 +237,13 @@ useEffect(() => {
       });
       setData(result.data);
       setTotal(result.total);
-    } catch { /* giữ nguyên data cũ khi lỗi */ }
+    } catch { /* keep previous data on error */ }
     finally { setLoading(false); }
-  }, isSearchChange ? 300 : 0);         // debounce 300ms cho search, 0ms cho phần còn lại
+  }, isSearchChange ? 300 : 0); // 300ms debounce for search, immediate otherwise
 
   return () => { if (fetchTimerRef.current) clearTimeout(fetchTimerRef.current); };
 }, [page, pageSize, search, statusFilter, sortKey, sortDir]);
 
-// ── DataTable ─────────────────────────────────────────────────────────────────
 <DataTable
   data={data}
   columns={columns}
@@ -261,29 +253,29 @@ useEffect(() => {
   totalRows={total}
   pageSizeOptions={[10, 25, 50]}
   onPageChange={setPage}
-  onPageSizeChange={setPageSize}
+  onPageSizeChange={(n) => { nonPageChangedRef.current = true; setPageSize(n); setPage(1); }}
   sortKey={sortKey}
   sortDir={sortDir}
-  onSortChange={(key, dir) => { setSortKey(key); setSortDir(dir); }}
+  onSortChange={handleSortChange}
   searchQuery={search}
-  onSearchChange={setSearch}
+  onSearchChange={(s) => { nonPageChangedRef.current = true; setSearch(s); setPage(1); }}
 />
 ```
 
-### Quy tắc cốt lõi
+### Core rules
 
-| | Đúng | Sai |
+| Concern | Correct | Wrong |
 |---|---|---|
-| `PAGE_SIZE` | Định nghĩa trong component | Để default trong service |
-| `setLoading(true)` | Chỉ khi filter/sort/search thay đổi | Mọi lần fetch kể cả chuyển trang |
-| `sortOrder` | Luôn uppercase trước khi truyền vào TypeORM | Truyền `"asc"`/`"desc"` thẳng vào `orderBy()` |
-| `limit` trong service | `if (limit) qs.set("limit", ...)` | `const { limit = 10 } = params` |
+| `PAGE_SIZE` | Defined in the component | Defaulted inside the service |
+| `setLoading(true)` | Only when filter / sort / search / pageSize change | On every fetch (including page change) |
+| `sortOrder` | Uppercased before passing to TypeORM | `"asc"` / `"desc"` passed straight to `orderBy()` |
+| `limit` in service | `if (limit) qs.set("limit", ...)` | `const { limit = 10 } = params` |
 
 ---
 
-## Settings Section Pattern
+## Settings section pattern
 
-1. Create `src/app/(dashboard)/settings/{section}/page.tsx`
-2. Add entry to `SettingsLayout.tsx` nav array with `{ href, label, icon }`
-3. Create `src/components/admin/settings/{Section}Form.tsx`
-4. Active state: automatic via `SettingsNavLink` (usePathname-based)
+1. Create `src/app/(dashboard)/settings/{section}/page.tsx`.
+2. Add an entry to `SettingsLayout.tsx`'s nav array: `{ href, label, icon }`.
+3. Create `src/components/admin/settings/{Section}Form.tsx`.
+4. Active state is automatic via `SettingsNavLink` (`usePathname`-based).

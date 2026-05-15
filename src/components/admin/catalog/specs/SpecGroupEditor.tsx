@@ -39,7 +39,6 @@ const WIDGET_OPTIONS: SelectOption[] = [
   { value: "range", label: "Range slider (khoảng số)" },
   { value: "toggle", label: "Toggle (bật/tắt)" },
   { value: "select", label: "Select (chọn một)" },
-  { value: "combo-select", label: "Combo-select (kết hợp)" },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────

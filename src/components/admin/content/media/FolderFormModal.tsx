@@ -92,11 +92,16 @@ export function FolderFormModal({ isOpen, onClose, folder, existingPaths, onSubm
   const loaiChoPhep = watch("loaiChoPhep");
 
   async function handleFormSubmit(values: FolderFormValues) {
-    if (!isEdit && existingPaths?.includes(values.duongDan)) {
+    const normalized = { ...values, duongDan: values.duongDan.replace(/^\/+/, "") };
+    if (!normalized.duongDan) {
+      setError("duongDan", { message: "Vui lòng nhập đường dẫn Cloudinary." });
+      return;
+    }
+    if (!isEdit && existingPaths?.includes(normalized.duongDan)) {
       setError("duongDan", { message: "Đường dẫn này đã tồn tại. Vui lòng chọn đường dẫn khác." });
       return;
     }
-    await onSubmit(values);
+    await onSubmit(normalized);
     onClose();
   }
 

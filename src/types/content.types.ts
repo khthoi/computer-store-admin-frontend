@@ -678,8 +678,6 @@ export interface FooterLinkColumn {
 export interface FooterConfig {
   brand: {
     logoUrl: string;
-    logoAlt: string;
-    storeName: string;
     description: string;
   };
   contact: {

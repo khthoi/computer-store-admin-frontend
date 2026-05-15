@@ -8,11 +8,8 @@ const STATUS_CONFIG: Record<
   FlashSaleStatus,
   { label: string; variant: BadgeVariant }
 > = {
-  nhap:         { label: "Nháp",         variant: "default" },
-  sap_dien_ra:  { label: "Sắp diễn ra",  variant: "warning" },
-  dang_dien_ra: { label: "Đang diễn ra", variant: "success" },
-  da_ket_thuc:  { label: "Đã kết thúc",  variant: "default" },
-  huy:          { label: "Đã hủy",       variant: "error"   },
+  active: { label: "Hoạt động", variant: "success" },
+  paused: { label: "Tạm dừng",  variant: "warning" },
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -23,8 +20,8 @@ interface FlashSaleStatusBadgeProps {
 }
 
 export function FlashSaleStatusBadge({ status, size = "md" }: FlashSaleStatusBadgeProps) {
-  const config  = STATUS_CONFIG[status] ?? STATUS_CONFIG.nhap;
-  const isLive  = status === "dang_dien_ra";
+  const config  = STATUS_CONFIG[status] ?? STATUS_CONFIG.active;
+  const isLive  = status === "active";
 
   return (
     <Badge variant={config.variant} size={size}>

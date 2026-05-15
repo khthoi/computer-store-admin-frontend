@@ -15,16 +15,16 @@ import type {
 // ─── Internal list shapes ──────────────────────────────────────────────────────
 
 interface EmployeeListItem {
-  id: number;
-  maNhanVien: string;
-  hoTen: string;
+  id: string;
+  code: string;
+  fullName: string;
   email: string;
-  soDienThoai: string | null;
-  anhDaiDien: string | null;
+  phone: string | null;
+  avatarUrl: string | null;
 }
 
 interface EmployeeListResult {
-  items: EmployeeListItem[];
+  data: EmployeeListItem[];
   total: number;
 }
 
@@ -89,18 +89,18 @@ export async function getTicketStats(): Promise<TicketStats> {
 
 export async function getStaffOptions(): Promise<StaffOption[]> {
   const [empResult, stats] = await Promise.all([
-    apiFetch<EmployeeListResult>("/admin/employees?limit=100&trangThai=DangLam"),
+    apiFetch<EmployeeListResult>("/admin/employees?limit=100&status=active"),
     apiFetch<AssigneeStatsItem[]>("/admin/tickets/assignee-stats").catch(() => [] as AssigneeStatsItem[]),
   ]);
   const statsMap = new Map(stats.map(s => [s.employeeId, s.openCount]));
-  return empResult.items.map(e => ({
+  return empResult.data.map(e => ({
     value:           String(e.id),
-    maNhanVien:      e.maNhanVien,
-    label:           e.hoTen,
-    avatar:          e.anhDaiDien ?? undefined,
+    maNhanVien:      e.code,
+    label:           e.fullName,
+    avatar:          e.avatarUrl ?? undefined,
     email:           e.email,
-    phone:           e.soDienThoai ?? undefined,
-    openTicketCount: statsMap.get(e.id) ?? 0,
+    phone:           e.phone ?? undefined,
+    openTicketCount: statsMap.get(Number(e.id)) ?? 0,
   }));
 }
 

@@ -226,9 +226,10 @@ export function BuildPCRulesClient() {
         <p className="text-sm text-secondary-600">
           Quy tắc{" "}
           <strong className="font-semibold text-secondary-800">
-            {deleteTarget?.slotNguonTen} → {deleteTarget?.slotDichTen}
+            {deleteTarget?.slotNguonTen}.{deleteTarget?.maKtNguon}
+            {deleteTarget?.slotDichTen && ` → ${deleteTarget?.slotDichTen}.${deleteTarget?.maKtDich}`}
           </strong>{" "}
-          ({deleteTarget?.maKyThuatTen}) sẽ bị xóa vĩnh viễn.
+          sẽ bị xóa vĩnh viễn.
         </p>
       </Modal>
     </div>
@@ -241,7 +242,8 @@ function ruleToFormData(r: BuildPCRule): BuildPCRuleFormData {
   return {
     slotNguonId: r.slotNguonId,
     slotDichId: r.slotDichId,
-    maKyThuat: r.maKyThuat,
+    maKtNguon: r.maKtNguon,
+    maKtDich: r.maKtDich,
     loaiKiemTra: r.loaiKiemTra,
     giaTriMacDinh: r.giaTriMacDinh ?? "",
     heSo: r.heSo !== undefined ? String(r.heSo) : "",

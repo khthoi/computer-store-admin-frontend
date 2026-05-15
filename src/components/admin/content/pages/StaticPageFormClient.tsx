@@ -7,6 +7,7 @@ import { Badge } from "@/src/components/ui/Badge";
 import { Input } from "@/src/components/ui/Input";
 import { Select } from "@/src/components/ui/Select";
 import { Toggle } from "@/src/components/ui/Toggle";
+import { useToast } from "@/src/components/ui/Toast";
 import { RichTextEditor } from "@/src/components/editor/DynamicRichTextEditor";
 import { SeoPanel } from "./SeoPanel";
 import { getStaticPages, getStaticPageById, createStaticPage, updateStaticPage } from "@/src/services/content.service";
@@ -45,6 +46,10 @@ function toSlug(str: string) {
     .replace(/\s+/g, "-");
 }
 
+function stripStaticPageSlugPrefix(slug: string) {
+  return slug.replace(/^info\//i, "").replace(/^\/+/, "");
+}
+
 // ─── Option lists ─────────────────────────────────────────────────────────────
 
 const STATUS_OPTIONS = [
@@ -76,12 +81,12 @@ const TEMPLATE_OPTIONS = [
 export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
   const router = useRouter();
   const isEdit = Boolean(pageId);
+  const { showToast } = useToast();
 
   const [form, setForm] = useState<StaticPageFormData>(DEFAULT);
   const [isLoading, setIsLoading] = useState(isEdit);
   const [isSaving, setIsSaving] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof StaticPageFormData, string>>>({});
-  const [slugManual, setSlugManual] = useState(false);
 
   // Load page data (edit) or compute next sortOrder (create)
   useEffect(() => {
@@ -89,11 +94,10 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
       getStaticPageById(pageId).then((p) => {
         if (p) {
           setForm({
-            title: p.title, slug: p.slug, status: p.status, content: p.content,
+            title: p.title, slug: stripStaticPageSlugPrefix(p.slug), status: p.status, content: p.content,
             seo: p.seo, template: p.template, showInFooter: p.showInFooter,
             showInHeader: p.showInHeader, sortOrder: p.sortOrder,
           });
-          setSlugManual(true);
         }
         setIsLoading(false);
       });
@@ -108,7 +112,7 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
   function set<K extends keyof StaticPageFormData>(key: K, value: StaticPageFormData[K]) {
     setForm((prev) => {
       const next = { ...prev, [key]: value };
-      if (key === "title" && !slugManual) {
+      if (key === "title") {
         next.slug = toSlug(value as string);
       }
       return next;
@@ -133,7 +137,19 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
     try {
       if (isEdit && pageId) { await updateStaticPage(pageId, data); }
       else { await createStaticPage(data); }
+      showToast(isEdit ? "Đã cập nhật trang tĩnh." : "Đã tạo trang tĩnh.", "success");
       router.push("/content/pages");
+    } catch (error) {
+      const message = error instanceof Error && error.message.trim().length > 0
+        ? error.message
+        : "Lưu trang thất bại";
+      if (message.toLowerCase().includes("slug")) {
+        setErrors((prev) => ({
+          ...prev,
+          slug: "Slug này đã tồn tại. Mỗi trang tĩnh phải dùng một đường dẫn khác nhau.",
+        }));
+      }
+      showToast(message, "error");
     } finally {
       setIsSaving(false);
     }
@@ -164,17 +180,32 @@ export function StaticPageFormClient({ pageId }: StaticPageFormClientProps) {
             errorMessage={errors.title}
           />
           <div className="flex flex-col gap-1">
-            <Input
-              label="Slug (URL)"
-              value={form.slug}
-              onChange={(e) => { setSlugManual(true); set("slug", e.target.value); }}
-              placeholder="chinh-sach-bao-hanh"
-              errorMessage={errors.slug}
-              prefixIcon={<span className="text-xs text-secondary-400">/</span>}
-            />
-            {!slugManual && form.title && (
-              <p className="text-xs text-secondary-400">Tự động tạo từ tiêu đề</p>
-            )}
+            <label className="block select-none text-sm font-medium text-secondary-700">
+              Slug (URL)
+              <span aria-hidden="true" className="ml-0.5 select-none text-error-600">*</span>
+            </label>
+            <div className="flex items-start">
+              <span
+                className={[
+                  "inline-flex h-10 shrink-0 items-center rounded-l border border-r-0 px-3 text-sm font-medium",
+                  errors.slug
+                    ? "border-error-400 bg-error-50 text-error-700"
+                    : "border-secondary-300 bg-secondary-100 text-secondary-600",
+                ].join(" ")}
+              >
+                info/
+              </span>
+              <Input
+                value={form.slug}
+                readOnly
+                placeholder="chinh-sach-bao-hanh"
+                errorMessage={errors.slug}
+                className="rounded-l-none border-l-0"
+              />
+            </div>
+            <p className="text-xs text-secondary-400">
+              Slug được tạo tự động từ tiêu đề và luôn có tiền tố <span className="font-medium text-secondary-500">info/</span>. Mỗi trang tĩnh phải có slug duy nhất.
+            </p>
           </div>
         </section>
 

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { Select, type SelectOptionBadge } from "@/src/components/ui/Select";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { Select, type SelectOption, type SelectOptionBadge } from "@/src/components/ui/Select";
 import type { BxgyFields } from "@/src/types/promotion.types";
 import { getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -22,53 +23,86 @@ interface BxgyActionFormProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
-  const [variantFlats, setVariantFlats] = useState<ProductVariantFlat[]>([]);
-  const [loading, setLoading] = useState(true);
+function variantToOption(v: ProductVariantFlat): SelectOption {
+  return {
+    value: v.variantId,
+    label: v.productName,
+    subLabel: v.variantName,
+    description: v.sku,
+    badge: stockBadge(v.stock),
+    disabled: v.status === "inactive",
+  };
+}
 
-  useEffect(() => {
-    getProductVariantsFlat(60)
-      .then(setVariantFlats)
-      .catch(() => {})
-      .finally(() => setLoading(false));
+export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
+  // Accumulated map of every variant we've seen across searches + selections.
+  const seenRef = useRef<Map<string, ProductVariantFlat>>(new Map());
+  const [seenVersion, setSeenVersion] = useState(0);
+
+  const variantFetcher = useCallback(async (q: string) => {
+    const res = await getProductVariantsFlat(25, q || undefined);
+    let changed = false;
+    for (const v of res.variants) {
+      if (!seenRef.current.has(v.variantId)) {
+        seenRef.current.set(v.variantId, v);
+        changed = true;
+      }
+    }
+    if (changed) setSeenVersion((n) => n + 1);
+    return {
+      options: res.variants.map(variantToOption),
+      totalCount: res.totalProducts,
+    };
   }, []);
 
-  // When variants load, sync missing labels for IDs that came from the server
-  // (backend stores IDs only — labels are not persisted)
-  useEffect(() => {
-    if (!variantFlats.length) return;
-    const patches: Partial<BxgyFields> = {};
-    if (value.buyProductId && !value.buyProductLabel) {
-      const vf = variantFlats.find((v) => v.variantId === value.buyProductId);
-      if (vf) patches.buyProductLabel = `${vf.productName} — ${vf.variantName}`;
-    }
-    if (value.getProductId && !value.getProductLabel) {
-      const vf = variantFlats.find((v) => v.variantId === value.getProductId);
-      if (vf) patches.getProductLabel = `${vf.productName} — ${vf.variantName}`;
-    }
-    if (Object.keys(patches).length) patch(patches);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variantFlats]);
+  const {
+    options: variantOpts,
+    totalCount: variantTotal,
+    loading: variantLoading,
+    onSearch: onVariantSearch,
+  } = useAsyncSelectOptions({ fetcher: variantFetcher });
 
-  const variantOpts = useMemo(
-    () =>
-      variantFlats.map((v) => ({
-        value: v.variantId,
-        label: v.productName,
-        subLabel: v.variantName,
-        description: v.sku,
-        badge: stockBadge(v.stock),
-        disabled: v.status === "inactive",
-      })),
-    [variantFlats]
-  );
+  // Snapshot options for the currently-picked buy/get ids — keeps trigger
+  // labels rendered even when the live options list does not contain them.
+  const selectedBuy = useMemo<SelectOption | undefined>(() => {
+    if (!value.buyProductId) return undefined;
+    const v = seenRef.current.get(value.buyProductId);
+    if (v) return variantToOption(v);
+    // Edit-mode fallback: BxgyFields persists labels with the saved IDs.
+    if (value.buyProductLabel) return { value: value.buyProductId, label: value.buyProductLabel };
+    return { value: value.buyProductId, label: value.buyProductId };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.buyProductId, value.buyProductLabel, seenVersion]);
+  const selectedGet = useMemo<SelectOption | undefined>(() => {
+    if (!value.getProductId) return undefined;
+    const v = seenRef.current.get(value.getProductId);
+    if (v) return variantToOption(v);
+    if (value.getProductLabel) return { value: value.getProductId, label: value.getProductLabel };
+    return { value: value.getProductId, label: value.getProductId };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value.getProductId, value.getProductLabel, seenVersion]);
 
   function patch(partial: Partial<BxgyFields>) {
     onChange({ ...value, ...partial });
   }
 
+  // Sync missing labels in `value` when we discover the variant for the first time.
+  useEffect(() => {
+    const patches: Partial<BxgyFields> = {};
+    if (value.buyProductId && !value.buyProductLabel) {
+      const vf = seenRef.current.get(value.buyProductId);
+      if (vf) patches.buyProductLabel = `${vf.productName} — ${vf.variantName}`;
+    }
+    if (value.getProductId && !value.getProductLabel) {
+      const vf = seenRef.current.get(value.getProductId);
+      if (vf) patches.getProductLabel = `${vf.productName} — ${vf.variantName}`;
+    }
+    if (Object.keys(patches).length) patch(patches);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [seenVersion]);
+
   function handleBuyChange(id: string) {
-    const vdata = variantFlats.find((v) => v.variantId === id);
+    const vdata = seenRef.current.get(id);
     patch({
       buyProductId: id || undefined,
       buyProductLabel: vdata ? `${vdata.productName} — ${vdata.variantName}` : undefined,
@@ -76,7 +110,7 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
   }
 
   function handleGetChange(id: string) {
-    const vdata = variantFlats.find((v) => v.variantId === id);
+    const vdata = seenRef.current.get(id);
     patch({
       getProductId: id || undefined,
       getProductLabel: vdata ? `${vdata.productName} — ${vdata.variantName}` : undefined,
@@ -94,11 +128,15 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
           value={value.buyProductId ?? ""}
           onChange={(v) => handleBuyChange(v as string)}
           searchable
+          asyncSearch
+          onSearch={onVariantSearch}
+          loading={variantLoading}
+          totalCount={variantTotal}
+          selectedOption={selectedBuy}
           clearable
           boldLabel
-          placeholder={loading ? "Đang tải phiên bản…" : "Bất kỳ phiên bản trong phạm vi"}
+          placeholder="Bất kỳ phiên bản trong phạm vi"
           helperText="Để trống để khớp với bất kỳ phiên bản nào trong phạm vi"
-          disabled={loading}
         />
         <div>
           <label className="block text-xs font-semibold text-secondary-600 mb-1.5">
@@ -125,11 +163,15 @@ export function BxgyActionForm({ value, onChange }: BxgyActionFormProps) {
           value={value.getProductId ?? ""}
           onChange={(v) => handleGetChange(v as string)}
           searchable
+          asyncSearch
+          onSearch={onVariantSearch}
+          loading={variantLoading}
+          totalCount={variantTotal}
+          selectedOption={selectedGet}
           clearable
           boldLabel
-          placeholder={loading ? "Đang tải phiên bản…" : "Giống phiên bản mua"}
+          placeholder="Giống phiên bản mua"
           helperText="Để trống để áp dụng giảm giá cho cùng phiên bản mua"
-          disabled={loading}
         />
         <div className="grid gap-3 sm:grid-cols-3">
           <div>

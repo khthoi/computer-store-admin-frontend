@@ -325,10 +325,26 @@ export async function setHomepageHeroMode(mode: HomepageHeroMode): Promise<Homep
 
 const STATUS_MAP = { draft: "nhap", published: "da_xuat_ban", archived: "an" } as const;
 
+function withStaticPageSlugPrefix(slug: string) {
+  const normalized = slug.trim().replace(/^\/+|\/+$/g, "").replace(/^info\//i, "");
+  return `info/${normalized}`;
+}
+
+export interface StaticPageMenuOption {
+  id: string;
+  title: string;
+  slug: string;
+  url: string;
+}
+
+export function buildStaticPageUrl(slug: string) {
+  return `/${withStaticPageSlugPrefix(slug)}`;
+}
+
 function mapFormToApi(data: StaticPageFormData) {
   return {
     title: data.title,
-    slug: data.slug,
+    slug: withStaticPageSlugPrefix(data.slug),
     content: data.content,
     status: STATUS_MAP[data.status],
     template: data.template,
@@ -352,6 +368,16 @@ export async function getStaticPages(params: StaticPageListParams = {}): Promise
   if (q) qs.set("q", q);
   status.forEach((s) => qs.append("status", s));
   return apiFetch<StaticPageListResult>(`/admin/pages?${qs}`);
+}
+
+export async function getStaticPageMenuOptions(): Promise<StaticPageMenuOption[]> {
+  const result = await getStaticPages({ pageSize: 200 });
+  return result.data.map((page) => ({
+    id: page.id,
+    title: page.title,
+    slug: page.slug,
+    url: buildStaticPageUrl(page.slug),
+  }));
 }
 
 export async function getStaticPageById(id: string): Promise<StaticPage | null> {
@@ -455,22 +481,112 @@ export async function deleteArticle(id: string): Promise<void> {
 
 // ─── Popups ───────────────────────────────────────────────────────────────────
 
+type PopupApiResponse = Omit<Popup, "title" | "imageUrl" | "ctaLabel" | "ctaUrl" | "startDate" | "endDate"> & {
+  title: string | null;
+  imageUrl: string | null;
+  ctaLabel: string | null;
+  ctaUrl: string | null;
+  startDate: string | null;
+  endDate: string | null;
+};
+
+type AnnouncementBarApiResponse = Omit<AnnouncementBar, "linkUrl" | "linkLabel" | "startDate" | "endDate"> & {
+  linkUrl: string | null;
+  linkLabel: string | null;
+  startDate: string | null;
+  endDate: string | null;
+};
+
+function nullIfBlank(value: string | null | undefined) {
+  if (value == null) return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed : null;
+}
+
+function mapPopupFromApi(raw: PopupApiResponse): Popup {
+  return {
+    ...raw,
+    title: raw.title ?? undefined,
+    imageUrl: raw.imageUrl ?? undefined,
+    ctaLabel: raw.ctaLabel ?? undefined,
+    ctaUrl: raw.ctaUrl ?? undefined,
+    startDate: raw.startDate ?? null,
+    endDate: raw.endDate ?? null,
+    targetPages: raw.targetPages ?? [],
+  };
+}
+
+function mapPopupPayload(data: Partial<PopupFormData>) {
+  const payload: Record<string, unknown> = {};
+
+  if ("name" in data) payload.name = data.name;
+  if ("status" in data) payload.status = data.status;
+  if ("position" in data) payload.position = data.position;
+  if ("trigger" in data) payload.trigger = data.trigger;
+  if ("delaySeconds" in data) payload.delaySeconds = data.delaySeconds ?? null;
+  if ("scrollPercent" in data) payload.scrollPercent = data.scrollPercent ?? null;
+  if ("title" in data) payload.title = nullIfBlank(data.title);
+  if ("body" in data) payload.body = data.body;
+  if ("imageUrl" in data) payload.imageUrl = nullIfBlank(data.imageUrl);
+  if ("ctaLabel" in data) payload.ctaLabel = nullIfBlank(data.ctaLabel);
+  if ("ctaUrl" in data) payload.ctaUrl = nullIfBlank(data.ctaUrl);
+  if ("showCloseButton" in data) payload.showCloseButton = data.showCloseButton;
+  if ("showOnce" in data) payload.showOnce = data.showOnce;
+  if ("targetPages" in data) payload.targetPages = data.targetPages ?? [];
+  if ("startDate" in data) payload.startDate = nullIfBlank(data.startDate);
+  if ("endDate" in data) payload.endDate = nullIfBlank(data.endDate);
+
+  return payload;
+}
+
+function mapAnnouncementBarFromApi(raw: AnnouncementBarApiResponse): AnnouncementBar {
+  return {
+    ...raw,
+    linkUrl: raw.linkUrl ?? undefined,
+    linkLabel: raw.linkLabel ?? undefined,
+    startDate: raw.startDate ?? null,
+    endDate: raw.endDate ?? null,
+  };
+}
+
+function mapAnnouncementBarPayload(data: Partial<AnnouncementBarFormData>) {
+  const payload: Record<string, unknown> = {};
+
+  if ("name" in data) payload.name = data.name;
+  if ("status" in data) payload.status = data.status;
+  if ("position" in data) payload.position = data.position;
+  if ("content" in data) payload.content = data.content;
+  if ("backgroundColor" in data) payload.backgroundColor = data.backgroundColor;
+  if ("textColor" in data) payload.textColor = data.textColor;
+  if ("showCloseButton" in data) payload.showCloseButton = data.showCloseButton;
+  if ("isScrolling" in data) payload.isScrolling = data.isScrolling;
+  if ("linkUrl" in data) payload.linkUrl = nullIfBlank(data.linkUrl);
+  if ("linkLabel" in data) payload.linkLabel = nullIfBlank(data.linkLabel);
+  if ("startDate" in data) payload.startDate = nullIfBlank(data.startDate);
+  if ("endDate" in data) payload.endDate = nullIfBlank(data.endDate);
+
+  return payload;
+}
+
 export async function getPopups(): Promise<Popup[]> {
-  return apiFetch<Popup[]>("/admin/popups");
+  const raw = await apiFetch<PopupApiResponse[]>("/admin/popups");
+  return raw.map(mapPopupFromApi);
 }
 
 export async function createPopup(data: PopupFormData): Promise<Popup> {
-  return apiFetch<Popup>("/admin/popups", {
+  const raw = await apiFetch<PopupApiResponse>("/admin/popups", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(mapPopupPayload(data)),
   });
+  return mapPopupFromApi(raw);
 }
 
 export async function updatePopup(id: string, data: Partial<PopupFormData>): Promise<Popup> {
-  return apiFetch<Popup>(`/admin/popups/${id}`, {
+  const raw = await apiFetch<PopupApiResponse>(`/admin/popups/${id}`, {
     method: "PUT",
-    body: JSON.stringify(data),
+    body: JSON.stringify(mapPopupPayload(data)),
   });
+  return mapPopupFromApi(raw);
 }
 
 export async function deletePopup(id: string): Promise<void> {
@@ -480,21 +596,24 @@ export async function deletePopup(id: string): Promise<void> {
 // ─── Announcement Bars ────────────────────────────────────────────────────────
 
 export async function getAnnouncementBars(): Promise<AnnouncementBar[]> {
-  return apiFetch<AnnouncementBar[]>("/admin/announcement-bars");
+  const raw = await apiFetch<AnnouncementBarApiResponse[]>("/admin/announcement-bars");
+  return raw.map(mapAnnouncementBarFromApi);
 }
 
 export async function createAnnouncementBar(data: AnnouncementBarFormData): Promise<AnnouncementBar> {
-  return apiFetch<AnnouncementBar>("/admin/announcement-bars", {
+  const raw = await apiFetch<AnnouncementBarApiResponse>("/admin/announcement-bars", {
     method: "POST",
-    body: JSON.stringify(data),
+    body: JSON.stringify(mapAnnouncementBarPayload(data)),
   });
+  return mapAnnouncementBarFromApi(raw);
 }
 
 export async function updateAnnouncementBar(id: string, data: Partial<AnnouncementBarFormData>): Promise<AnnouncementBar> {
-  return apiFetch<AnnouncementBar>(`/admin/announcement-bars/${id}`, {
+  const raw = await apiFetch<AnnouncementBarApiResponse>(`/admin/announcement-bars/${id}`, {
     method: "PUT",
-    body: JSON.stringify(data),
+    body: JSON.stringify(mapAnnouncementBarPayload(data)),
   });
+  return mapAnnouncementBarFromApi(raw);
 }
 
 export async function deleteAnnouncementBar(id: string): Promise<void> {
@@ -829,7 +948,7 @@ export async function getFooterConfig(): Promise<FooterConfig> {
     catch { /* fall through to default */ }
   }
   return {
-    brand: { logoUrl: "", logoAlt: "PC Store", storeName: "PC Store", description: "" },
+    brand: { logoUrl: "", description: "" },
     contact: {},
     linkColumns: [
       { title: "Hỗ trợ khách hàng", location: "footer_column_1" },

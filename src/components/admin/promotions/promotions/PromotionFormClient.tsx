@@ -249,7 +249,15 @@ export function PromotionFormClient({ mode, promotion }: Props) {
   );
   const categoryMap = useMemo(() => buildNodeMap(categoryTree), [categoryTree]);
 
-  const handleVariantsLoaded = useCallback((v: ProductVariantFlat[]) => setVariantFlats(v), []);
+  // Async-search variants stream in incrementally — merge by variantId so
+  // previously-seen entries (including current selections) are not dropped.
+  const handleVariantsLoaded = useCallback((v: ProductVariantFlat[]) => {
+    setVariantFlats((prev) => {
+      const seen = new Map(prev.map((p) => [p.variantId, p]));
+      for (const nv of v) seen.set(nv.variantId, nv);
+      return Array.from(seen.values());
+    });
+  }, []);
   const handleCategoriesLoaded = useCallback((c: CategoryNode[]) => setCategoryTree(c), []);
 
   const [isSaving, setIsSaving] = useState(false);

@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { PlusIcon, TrashIcon, ExclamationTriangleIcon } from "@heroicons/react/24/outline";
-import { Select, type SelectOptionBadge } from "@/src/components/ui/Select";
+import { Select, type SelectOption, type SelectOptionBadge } from "@/src/components/ui/Select";
 import { CategoryTreeSelect } from "@/src/components/admin/CategoryTreeSelect";
 import type { CategoryNode } from "@/src/components/admin/CategoryTreeSelect";
 import { getCategoryNodeTree } from "@/src/services/category.service";
-import { getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
+import { getProducts, getProductVariantsFlat, type ProductVariantFlat } from "@/src/services/product.service";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 import type { BundleComponent } from "@/src/types/promotion.types";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -26,29 +27,81 @@ interface BundleActionFormProps {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+function variantToOption(v: ProductVariantFlat): SelectOption {
+  return {
+    value: v.variantId,
+    label: v.productName,
+    subLabel: v.variantName,
+    description: v.sku,
+    badge: stockBadge(v.stock),
+    disabled: v.status === "inactive",
+  };
+}
+
 export function BundleActionForm({ components, onChange }: BundleActionFormProps) {
   const [categoryTree, setCategoryTree] = useState<CategoryNode[]>([]);
-  const [variantFlats, setVariantFlats] = useState<ProductVariantFlat[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loadingCats, setLoadingCats] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      getCategoryNodeTree().catch(() => [] as CategoryNode[]),
-      getProductVariantsFlat(60).catch(() => [] as ProductVariantFlat[]),
-    ]).then(([cats, variants]) => {
-      setCategoryTree(cats);
-      setVariantFlats(variants);
-      setLoading(false);
-    });
+    getCategoryNodeTree()
+      .catch(() => [] as CategoryNode[])
+      .then((cats) => { setCategoryTree(cats); setLoadingCats(false); });
   }, []);
 
-  // Deduplicate to get unique products
-  const productOpts = useMemo(() => {
-    const seen = new Set<string>();
-    return variantFlats
-      .filter((v) => { if (seen.has(v.productId)) return false; seen.add(v.productId); return true; })
-      .map((v) => ({ value: v.productId, label: v.productName }));
-  }, [variantFlats]);
+  // ── Async variant search (shared map for variant + product lookups) ──
+  const seenVariantsRef = useRef<Map<string, ProductVariantFlat>>(new Map());
+  const seenProductsRef = useRef<Map<string, { id: string; name: string }>>(new Map());
+  const [seenVersion, setSeenVersion] = useState(0);
+
+  const variantFetcher = useCallback(async (q: string) => {
+    const res = await getProductVariantsFlat(25, q || undefined);
+    let changed = false;
+    for (const v of res.variants) {
+      if (!seenVariantsRef.current.has(v.variantId)) {
+        seenVariantsRef.current.set(v.variantId, v);
+        changed = true;
+      }
+      if (!seenProductsRef.current.has(v.productId)) {
+        seenProductsRef.current.set(v.productId, { id: v.productId, name: v.productName });
+        changed = true;
+      }
+    }
+    if (changed) setSeenVersion((n) => n + 1);
+    return {
+      options: res.variants.map(variantToOption),
+      totalCount: res.totalProducts,
+    };
+  }, []);
+
+  const productFetcher = useCallback(async (q: string) => {
+    const res = await getProducts({ q: q || undefined, pageSize: 25 });
+    let changed = false;
+    for (const p of res.data) {
+      if (!seenProductsRef.current.has(p.id)) {
+        seenProductsRef.current.set(p.id, { id: p.id, name: p.name });
+        changed = true;
+      }
+    }
+    if (changed) setSeenVersion((n) => n + 1);
+    return {
+      options: res.data.map((p) => ({ value: p.id, label: p.name })),
+      totalCount: res.total,
+    };
+  }, []);
+
+  const {
+    options: variantOpts,
+    totalCount: variantTotal,
+    loading: variantLoading,
+    onSearch: onVariantSearch,
+  } = useAsyncSelectOptions({ fetcher: variantFetcher });
+
+  const {
+    options: productOpts,
+    totalCount: productTotal,
+    loading: productLoading,
+    onSearch: onProductSearch,
+  } = useAsyncSelectOptions({ fetcher: productFetcher });
 
   // Detect duplicate refId across components (same product/category/variant selected twice)
   const duplicateRefIds = useMemo(() => {
@@ -61,18 +114,7 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
     return dups;
   }, [components]);
 
-  const variantOpts = useMemo(
-    () =>
-      variantFlats.map((v) => ({
-        value: v.variantId,
-        label: v.productName,
-        subLabel: v.variantName,
-        description: v.sku,
-        badge: stockBadge(v.stock),
-        disabled: v.status === "inactive",
-      })),
-    [variantFlats]
-  );
+  const loading = loadingCats;
 
   function addComponent() {
     onChange([
@@ -156,7 +198,7 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
             </div>
           )}
 
-          {/* Product → Select (deduplicated from variant flat list) */}
+          {/* Product → Select (async search via getProducts) */}
           {comp.scope === "product" && (
             <div className="flex-1">
               <Select
@@ -164,19 +206,34 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
                 value={comp.refId}
                 onChange={(v) => {
                   const id = v as string;
-                  const found = productOpts.find((o) => o.value === id);
-                  updateComponent(comp.id, { refId: id, refLabel: found?.label });
+                  const product = seenProductsRef.current.get(id);
+                  updateComponent(comp.id, { refId: id, refLabel: product?.name });
                 }}
                 searchable
+                asyncSearch
+                onSearch={onProductSearch}
+                loading={productLoading}
+                totalCount={productTotal}
+                selectedOption={
+                  comp.refId
+                    ? (() => {
+                        const p = seenProductsRef.current.get(comp.refId);
+                        return p
+                          ? { value: p.id, label: p.name }
+                          : comp.refLabel
+                          ? { value: comp.refId, label: comp.refLabel }
+                          : undefined;
+                      })()
+                    : undefined
+                }
                 clearable
                 boldLabel
-                placeholder={loading ? "Đang tải sản phẩm…" : "— Chọn sản phẩm —"}
-                disabled={loading}
+                placeholder="— Chọn sản phẩm —"
               />
             </div>
           )}
 
-          {/* Variant → Select (same pattern as ConditionBuilder required_products) */}
+          {/* Variant → Select (async search via getProductVariantsFlat) */}
           {comp.scope === "variant" && (
             <div className="flex-1">
               <Select
@@ -184,17 +241,32 @@ export function BundleActionForm({ components, onChange }: BundleActionFormProps
                 value={comp.refId}
                 onChange={(v) => {
                   const id = v as string;
-                  const vdata = variantFlats.find((vf) => vf.variantId === id);
+                  const vdata = seenVariantsRef.current.get(id);
                   updateComponent(comp.id, {
                     refId: id,
                     refLabel: vdata ? `${vdata.productName} — ${vdata.variantName}` : id || undefined,
                   });
                 }}
                 searchable
+                asyncSearch
+                onSearch={onVariantSearch}
+                loading={variantLoading}
+                totalCount={variantTotal}
+                selectedOption={
+                  comp.refId
+                    ? (() => {
+                        const vd = seenVariantsRef.current.get(comp.refId);
+                        return vd
+                          ? variantToOption(vd)
+                          : comp.refLabel
+                          ? { value: comp.refId, label: comp.refLabel }
+                          : undefined;
+                      })()
+                    : undefined
+                }
                 clearable
                 boldLabel
-                placeholder={loading ? "Đang tải phiên bản…" : "— Chọn phiên bản —"}
-                disabled={loading}
+                placeholder="— Chọn phiên bản —"
               />
             </div>
           )}

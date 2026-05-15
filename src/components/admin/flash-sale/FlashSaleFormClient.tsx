@@ -32,17 +32,13 @@ const ONE_HOUR_MS = 60 * 60 * 1000;
 const MAX_DURATION_MS = 72 * ONE_HOUR_MS;
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
-  { value: "nhap",        label: "Nháp" },
-  { value: "sap_dien_ra", label: "Sắp diễn ra" },
-  { value: "da_ket_thuc", label: "Đã kết thúc" },
-  { value: "huy",         label: "Đã hủy" },
+  { value: "active", label: "Hoạt động" },
+  { value: "paused", label: "Tạm dừng" },
 ];
 
-// Which statuses can be selected when editing, based on current status
-function getAllowedStatuses(current?: FlashSaleStatus): string[] {
-  if (!current || current === "nhap")       return ["nhap", "sap_dien_ra"];
-  if (current === "sap_dien_ra")            return ["nhap", "sap_dien_ra", "huy"];
-  return [current]; // dang_dien_ra / da_ket_thuc / huy — readonly
+// Both statuses can always be selected — visibility is gated by time window.
+function getAllowedStatuses(_current?: FlashSaleStatus): string[] {
+  return ["active", "paused"];
 }
 
 // ─── Section wrapper ──────────────────────────────────────────────────────────
@@ -123,10 +119,7 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
   const { showToast } = useToast();
   const isEdit        = !!initialData;
 
-  const isReadonlyStatus =
-    initialData?.trangThai === "dang_dien_ra" ||
-    initialData?.trangThai === "da_ket_thuc"  ||
-    initialData?.trangThai === "huy";
+  const isReadonlyStatus = false;
 
   const allowedStatuses = getAllowedStatuses(initialData?.trangThai);
 
@@ -134,7 +127,7 @@ export function FlashSaleFormClient({ initialData }: FlashSaleFormClientProps) {
   const [ten,            setTen]            = useState(initialData?.ten ?? "");
   const [moTa,           setMoTa]           = useState(initialData?.moTa ?? "");
   const [trangThai,      setTrangThai]      = useState<FlashSaleStatus>(
-    initialData?.trangThai ?? "nhap"
+    initialData?.trangThai ?? "active"
   );
   const [batDau,         setBatDau]         = useState(
     initialData?.batDau

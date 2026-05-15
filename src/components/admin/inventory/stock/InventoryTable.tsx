@@ -104,7 +104,7 @@ function ActionMenu({
             Điều chỉnh tồn kho
           </button>
           <Link
-            href={`/inventory/stock-in/new?variantId=${row.variantId}`}
+            href={`/inventory/stock-in/new?variantId=${row.variantId}&sku=${encodeURIComponent(row.sku)}`}
             onClick={() => setOpen(false)}
             className="flex w-full items-center gap-2.5 whitespace-nowrap px-3 py-2 text-sm text-secondary-700 hover:bg-secondary-50"
           >

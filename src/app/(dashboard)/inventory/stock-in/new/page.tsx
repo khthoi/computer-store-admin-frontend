@@ -4,10 +4,12 @@ import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { getSuppliers, getInventoryItems } from "@/src/services/inventory.service";
 import { StockInFormClient } from "@/src/components/admin/inventory/stock-in/StockInFormClient";
 import { Button } from "@/src/components/ui/Button";
+import type { InventoryItem } from "@/src/types/inventory.types";
 
 interface Props {
   searchParams: Promise<{
     variantId?: string;
+    sku?: string;
     qty?: string;
     supplierId?: string;
     note?: string;
@@ -17,13 +19,22 @@ interface Props {
 }
 
 export default async function NewStockInPage({ searchParams }: Props) {
-  const [suppliersPage, inventoryItemsPage, params] = await Promise.all([
-    getSuppliers({ limit: 200 }),
-    getInventoryItems(),
-    searchParams,
+  const params = await searchParams;
+  // Suppliers list is bounded (typically dozens) — load up to 500 inline.
+  // Inventory items can be 10k+ → load only what we need:
+  //   - the pre-fill item (if any) so the form can render the selected row,
+  //   - the dropdown's initial page comes from async search in the client.
+  const [suppliersPage, prefillItem] = await Promise.all([
+    getSuppliers({ limit: 500 }),
+    // Prefill item resolved via SKU (passed alongside variantId in the URL).
+    // Backend `q` matches name/SKU, so SKU gives the most precise lookup.
+    params.variantId && params.sku
+      ? getInventoryItems({ q: params.sku, limit: 25 }).then(
+          (res) => res?.data?.find((i) => i.variantId === params.variantId) ?? null,
+        )
+      : Promise.resolve(null as InventoryItem | null),
   ]);
   const suppliers = suppliersPage.data;
-  const inventoryItems = inventoryItemsPage?.data ?? [];
 
   const prefill = {
     variantId: params.variantId,
@@ -54,7 +65,7 @@ export default async function NewStockInPage({ searchParams }: Props) {
       </div>
       <StockInFormClient
         suppliers={suppliers}
-        inventoryItems={inventoryItems}
+        prefillItem={prefillItem}
         prefill={prefill}
       />
     </div>

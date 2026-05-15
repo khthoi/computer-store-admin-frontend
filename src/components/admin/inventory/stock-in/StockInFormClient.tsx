@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PlusIcon, TrashIcon, LockClosedIcon, ClockIcon, ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import { Button } from "@/src/components/ui/Button";
@@ -15,7 +15,9 @@ import {
   createStockIn,
   getNextReceiptCode,
   getBatchesByVariant,
+  getInventoryItems,
 } from "@/src/services/inventory.service";
+import { useAsyncSelectOptions } from "@/src/hooks/useAsyncSelectOptions";
 import { formatVND } from "@/src/lib/format";
 import type { Supplier, InventoryItem, StockBatch } from "@/src/types/inventory.types";
 
@@ -30,6 +32,7 @@ interface LineItemDraft {
   variantName: string;
   sku: string;
   quantityOnHand: number;
+  lowStockThreshold: number;
   quantityOrdered: number;
   costPrice: number;
   note?: string;
@@ -49,8 +52,43 @@ interface PrefillData {
 
 interface StockInFormClientProps {
   suppliers: Supplier[];
-  inventoryItems: InventoryItem[];
+  /** Pre-resolved inventory item used to populate the first line item. */
+  prefillItem?: InventoryItem | null;
   prefill?: PrefillData;
+}
+
+/** Map an InventoryItem into a SelectOption with stock badge. */
+function inventoryItemToOption(item: InventoryItem): SelectOption {
+  const badge =
+    item.quantityOnHand === 0
+      ? { text: `Kho: ${item.quantityOnHand}`, variant: "error" as const }
+      : item.quantityOnHand <= item.lowStockThreshold
+      ? { text: `Kho: ${item.quantityOnHand}`, variant: "warning" as const }
+      : { text: `Kho: ${item.quantityOnHand}`, variant: "success" as const };
+  return {
+    value: item.id,
+    label: item.productName,
+    subLabel: item.variantName,
+    description: `SKU: ${item.sku}`,
+    badge,
+  };
+}
+
+/** Snapshot a LineItemDraft into the SelectOption shape so the trigger keeps
+ *  the proper label even when the picked item is not in the current options. */
+function draftToSnapshot(li: LineItemDraft): SelectOption | undefined {
+  if (!li.inventoryItemId) return undefined;
+  return inventoryItemToOption({
+    id: li.inventoryItemId,
+    productId: li.productId,
+    variantId: li.variantId,
+    productName: li.productName,
+    variantName: li.variantName,
+    sku: li.sku,
+    quantityOnHand: li.quantityOnHand,
+    lowStockThreshold: li.lowStockThreshold,
+    costPrice: li.costPrice,
+  } as InventoryItem);
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -64,7 +102,7 @@ function formatDate(iso?: string): string {
 
 export function StockInFormClient({
   suppliers,
-  inventoryItems,
+  prefillItem,
   prefill,
 }: StockInFormClientProps) {
   const router = useRouter();
@@ -81,11 +119,6 @@ export function StockInFormClient({
       .finally(() => setIsLoadingCode(false));
   }, []);
 
-  // Resolve prefill item once from props (stable reference)
-  const prefillItem = prefill?.variantId
-    ? inventoryItems.find((i) => i.variantId === prefill.variantId) ?? null
-    : null;
-
   const [supplierId, setSupplierId] = useState(prefill?.supplierId ?? "");
   const [expectedDate, setExpectedDate] = useState(prefill?.expectedDate ?? "");
   const [note, setNote] = useState(prefill?.note ?? "");
@@ -101,6 +134,7 @@ export function StockInFormClient({
         variantName: prefillItem.variantName,
         sku: prefillItem.sku,
         quantityOnHand: prefillItem.quantityOnHand,
+        lowStockThreshold: prefillItem.lowStockThreshold,
         quantityOrdered: prefill?.qty ?? 1,
         costPrice: prefillItem.costPrice,
         note: prefill?.lineNote,
@@ -145,21 +179,39 @@ export function StockInFormClient({
 
   const addedInventoryIds = lineItems.map((l) => l.inventoryItemId).filter(Boolean);
 
-  // ── Feature B: 3-row option display ──
+  // ── Async product search shared across all line-item Selects ──
+  // Each Select displays the same fetched page; per-line `disabled` flags hide
+  // already-added items. A single shared fetcher avoids N parallel requests
+  // when multiple rows would otherwise prefetch on mount.
+  const [fetchedItems, setFetchedItems] = useState<Record<string, InventoryItem>>({});
+  const productFetcher = useCallback(async (q: string) => {
+    const res = await getInventoryItems({ q: q || undefined, limit: 25 });
+    // Cache the fetched items by id so we can hydrate a draft line on selection
+    // without an extra round-trip.
+    setFetchedItems((prev) => {
+      const next = { ...prev };
+      for (const it of res.data) next[it.id] = it;
+      return next;
+    });
+    return {
+      options: res.data.map(inventoryItemToOption),
+      totalCount: res.total,
+    };
+  }, []);
+
+  const {
+    options: productOptionsRaw,
+    totalCount: productTotal,
+    loading: productLoading,
+    onSearch: onProductSearch,
+  } = useAsyncSelectOptions({ fetcher: productFetcher });
+
+  // Per-line option list = fetched results with already-added items disabled.
   function buildProductOptions(currentSelectedId: string): SelectOption[] {
     const otherAddedIds = addedInventoryIds.filter((id) => id !== currentSelectedId);
-    return inventoryItems.map((item) => ({
-      value: item.id,
-      label: item.productName,
-      subLabel: item.variantName,
-      description: `SKU: ${item.sku}`,
-      badge:
-        item.quantityOnHand === 0
-          ? { text: `Kho: ${item.quantityOnHand}`, variant: "error" as const }
-          : item.quantityOnHand <= item.lowStockThreshold
-          ? { text: `Kho: ${item.quantityOnHand}`, variant: "warning" as const }
-          : { text: `Kho: ${item.quantityOnHand}`, variant: "success" as const },
-      disabled: otherAddedIds.includes(item.id),
+    return productOptionsRaw.map((opt) => ({
+      ...opt,
+      disabled: otherAddedIds.includes(opt.value),
     }));
   }
 
@@ -175,6 +227,7 @@ export function StockInFormClient({
         variantName: "",
         sku: "",
         quantityOnHand: 0,
+        lowStockThreshold: 0,
         quantityOrdered: 1,
         costPrice: 0,
         batchInfo: null,
@@ -202,6 +255,7 @@ export function StockInFormClient({
               variantName: item.variantName,
               sku: item.sku,
               quantityOnHand: item.quantityOnHand,
+              lowStockThreshold: item.lowStockThreshold,
               costPrice: item.costPrice,
               batchInfo: null,
               isFetchingBatches: true,
@@ -390,10 +444,15 @@ export function StockInFormClient({
                         options={buildProductOptions(li.inventoryItemId)}
                         value={li.inventoryItemId || undefined}
                         onChange={(v) => {
-                          const item = inventoryItems.find((i) => i.id === (v as string));
+                          const item = fetchedItems[v as string];
                           if (item) selectProduct(li.draftId, item);
                         }}
                         searchable
+                        asyncSearch
+                        onSearch={onProductSearch}
+                        loading={productLoading}
+                        totalCount={productTotal}
+                        selectedOption={draftToSnapshot(li)}
                         boldLabel
                         placeholder="Chọn sản phẩm…"
                         className="rounded-lg"

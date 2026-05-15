@@ -1,26 +1,25 @@
 # DESIGN SYSTEM — computer-store-admin
-> Stack: Next.js 16 · TypeScript · TailwindCSS v4 · CSS Custom Properties
+> Stack: Next.js 16 · TypeScript · TailwindCSS v4 · CSS custom properties
 
 ---
 
-## 1. Token Architecture
+## 1. Token architecture
 
 ```
-src/app/globals.css      ← @theme blocks → Tailwind utilities auto-generated
-tailwind.config.ts       ← JS reference (activate with @config in CSS)
-src/lib/design-tokens.ts ← JS constants for Recharts, PDFs
+src/app/globals.css       ← @theme blocks → Tailwind utilities auto-generated
+tailwind.config.ts        ← JS reference (activated via @config in CSS)
+src/lib/design-tokens.ts  ← JS constants for Recharts, PDFs
 ```
-
-TailwindCSS v4 uses CSS-first config: tokens defined in `@theme` become utility classes automatically.
+TailwindCSS v4 uses CSS-first config: tokens declared in `@theme` become utility classes automatically.
 
 ---
 
-## 2. Color Palette
+## 2. Color palette
 
-### Primary — Blue (content area CTAs)
+### Primary — Blue (content-area CTAs)
 | Token | Hex | Usage |
 |-------|-----|-------|
-| `primary-50` | `#eff6ff` | Hover bg, subtle fills |
+| `primary-50`  | `#eff6ff` | Hover bg, subtle fills |
 | `primary-600` | `#2563eb` | ★ CTA button bg |
 | `primary-700` | `#1d4ed8` | CTA hover |
 | `primary-900` | `#1e3a8f` | High-contrast text |
@@ -43,7 +42,7 @@ TailwindCSS v4 uses CSS-first config: tokens defined in `@theme` become utility 
 | `accent-600` | `#7c3aed` | ★ Admin CTA / nav active bg |
 | `accent-700` | `#6d28d9` | Admin hover |
 
-**Sidebar special vars** (use CSS custom properties):
+Sidebar CSS variables:
 ```css
 --sidebar-bg:        #1E1B4B  /* deep violet */
 --sidebar-bg-hover:  #2D2A5A
@@ -52,7 +51,7 @@ TailwindCSS v4 uses CSS-first config: tokens defined in `@theme` become utility 
 --sidebar-icon:      #A78BFA  /* = accent-400 */
 ```
 
-### Semantic Colors
+### Semantic colors
 | Scale | Hex (600) | Usage |
 |-------|-----------|-------|
 | `success-600` | `#16a34a` | In stock, delivered, approved |
@@ -64,12 +63,12 @@ TailwindCSS v4 uses CSS-first config: tokens defined in `@theme` become utility 
 
 ## 3. Typography
 
-| Interface | Font | CSS Variable |
+| Interface | Font | CSS variable |
 |-----------|------|--------------|
 | Admin | **DM Sans** | `--font-dm-sans` → `--font-sans` |
 | Monospace | JetBrains Mono | `--font-mono` (SKUs, IDs, prices) |
 
-**Type scale (admin-specific patterns):**
+Type scale (admin-specific patterns):
 ```
 Table header : text-xs font-semibold text-secondary-500 uppercase tracking-wide
 Table cell   : text-sm text-secondary-700
@@ -84,22 +83,22 @@ Page title   : text-2xl font-bold text-secondary-900
 
 ## 4. Layout
 
-### Admin Shell Dimensions
+### Admin shell dimensions
 | Element | Size | Class |
 |---------|------|-------|
-| Sidebar (expanded) | 280px | `w-[280px]` |
-| Sidebar (collapsed) | 72px | `w-[72px]` |
-| Header height | 64px | `h-16` |
-| Page padding | 24px | `p-6` |
-| Card padding | 24px | `p-6` |
-| Section gap | 24px | `space-y-6` |
+| Sidebar (expanded)  | 280px | `w-[280px]` |
+| Sidebar (collapsed) | 72px  | `w-[72px]` |
+| Header height       | 64px  | `h-16` |
+| Page padding        | 24px  | `p-6` |
+| Card padding        | 24px  | `p-6` |
+| Section gap         | 24px  | `space-y-6` |
 
-### Stats Grid
+### Stats grid
 ```tsx
 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
 ```
 
-### AdminDetailLayout (detail/edit pages)
+### AdminDetailLayout (detail / edit pages)
 ```tsx
 <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-6">
   <div>{/* main: form, tabs, tables */}</div>
@@ -109,7 +108,7 @@ Page title   : text-2xl font-bold text-secondary-900
 
 ---
 
-## 5. Status Badge Patterns
+## 5. Status badge patterns
 
 ```
 Order pending    → bg-warning-50  text-warning-700
@@ -127,7 +126,7 @@ Ticket resolved  → bg-success-50  text-success-700
 
 ---
 
-## 6. Pre-built CSS Classes (globals.css)
+## 6. Pre-built CSS classes (globals.css)
 
 | Class | Description |
 |-------|-------------|
@@ -137,7 +136,7 @@ Ticket resolved  → bg-success-50  text-success-700
 | `.admin-content` | Padded scrollable content area |
 | `.admin-card` | White rounded-xl shadow-sm p-6 panel |
 | `.sidebar-item` | Sidebar nav link |
-| `.stats-grid` | 1→2→4 col KPI grid |
+| `.stats-grid` | 1 → 2 → 4 column KPI grid |
 | `.stat-card` | Stat card container |
 | `.stat-value` | Bold 3xl stat number |
 | `.stat-label` | Muted sm stat title |
@@ -153,10 +152,10 @@ Ticket resolved  → bg-success-50  text-success-700
 
 ---
 
-## 7. JS Design Tokens (Recharts / PDFs)
+## 7. JS design tokens (Recharts / PDFs)
 
 ```ts
-import { colors, adminColors, rechartsTheme, getOrderBadgeClasses } from "@/lib/design-tokens";
+import { colors, adminColors, rechartsTheme, getOrderBadgeClasses } from "@/src/lib/design-tokens";
 
 // Recharts
 <Bar dataKey="revenue" fill={colors.primary[600]} />
@@ -167,6 +166,4 @@ import { colors, adminColors, rechartsTheme, getOrderBadgeClasses } from "@/lib/
   {order.status}
 </span>
 ```
-
-Admin chart primary color: `accent-500` (#8b5cf6) for admin charts.
-Grid line color: `secondary-200` (#e2e8f0).
+Admin chart primary color: `accent-500` (`#8b5cf6`). Grid line color: `secondary-200` (`#e2e8f0`).

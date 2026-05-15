@@ -560,7 +560,7 @@ function ItemCard({ item, onAdjust, onThreshold }: ItemCardProps) {
               Ngưỡng
             </button>
             <Link
-              href={`/inventory/stock-in/new?variantId=${item.variantId}`}
+              href={`/inventory/stock-in/new?variantId=${item.variantId}&sku=${encodeURIComponent(item.sku)}`}
               className="rounded-lg border border-primary-200 px-3 py-1.5 text-xs font-medium text-primary-700 transition-colors hover:bg-primary-50"
             >
               Tạo phiếu nhập

@@ -10,7 +10,8 @@ import {
   ClockIcon,
   EyeIcon,
   PencilSquareIcon,
-  NoSymbolIcon,
+  PauseCircleIcon,
+  PlayCircleIcon,
 } from "@heroicons/react/24/outline";
 import { StatCard } from "@/src/components/admin/StatCard";
 import { DataTable } from "@/src/components/admin/DataTable";
@@ -23,7 +24,8 @@ import { FlashSaleStatusBadge } from "./FlashSaleStatusBadge";
 import {
   getFlashSales,
   getFlashSaleStats,
-  cancelFlashSale,
+  pauseFlashSale,
+  activateFlashSale,
 } from "@/src/services/flash-sale.service";
 import { formatDateTime } from "@/src/lib/format";
 import type {
@@ -35,17 +37,14 @@ import type {
 // ─── Status filter options ─────────────────────────────────────────────────────
 
 const STATUS_FILTER_OPTIONS = [
-  { value: "nhap", label: "Nháp" },
-  { value: "sap_dien_ra", label: "Sắp diễn ra" },
-  { value: "dang_dien_ra", label: "Đang diễn ra" },
-  { value: "da_ket_thuc", label: "Đã kết thúc" },
-  { value: "huy", label: "Đã hủy" },
+  { value: "active", label: "Hoạt động" },
+  { value: "paused", label: "Tạm dừng" },
 ];
 
 // ─── Table columns ─────────────────────────────────────────────────────────────
 
 function buildColumns(
-  onCancelClick: (id: number, name: string) => void
+  onToggleStatus: (id: number, name: string, currentStatus: FlashSaleStatus) => void,
 ): ColumnDef<FlashSaleSummary & Record<string, unknown>>[] {
   return [
     {
@@ -126,8 +125,8 @@ function buildColumns(
       header: "",
       align: "right",
       render: (_, row) => {
-        const canEdit = row.trangThai === "nhap" || row.trangThai === "sap_dien_ra";
-        const canCancel = row.trangThai === "nhap" || row.trangThai === "sap_dien_ra";
+        const status = row.trangThai as FlashSaleStatus;
+        const isActive = status === "active";
         return (
           <div className="flex items-center justify-end gap-1">
             {/* Xem */}
@@ -142,31 +141,36 @@ function buildColumns(
             </Tooltip>
 
             {/* Sửa */}
-            {canEdit && (
-              <Tooltip content="Chỉnh sửa" placement="top">
-                <Link
-                  href={`/promotions/flash-sales/${row.flashSaleId}/edit`}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-secondary-200 bg-white text-secondary-500 hover:bg-secondary-50 hover:text-secondary-800 transition-colors"
-                  aria-label="Chỉnh sửa"
-                >
-                  <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
-                </Link>
-              </Tooltip>
-            )}
+            <Tooltip content="Chỉnh sửa" placement="top">
+              <Link
+                href={`/promotions/flash-sales/${row.flashSaleId}/edit`}
+                className="flex h-7 w-7 items-center justify-center rounded-lg border border-secondary-200 bg-white text-secondary-500 hover:bg-secondary-50 hover:text-secondary-800 transition-colors"
+                aria-label="Chỉnh sửa"
+              >
+                <PencilSquareIcon className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </Tooltip>
 
-            {/* Hủy */}
-            {canCancel && (
-              <Tooltip content="Hủy sự kiện" placement="top">
-                <button
-                  type="button"
-                  onClick={() => onCancelClick(row.flashSaleId as number, row.ten as string)}
-                  className="flex h-7 w-7 items-center justify-center rounded-lg border border-error-200 bg-error-50 text-error-600 hover:bg-error-100 transition-colors"
-                  aria-label="Hủy sự kiện"
-                >
-                  <NoSymbolIcon className="h-4 w-4" aria-hidden="true" />
-                </button>
-              </Tooltip>
-            )}
+            {/* Tạm dừng / Kích hoạt */}
+            <Tooltip content={isActive ? "Tạm dừng sự kiện" : "Kích hoạt lại"} placement="top">
+              <button
+                type="button"
+                onClick={() => onToggleStatus(row.flashSaleId as number, row.ten as string, status)}
+                className={[
+                  "flex h-7 w-7 items-center justify-center rounded-lg border transition-colors",
+                  isActive
+                    ? "border-warning-200 bg-warning-50 text-warning-600 hover:bg-warning-100"
+                    : "border-success-200 bg-success-50 text-success-600 hover:bg-success-100",
+                ].join(" ")}
+                aria-label={isActive ? "Tạm dừng sự kiện" : "Kích hoạt lại"}
+              >
+                {isActive ? (
+                  <PauseCircleIcon className="h-4 w-4" aria-hidden="true" />
+                ) : (
+                  <PlayCircleIcon className="h-4 w-4" aria-hidden="true" />
+                )}
+              </button>
+            </Tooltip>
           </div>
         );
       },
@@ -191,9 +195,13 @@ export function FlashSalesListClient() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // ── Confirm cancel state ──────────────────────────────────────────────────
-  const [cancelTarget, setCancelTarget] = useState<{ id: number; name: string } | null>(null);
-  const [cancelling, setCancelling] = useState(false);
+  // ── Confirm status-toggle state ──────────────────────────────────────────
+  const [toggleTarget, setToggleTarget] = useState<{
+    id: number;
+    name: string;
+    currentStatus: FlashSaleStatus;
+  } | null>(null);
+  const [toggling, setToggling] = useState(false);
 
   // ── Fetch ─────────────────────────────────────────────────────────────────
   const fetchData = useCallback(async () => {
@@ -220,23 +228,31 @@ export function FlashSalesListClient() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
-  // ── Cancel action ─────────────────────────────────────────────────────────
-  async function handleConfirmCancel() {
-    if (!cancelTarget) return;
-    setCancelling(true);
+  // ── Status toggle (pause / activate) ─────────────────────────────────────
+  async function handleConfirmToggle() {
+    if (!toggleTarget) return;
+    const willPause = toggleTarget.currentStatus === "active";
+    setToggling(true);
     try {
-      await cancelFlashSale(cancelTarget.id);
-      showToast(`Đã hủy "${cancelTarget.name}".`, "success");
-      setCancelTarget(null);
+      if (willPause) {
+        await pauseFlashSale(toggleTarget.id);
+        showToast(`Đã tạm dừng "${toggleTarget.name}".`, "success");
+      } else {
+        await activateFlashSale(toggleTarget.id);
+        showToast(`Đã kích hoạt "${toggleTarget.name}".`, "success");
+      }
+      setToggleTarget(null);
       fetchData();
     } catch {
-      showToast("Hủy thất bại.", "error");
+      showToast(willPause ? "Tạm dừng thất bại." : "Kích hoạt thất bại.", "error");
     } finally {
-      setCancelling(false);
+      setToggling(false);
     }
   }
 
-  const columns = buildColumns((id, name) => setCancelTarget({ id, name }));
+  const columns = buildColumns((id, name, currentStatus) =>
+    setToggleTarget({ id, name, currentStatus }),
+  );
   const tableData = data as (FlashSaleSummary & Record<string, unknown>)[];
 
   return (
@@ -329,16 +345,24 @@ export function FlashSalesListClient() {
         />
       </div>
 
-      {/* ── Confirm cancel dialog ────────────────────────────────────────── */}
+      {/* ── Confirm pause / activate dialog ──────────────────────────────── */}
       <ConfirmDialog
-        isOpen={!!cancelTarget}
-        title="Hủy Flash Sale?"
-        description={`Sự kiện "${cancelTarget?.name}" sẽ bị hủy ngay lập tức. Thao tác này không thể hoàn tác.`}
-        confirmLabel="Hủy sự kiện"
-        variant="danger"
-        isConfirming={cancelling}
-        onConfirm={handleConfirmCancel}
-        onClose={() => setCancelTarget(null)}
+        isOpen={!!toggleTarget}
+        title={
+          toggleTarget?.currentStatus === "active"
+            ? "Tạm dừng Flash Sale?"
+            : "Kích hoạt lại Flash Sale?"
+        }
+        description={
+          toggleTarget?.currentStatus === "active"
+            ? `Sự kiện "${toggleTarget?.name}" sẽ bị ẩn khỏi storefront ngay lập tức. Bạn có thể kích hoạt lại bất cứ lúc nào.`
+            : `Sự kiện "${toggleTarget?.name}" sẽ được hiển thị lại trên storefront khi nằm trong khung thời gian đã cấu hình.`
+        }
+        confirmLabel={toggleTarget?.currentStatus === "active" ? "Tạm dừng" : "Kích hoạt"}
+        variant={toggleTarget?.currentStatus === "active" ? "danger" : "info"}
+        isConfirming={toggling}
+        onConfirm={handleConfirmToggle}
+        onClose={() => setToggleTarget(null)}
       />
     </>
   );

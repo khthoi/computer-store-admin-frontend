@@ -23,6 +23,8 @@ const TYPE_CFG: Record<string, { label: string; variant: "default" | "info" | "s
   category: { label: "Danh mục", variant: "success" },
 };
 
+const FOOTER_MENU_ITEM_LIMIT = 8;
+
 // ─── Sortable row ─────────────────────────────────────────────────────────────
 
 function SortableNavRow({
@@ -126,6 +128,11 @@ export function FlatNavEditor({
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDirty, setIsDirty] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const isFooterColumnMenu = [
+    "footer_column_1",
+    "footer_column_2",
+    "footer_column_3",
+  ].includes(menu.location);
 
   const rootItems = useCallback(
     (items: MenuItem[]) =>
@@ -208,6 +215,11 @@ export function FlatNavEditor({
       <div className="flex items-center justify-between">
         <p className="text-xs text-secondary-400">
           {items.length} mục
+          {isFooterColumnMenu && (
+            <span className="ml-1.5 text-secondary-300">
+              · tối đa {FOOTER_MENU_ITEM_LIMIT} liên kết
+            </span>
+          )}
           {items.length > 1 && (
             <span className="ml-1.5 text-secondary-300">
               · kéo <Bars3Icon className="inline h-3 w-3" /> để sắp xếp
@@ -230,6 +242,7 @@ export function FlatNavEditor({
             variant="outline"
             leftIcon={<PlusIcon className="h-4 w-4" />}
             onClick={() => setFormTarget("new")}
+            disabled={isFooterColumnMenu && items.length >= FOOTER_MENU_ITEM_LIMIT}
           >
             Thêm mục
           </Button>

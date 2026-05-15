@@ -11,6 +11,7 @@ import {
   TicketIcon,
   ChartBarIcon,
   ChatBubbleLeftRightIcon,
+  EnvelopeIcon,
   StarIcon,
   Cog6ToothIcon,
   ClipboardDocumentListIcon,
@@ -267,6 +268,13 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         href: "/support",
         icon: <ChatBubbleLeftRightIcon className="w-4 h-4" />,
         requiredRoles: ["admin", "cskh"],
+      },
+      {
+        value: "contact-messages",
+        label: "Liên hệ khách hàng",
+        href: "/contact-messages",
+        icon: <EnvelopeIcon className="w-4 h-4" />,
+        requiredRoles: ["admin", "cskh", "staff"],
       },
       {
         value: "reviews",

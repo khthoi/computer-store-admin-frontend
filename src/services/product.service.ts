@@ -8,6 +8,7 @@ export interface GetProductsParams {
   q?: string;
   status?: string;
   category?: string;
+  categoryId?: string;
   page?: number;
   pageSize?: number;
   sortBy?: string;
@@ -22,17 +23,34 @@ export interface GetProductsResult {
   totalPages: number;
 }
 
+function normalizeProduct(product: Product): Product {
+  return {
+    ...product,
+    id: String(product.id),
+    categoryId: String(product.categoryId),
+    brandIds: Array.isArray(product.brandIds) ? product.brandIds.map(String) : [],
+    variants: Array.isArray(product.variants)
+      ? product.variants.map((variant) => ({
+          ...variant,
+          id: String(variant.id),
+        }))
+      : [],
+    defaultVariantId: product.defaultVariantId != null ? String(product.defaultVariantId) : product.defaultVariantId,
+  };
+}
+
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export async function getProducts(
   params: GetProductsParams = {}
 ): Promise<GetProductsResult> {
-  const { q, status, category, page = 1, pageSize = 10, sortBy, sortOrder } = params;
+  const { q, status, category, categoryId, page = 1, pageSize = 10, sortBy, sortOrder } = params;
 
   const qs = new URLSearchParams();
-  if (q)         qs.set("q", q);
-  if (status)    qs.set("status", status);
-  if (category)  qs.set("category", category);
+  if (q)          qs.set("q", q);
+  if (status)     qs.set("status", status);
+  if (category)   qs.set("category", category);
+  if (categoryId) qs.set("categoryId", categoryId);
   if (sortBy)    qs.set("sortBy", sortBy);
   if (sortOrder) qs.set("sortOrder", sortOrder);
   qs.set("page", String(page));
@@ -42,7 +60,7 @@ export async function getProducts(
     `/admin/products?${qs.toString()}`
   );
   return {
-    data: result.data,
+    data: result.data.map(normalizeProduct),
     total: result.total,
     page: result.page,
     limit: result.limit,
@@ -100,7 +118,8 @@ export async function bulkUpdateVariantStatus(
 
 export async function getProductById(id: string): Promise<Product | null> {
   try {
-    return await apiFetch<Product>(`/admin/products/${id}`);
+    const product = await apiFetch<Product>(`/admin/products/${id}`);
+    return normalizeProduct(product);
   } catch (e) {
     // Re-throw Next.js redirect() — it signals via a special error with a digest property
     if (e instanceof Error && "digest" in e) throw e;
@@ -134,16 +153,28 @@ export interface ProductVariantFlat {
   status: "active" | "inactive";
 }
 
-export async function getProductVariantsFlat(productLimit = 60): Promise<ProductVariantFlat[]> {
-  const list = await apiFetch<{ data: Array<{ id: string; name: string }> }>(
-    `/admin/products?limit=${productLimit}`
+export interface GetProductVariantsFlatResult {
+  variants: ProductVariantFlat[];
+  /** Total products matched on the server (not variant count). */
+  totalProducts: number;
+}
+
+export async function getProductVariantsFlat(
+  productLimit = 25,
+  q?: string,
+): Promise<GetProductVariantsFlatResult> {
+  const qs = new URLSearchParams();
+  qs.set("limit", String(productLimit));
+  if (q) qs.set("q", q);
+  const list = await apiFetch<{ data: Array<{ id: string; name: string }>; total?: number }>(
+    `/admin/products?${qs}`,
   );
   const details = await Promise.all(
     list.data.map((p) =>
       apiFetch<ProductDetailWithVariants>(`/admin/products/${p.id}`).catch(() => null)
     )
   );
-  return details
+  const variants = details
     .filter((d): d is ProductDetailWithVariants => d !== null)
     .flatMap((p) =>
       (p.variants ?? []).map((v) => ({
@@ -156,6 +187,7 @@ export async function getProductVariantsFlat(productLimit = 60): Promise<Product
         status: v.status,
       }))
     );
+  return { variants, totalProducts: list.total ?? list.data.length };
 }
 
 // ─── Payloads ──────────────────────────────────────────────────────────────────
@@ -187,8 +219,23 @@ export interface UpdateProductPayload {
   variants?: VariantPayload[];
 }
 
+export interface CheckProductSlugResult {
+  slug: string;
+  exists: boolean;
+}
+
+export async function checkProductSlug(
+  slug: string,
+  excludeId?: string,
+): Promise<CheckProductSlugResult> {
+  const qs = new URLSearchParams();
+  qs.set("slug", slug);
+  if (excludeId) qs.set("excludeId", excludeId);
+  return apiFetch<CheckProductSlugResult>(`/admin/products/check-slug?${qs.toString()}`);
+}
+
 export async function createProduct(data: CreateProductPayload): Promise<Product> {
-  return apiFetch<Product>("/admin/products", {
+  const product = await apiFetch<Product>("/admin/products", {
     method: "POST",
     body: JSON.stringify({
       tenSanPham: data.name,
@@ -199,13 +246,14 @@ export async function createProduct(data: CreateProductPayload): Promise<Product
       brandIds:   data.brands.map(Number),
     }),
   });
+  return normalizeProduct(product);
 }
 
 export async function updateProduct(
   id: string,
   data: UpdateProductPayload
 ): Promise<Product> {
-  return apiFetch<Product>(`/admin/products/${id}`, {
+  const product = await apiFetch<Product>(`/admin/products/${id}`, {
     method: "PUT",
     body: JSON.stringify({
       ...(data.name     && { tenSanPham: data.name }),
@@ -215,6 +263,7 @@ export async function updateProduct(
       ...(data.brands   && { brandIds: data.brands.map(Number) }),
     }),
   });
+  return normalizeProduct(product);
 }
 
 export async function getVariantById(
@@ -374,7 +423,8 @@ export async function createVariantDetail(
 }
 
 export async function cloneProduct(id: string): Promise<Product> {
-  return apiFetch<Product>(`/admin/products/${id}/clone`, { method: "POST" });
+  const product = await apiFetch<Product>(`/admin/products/${id}/clone`, { method: "POST" });
+  return normalizeProduct(product);
 }
 
 export async function cloneVariant(

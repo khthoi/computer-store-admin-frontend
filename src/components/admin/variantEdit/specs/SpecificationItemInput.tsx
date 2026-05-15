@@ -14,11 +14,10 @@ const DATA_TYPE_STYLE: Record<string, { label: string; cls: string }> = {
 };
 
 const WIDGET_LABEL: Record<string, string> = {
-  checkbox:       "checkbox",
-  range:          "range",
-  toggle:         "toggle",
-  select:         "select",
-  "combo-select": "combo‑select",
+  checkbox: "checkbox",
+  range:    "range",
+  toggle:   "toggle",
+  select:   "select",
 };
 
 // ─── SpecificationItemInput ───────────────────────────────────────────────────
