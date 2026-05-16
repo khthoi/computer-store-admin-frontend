@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type SubmitErrorHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { InformationCircleIcon } from "@heroicons/react/24/outline";
 import type { MembershipTier } from "@/src/types/loyalty.types";
@@ -41,6 +41,7 @@ export function MembershipTierFormModal({ tier, onClose, onSaved }: Props) {
     formState: { errors, isSubmitting },
   } = useForm<MembershipTierFormValues>({
     resolver: zodResolver(membershipTierSchema),
+    shouldUnregister: true,
     defaultValues: {
       displayName: tier?.displayName ?? "",
       minPoints: tier?.minPoints ?? 0,
@@ -53,6 +54,20 @@ export function MembershipTierFormModal({ tier, onClose, onSaved }: Props) {
   });
 
   const unlimited = watch("unlimited");
+
+  useEffect(() => {
+    if (unlimited) {
+      setValue("maxPoints", undefined, { shouldValidate: false, shouldDirty: true });
+    }
+  }, [unlimited, setValue]);
+
+  const handleInvalidSubmit: SubmitErrorHandler<MembershipTierFormValues> = (formErrors) => {
+    const firstMessage = Object.values(formErrors).find((error) => error?.message)?.message;
+    showToast(
+      firstMessage ?? "Vui lòng kiểm tra lại các trường bắt buộc trước khi lưu.",
+      "error",
+    );
+  };
 
   useEffect(() => {
     if (isEdit) return;
@@ -107,13 +122,23 @@ export function MembershipTierFormModal({ tier, onClose, onSaved }: Props) {
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Huỷ
           </Button>
-          <Button type="submit" form={FORM_ID} variant="primary" isLoading={isSubmitting} disabled={isSubmitting}>
+          <Button
+            type="submit"
+            form={FORM_ID}
+            variant="primary"
+            isLoading={isSubmitting}
+            disabled={isSubmitting || isFetchingMin}
+          >
             Lưu
           </Button>
         </>
       }
     >
-      <form id={FORM_ID} onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <form
+        id={FORM_ID}
+        onSubmit={handleSubmit(onSubmit, handleInvalidSubmit)}
+        className="space-y-4"
+      >
         {/* Inline guide */}
         <div className="rounded-xl border border-primary-200 bg-primary-50 p-4 text-sm text-primary-800">
           <div className="flex gap-2">

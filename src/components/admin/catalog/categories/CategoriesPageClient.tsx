@@ -61,6 +61,7 @@ function toTreeNode(node: DanhMucNode): CategoryNode {
     badgeText: node.badgeText,
     badgeBg: node.badgeBg,
     badgeFg: node.badgeFg,
+    isComparisonRoot: node.isComparisonRoot,
   };
 }
 
@@ -79,6 +80,7 @@ function toFormData(cat: DanhMuc): Partial<CategoryFormData> {
     badgeFg: cat.badgeFg,
     imageUrl: cat.imageUrl,
     imageAlt: cat.imageAlt,
+    isComparisonRoot: cat.isComparisonRoot,
   };
 }
 
@@ -254,8 +256,10 @@ export function CategoriesPageClient({
       }
       setCategoryModalOpen(false);
       await reloadCategoryData();
-    } catch {
-      showToast("Có lỗi xảy ra. Vui lòng thử lại.", "error");
+    } catch (e) {
+      const msg =
+        (e as { message?: string })?.message ?? "Có lỗi xảy ra. Vui lòng thử lại.";
+      showToast(msg, "error");
     } finally {
       setIsSavingCategory(false);
     }

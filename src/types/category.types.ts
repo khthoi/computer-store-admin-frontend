@@ -41,6 +41,11 @@ export interface DanhMuc {
   // ── Image ─────────────────────────────────────────────────────────────────
   imageUrl: string | null;
   imageAlt: string | null;
+
+  // ── Comparison root flag ──────────────────────────────────────────────────
+  // When true, this category is the "comparison standard": all of its
+  // descendants are treated as belonging to one comparable product group.
+  isComparisonRoot: boolean;
 }
 
 /** Tree node shape — mirrors DanhMuc but with recursive children */

@@ -16,6 +16,12 @@ function isImageFile(fileName: string): boolean {
   return IMAGE_EXTS.test(fileName);
 }
 
+const API_ORIGIN = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+function resolveUrl(url: string): string {
+  return url.startsWith("/") ? `${API_ORIGIN}${url}` : url;
+}
+
 function formatTime(iso: string): string {
   return new Date(iso).toLocaleString("vi-VN", {
     day:    "2-digit",
@@ -176,7 +182,7 @@ function MessageAttachments({
               <div key={att.attachmentId} className="relative w-20 h-20">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={att.fileUrl}
+                  src={resolveUrl(att.fileUrl)}
                   alt={att.fileName}
                   className="w-20 h-20 rounded-xl object-cover cursor-pointer transition-opacity hover:opacity-85 ring-2 ring-transparent hover:ring-primary-400"
                   onClick={() => onImageClick?.(String(att.attachmentId))}
@@ -201,7 +207,7 @@ function MessageAttachments({
           {fileAtts.map((att) => (
             <a
               key={att.attachmentId}
-              href={att.fileUrl}
+              href={resolveUrl(att.fileUrl)}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-secondary-100 text-secondary-700 text-xs hover:bg-secondary-200 transition-colors"

@@ -164,12 +164,23 @@ export async function updateTicketMeta(id: number, payload: TicketMetaUpdatePayl
 }
 
 export async function addMessage(ticketId: number, payload: AddMessagePayload): Promise<TicketMessage> {
+  const files = payload.files ?? [];
+  if (files.length === 0) {
+    return apiFetch<TicketMessage>(`/admin/tickets/${ticketId}/messages`, {
+      method: "POST",
+      body: JSON.stringify({
+        content:     payload.noiDungTinNhan,
+        messageType: payload.loaiTinNhan,
+      }),
+    });
+  }
+  const fd = new FormData();
+  fd.append("content",     payload.noiDungTinNhan ?? "");
+  fd.append("messageType", payload.loaiTinNhan);
+  for (const f of files) fd.append("files", f);
   return apiFetch<TicketMessage>(`/admin/tickets/${ticketId}/messages`, {
     method: "POST",
-    body: JSON.stringify({
-      content:     payload.noiDungTinNhan,
-      messageType: payload.loaiTinNhan,
-    }),
+    body: fd,
   });
 }
 

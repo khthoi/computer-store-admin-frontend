@@ -92,6 +92,63 @@ export function TicketDetailClient({ ticketId }: TicketDetailClientProps) {
 
   useEffect(() => { loadTicket(); }, [loadTicket]);
 
+  // ── Realtime SSE — push new messages / status changes ────────────────────────
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const apiOrigin = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+
+    let es: EventSource | null = null;
+    let cancelled = false;
+    let refreshing = false;
+
+    function readToken(): string | null {
+      const raw = document.cookie
+        .split("; ")
+        .find((c) => c.startsWith("auth_token="))
+        ?.split("=")[1];
+      return raw ? decodeURIComponent(raw) : null;
+    }
+
+    async function refreshToken(): Promise<boolean> {
+      if (refreshing) return false;
+      refreshing = true;
+      try {
+        const res = await fetch(`${apiOrigin}/api/auth/refresh`, { method: "POST", credentials: "include" });
+        if (!res.ok) return false;
+        const body = await res.json();
+        const newToken = body?.data?.accessToken;
+        if (!newToken) return false;
+        document.cookie = `auth_token=${encodeURIComponent(newToken)}; path=/; max-age=${15 * 60}; SameSite=Lax`;
+        return true;
+      } catch {
+        return false;
+      } finally {
+        refreshing = false;
+      }
+    }
+
+    function connect() {
+      if (cancelled) return;
+      const token = readToken();
+      if (!token) return;
+      es = new EventSource(`${apiOrigin}/api/admin/tickets/${ticketId}/stream?access_token=${encodeURIComponent(token)}`);
+      es.onmessage = () => { silentRefresh(); };
+      es.onerror = async () => {
+        // Likely token expired (EventSource keeps retrying with the stale URL).
+        // Close, refresh, reconnect once.
+        if (!es || es.readyState !== EventSource.CLOSED) es?.close();
+        const ok = await refreshToken();
+        if (ok && !cancelled) connect();
+      };
+    }
+
+    connect();
+    return () => {
+      cancelled = true;
+      es?.close();
+    };
+  }, [ticketId, silentRefresh]);
+
   // ── Reply ─────────────────────────────────────────────────────────────────────
   async function handleReply(
     text:        string,

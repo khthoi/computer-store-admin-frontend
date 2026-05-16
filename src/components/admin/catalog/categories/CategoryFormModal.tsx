@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { PlusIcon, TrashIcon, TagIcon } from "@heroicons/react/24/outline";
 import { Modal } from "@/src/components/ui/Modal";
 import { Input } from "@/src/components/ui/Input";
@@ -347,6 +347,11 @@ export function CategoryFormModal({
   const [badgeFg, setBadgeFg] = useState(initialData?.badgeFg ?? "#ffffff");
   const hasBadge = badgeText.trim().length > 0;
 
+  // ── Comparison root flag ────────────────────────────────────────────────────
+  const [isComparisonRoot, setIsComparisonRoot] = useState<boolean>(
+    initialData?.isComparisonRoot ?? false
+  );
+
   // ── Image ────────────────────────────────────────────────────────────────────
   const [categoryImage, setCategoryImage] = useState<ImageFieldValue>(
     initialData?.imageUrl
@@ -354,9 +359,18 @@ export function CategoryFormModal({
       : emptyImageField()
   );
 
-  // Sync form when modal opens or initialData changes
+  // Sync form ONLY on open-transition (false → true). Re-syncing on every
+  // `initialData` reference change would clobber user edits whenever the
+  // parent re-renders (e.g. while saving — parent passes a fresh object each
+  // render, which would otherwise reset the toggle back to its stale value).
+  const wasOpenRef = useRef(false);
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) {
+      wasOpenRef.current = false;
+      return;
+    }
+    if (wasOpenRef.current) return;
+    wasOpenRef.current = true;
     setName(initialData?.name ?? "");
     setSlug(initialData?.slug ?? "");
     setParentId(initialData?.parentId ?? "");
@@ -368,6 +382,7 @@ export function CategoryFormModal({
     setBadgeText(initialData?.badgeText ?? "");
     setBadgeBg(initialData?.badgeBg ?? "#ef4444");
     setBadgeFg(initialData?.badgeFg ?? "#ffffff");
+    setIsComparisonRoot(initialData?.isComparisonRoot ?? false);
     setCategoryImage(
       initialData?.imageUrl
         ? imageFieldFromUrl(initialData.imageUrl, initialData.imageAlt)
@@ -388,6 +403,7 @@ export function CategoryFormModal({
       badgeText: hasBadge ? badgeText.trim() : null,
       badgeBg: hasBadge ? badgeBg : null,
       badgeFg: hasBadge ? badgeFg : null,
+      isComparisonRoot: nodeType === "category" ? isComparisonRoot : false,
       imageUrl: categoryImage.urlFallback ?? null,
       imageAssetId: categoryImage.assetId ?? null,
       imageAlt: categoryImage.alt ?? null,
@@ -522,6 +538,23 @@ export function CategoryFormModal({
               <div className="rounded-lg border border-secondary-200 bg-secondary-50 px-4 py-3 text-xs text-secondary-500">
                 Node nhãn chỉ hiển thị như tiêu đề phân nhóm trong megamenu —
                 không có link, người dùng không click được.
+              </div>
+            )}
+
+            {/* Comparison root — chỉ áp dụng cho nodeType=category */}
+            {nodeType === "category" && (
+              <div className="rounded-lg border border-secondary-100 bg-secondary-50/50 px-4 py-3">
+                <Toggle
+                  label="Đặt làm danh mục chuẩn để so sánh"
+                  checked={isComparisonRoot}
+                  onChange={(e) => setIsComparisonRoot(e.target.checked)}
+                />
+                <p className="mt-1.5 text-xs text-secondary-500">
+                  Khi bật, tất cả danh mục con cháu của danh mục này sẽ được coi
+                  là cùng một nhóm sản phẩm có thể so sánh với nhau (ví dụ:
+                  "Laptop" → các loại laptop con đều cùng nhóm so sánh).
+                  Chỉ một danh mục trên một nhánh được phép.
+                </p>
               </div>
             )}
 

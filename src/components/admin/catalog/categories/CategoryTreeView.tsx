@@ -11,6 +11,7 @@ import {
   ArrowUpIcon,
   ArrowDownIcon,
   PlusIcon,
+  InformationCircleIcon,
 } from "@heroicons/react/24/outline";
 import { Badge } from "@/src/components/ui/Badge";
 import { Button } from "@/src/components/ui/Button";
@@ -28,6 +29,7 @@ export interface CategoryNode {
   badgeText?: string | null;
   badgeBg?: string | null;
   badgeFg?: string | null;
+  isComparisonRoot?: boolean;
 }
 
 interface CategoryTreeViewProps {
@@ -154,7 +156,7 @@ function CategoryNodeRow({
            * (capped at max-w-full when truncated).  Tooltip anchors to the span, not
            * the full container width.
            */}
-          <div className="flex-1 min-w-0 overflow-hidden flex items-center">
+          <div className="flex-1 min-w-0 overflow-hidden flex items-center gap-1">
             <Tooltip content={node.name} placement="top">
               <span
                 className={[
@@ -165,6 +167,20 @@ function CategoryNodeRow({
                 {node.name}
               </span>
             </Tooltip>
+            {node.isComparisonRoot && (
+              <Tooltip
+                content="Danh mục chuẩn so sánh — tất cả danh mục con cháu được coi là cùng một nhóm sản phẩm có thể so sánh với nhau."
+                placement="top"
+              >
+                <span
+                  className="shrink-0 inline-flex items-center text-primary-500"
+                  aria-label="Danh mục chuẩn so sánh"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <InformationCircleIcon className="w-4 h-4" aria-hidden="true" />
+                </span>
+              </Tooltip>
+            )}
           </div>
 
           {/*

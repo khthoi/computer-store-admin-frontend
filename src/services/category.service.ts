@@ -19,6 +19,7 @@ export interface CategoryFormData {
   imageUrl?: string | null;
   imageAssetId?: string | null;
   imageAlt?: string | null;
+  isComparisonRoot?: boolean;
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -39,6 +40,7 @@ function formDataToDto(data: CategoryFormData | Partial<CategoryFormData>) {
   if (data.badgeText !== undefined) dto.badgeText = data.badgeText ?? undefined;
   if (data.badgeBg !== undefined) dto.badgeBg = data.badgeBg ?? undefined;
   if (data.badgeFg !== undefined) dto.badgeFg = data.badgeFg ?? undefined;
+  if (data.isComparisonRoot !== undefined) dto.isComparisonRoot = data.isComparisonRoot;
   return dto;
 }
 
