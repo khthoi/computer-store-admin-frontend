@@ -8,6 +8,7 @@ import {
   VariantInfoSection,
   PricingStatusSection,
   VariantDescriptionSection,
+  VariantWarrantySection,
   SpecificationGroupPanel,
   MediaGallery,
   VariantSalesStatsCard,
@@ -69,6 +70,11 @@ export default async function VariantDetailPage({
             description={variant.description}
             productId={product.id}
             variantId={variant.id}
+          />
+
+          <VariantWarrantySection
+            warrantyMonths={variant.warrantyMonths}
+            warrantyPolicy={variant.warrantyPolicy}
           />
 
           {/* Specifications — one card per group */}

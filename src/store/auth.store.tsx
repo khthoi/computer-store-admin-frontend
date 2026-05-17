@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useReducer,
   type ReactNode,
 } from "react";
@@ -121,6 +122,22 @@ export interface AuthContextValue {
   openModal: (mode?: AuthModalMode, redirectTo?: string) => void;
   closeModal: () => void;
   setModalMode: (mode: AuthModalMode) => void;
+
+  // ── RBAC helpers (read state.user.roles / state.user.permissions) ─────────
+  /** True if the user holds the given role name exactly. */
+  hasRole: (role: string) => boolean;
+  /** True if the user holds at least one of the given role names. */
+  hasAnyRole: (...roles: string[]) => boolean;
+  /**
+   * True if the user has the given permission code (e.g. "orders.update").
+   * Users with the "admin" role always return true (super-admin bypass —
+   * mirrors the seeded backend mapping that grants admin all permissions).
+   */
+  hasPermission: (permission: string) => boolean;
+  /** True if the user has at least one of the given permission codes. */
+  hasAnyPermission: (...permissions: string[]) => boolean;
+  /** True if the user has every one of the given permission codes. */
+  hasAllPermissions: (...permissions: string[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -210,9 +227,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     dispatch({ type: "SET_MODAL_MODE", payload: mode });
   }, []);
 
+  // ── RBAC helpers ───────────────────────────────────────────────────────────
+  // Derive role/permission sets once per user change rather than per call.
+
+  const { roleSet, permissionSet, isSuperAdmin } = useMemo(() => {
+    const roles = state.user?.roles ?? [];
+    const perms = state.user?.permissions ?? [];
+    return {
+      roleSet: new Set(roles),
+      permissionSet: new Set(perms),
+      isSuperAdmin: roles.includes("admin"),
+    };
+  }, [state.user]);
+
+  const hasRole = useCallback(
+    (role: string) => roleSet.has(role),
+    [roleSet]
+  );
+
+  const hasAnyRole = useCallback(
+    (...roles: string[]) => roles.some((r) => roleSet.has(r)),
+    [roleSet]
+  );
+
+  const hasPermission = useCallback(
+    (permission: string) => isSuperAdmin || permissionSet.has(permission),
+    [isSuperAdmin, permissionSet]
+  );
+
+  const hasAnyPermission = useCallback(
+    (...permissions: string[]) =>
+      isSuperAdmin || permissions.some((p) => permissionSet.has(p)),
+    [isSuperAdmin, permissionSet]
+  );
+
+  const hasAllPermissions = useCallback(
+    (...permissions: string[]) =>
+      isSuperAdmin || permissions.every((p) => permissionSet.has(p)),
+    [isSuperAdmin, permissionSet]
+  );
+
   return (
     <AuthContext.Provider
-      value={{ state, login, logout, openModal, closeModal, setModalMode }}
+      value={{
+        state,
+        login,
+        logout,
+        openModal,
+        closeModal,
+        setModalMode,
+        hasRole,
+        hasAnyRole,
+        hasPermission,
+        hasAnyPermission,
+        hasAllPermissions,
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -7,6 +7,7 @@ import {
   ArchiveBoxIcon,
   ExclamationTriangleIcon,
   BanknotesIcon,
+  ShieldCheckIcon,
 } from "@heroicons/react/24/outline";
 import { formatDateTime, formatVND } from "@/src/lib/format";
 import type { ProductVariantDetail } from "@/src/types/product.types";
@@ -47,6 +48,14 @@ export function VariantInfoSection({ variant, stockLevel }: VariantInfoSectionPr
         <InfoRow icon={<ScaleIcon />} label="Trọng lượng">
           <span className="text-sm text-secondary-800">
             {variant.weight !== undefined ? `${variant.weight} kg` : "—"}
+          </span>
+        </InfoRow>
+
+        <InfoRow icon={<ShieldCheckIcon />} label="Thời gian bảo hành">
+          <span className="text-sm text-secondary-800">
+            {variant.warrantyMonths != null && variant.warrantyMonths > 0
+              ? `${variant.warrantyMonths} tháng`
+              : "—"}
           </span>
         </InfoRow>
 

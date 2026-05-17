@@ -22,9 +22,8 @@ interface PricingStatusFormProps {
 }
 
 const STATUS_OPTIONS: { value: DetailVariantStatus; label: string; description: string }[] = [
-  { value: "visible",      label: "Hiển thị",       description: "Hiển thị cho khách hàng" },
-  { value: "hidden",       label: "Ẩn",        description: "Ẩn khỏi cửa hàng" },
-  { value: "out_of_stock", label: "Hết hàng",  description: "Không khả dụng để mua" },
+  { value: "visible", label: "Hiển thị", description: "Hiển thị cho khách hàng" },
+  { value: "hidden",  label: "Ẩn",       description: "Ẩn khỏi cửa hàng" },
 ];
 
 export function PricingStatusForm({ value, onChange, errors = {} }: PricingStatusFormProps) {

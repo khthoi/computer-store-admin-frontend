@@ -10,6 +10,12 @@ export interface AuthUser {
   name?: string;
   avatar?: string | null;
   roles: string[];
+  /**
+   * Permission codes (e.g. "orders.read", "inventory.update") resolved from
+   * the user's roles. Empty for customers and for sessions stored before this
+   * field was introduced — re-login refreshes the value.
+   */
+  permissions: string[];
 }
 
 // ─── Modal modes ──────────────────────────────────────────────────────────────

@@ -10,9 +10,8 @@ interface PricingStatusSectionProps {
 }
 
 const STATUS_DESCRIPTION: Record<string, string> = {
-  visible:      "Visible to customers",
-  hidden:       "Hidden from storefront",
-  out_of_stock: "Not available for purchase",
+  visible: "Visible to customers",
+  hidden:  "Hidden from storefront",
 };
 
 export function PricingStatusSection({ variant }: PricingStatusSectionProps) {

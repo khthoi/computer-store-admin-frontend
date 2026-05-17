@@ -5,6 +5,7 @@ export { ProductSummaryCard }        from "./info/ProductSummaryCard";
 export { VariantInfoSection }        from "./info/VariantInfoSection";
 export { PricingStatusSection }      from "./info/PricingStatusSection";
 export { VariantDescriptionSection } from "./info/VariantDescriptionSection";
+export { VariantWarrantySection }    from "./info/VariantWarrantySection";
 export { SpecificationGroupPanel }   from "./specs/SpecificationGroupPanel";
 export { SpecificationItemRow }      from "./specs/SpecificationItemRow";
 export { SpecificationItemEditor }   from "./specs/SpecificationItemEditor";

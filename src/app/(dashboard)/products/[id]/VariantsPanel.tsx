@@ -192,6 +192,18 @@ export function VariantsPanel({ productId, initialVariants }: VariantsPanelProps
       },
     },
     {
+      key: "warrantyMonths",
+      header: "Bảo hành",
+      align: "center",
+      render: (_val, row) => {
+        const months = row.warrantyMonths as number | null | undefined;
+        if (months == null || months <= 0) {
+          return <span className="text-secondary-400">—</span>;
+        }
+        return <span className="text-secondary-700">{months} tháng</span>;
+      },
+    },
+    {
       key: "status",
       header: "Trạng thái",
       align: "center",

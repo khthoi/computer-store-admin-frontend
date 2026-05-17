@@ -55,7 +55,9 @@ import { SessionExpiredModal } from "@/src/components/admin/layout/SessionExpire
 //   - Top-level items with children render as collapsible groups (no href needed,
 //     or add href for a "section overview" link — but NOT both).
 //   - Leaf items (no children) must have href.
-//   - requiredRoles restricts visibility to listed roles; omit to show to all.
+//   - requiredPermission gates visibility to users holding that permission code.
+//     Omit to show to all employees. `admin` role bypasses all permission checks
+//     in useAuth.hasPermission (super-admin).
 //   - dividerAfter draws a separator below the item/group.
 //   - Active state is derived automatically from usePathname() — never hardcode.
 
@@ -74,18 +76,21 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "products",
     label: "Sản phẩm",
     icon: <CubeIcon className="w-5 h-5" />,
+    requiredPermission: "products.read",
     children: [
       {
         value: "products-list",
         label: "Tất cả sản phẩm",
         href: "/products",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "products.read",
       },
       {
         value: "products-new",
         label: "Thêm sản phẩm",
         href: "/products/new",
         icon: <PlusIcon className="w-4 h-4" />,
+        requiredPermission: "products.create",
       },
     ],
   },
@@ -101,12 +106,14 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         label: "Danh mục",
         href: "/categories",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "categories.read",
       },
       {
         value: "brands-list",
         label: "Thương hiệu",
         href: "/brands",
         icon: <BuildingStorefrontIcon className="w-4 h-4" />,
+        requiredPermission: "brands.read",
       },
     ],
   },
@@ -116,25 +123,28 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "orders",
     label: "Orders",
     icon: <ShoppingBagIcon className="w-5 h-5" />,
+    requiredPermission: "orders.read",
     children: [
       {
         value: "orders-list",
         label: "Tất cả đơn hàng",
         href: "/orders",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "orders.read",
       },
       {
         value: "orders-transactions",
         label: "Giao dịch TT",
         href: "/orders/transactions",
         icon: <CreditCardIcon className="w-4 h-4" />,
-        requiredRoles: ["admin"],
+        requiredPermission: "payments.read",
       },
       {
         value: "orders-returns",
         label: "Trả hàng & Hoàn tiền",
         href: "/orders/returns",
         icon: <ArrowPathIcon className="w-4 h-4" />,
+        requiredPermission: "returns.read",
       },
     ],
   },
@@ -150,20 +160,21 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         label: "Khách hàng",
         href: "/customers",
         icon: <UserGroupIcon className="w-4 h-4" />,
+        requiredPermission: "customers.read",
       },
       {
         value: "employees",
         label: "Nhân viên",
         href: "/employees",
         icon: <UsersIcon className="w-4 h-4" />,
-        requiredRoles: ["admin"],
+        requiredPermission: "employees.read",
       },
       {
         value: "roles",
         label: "Vai trò & Phân quyền",
         href: "/roles",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
-        requiredRoles: ["admin"],
+        requiredPermission: "roles.read",
       },
     ],
   },
@@ -173,49 +184,56 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "inventory",
     label: "Kho hàng",
     icon: <ArchiveBoxIcon className="w-5 h-5" />,
-    requiredRoles: ["admin"],
+    requiredPermission: "inventory.read",
     children: [
       {
         value: "inventory-overview",
         label: "Tổng quan",
         href: "/inventory",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "inventory.read",
       },
       {
         value: "inventory-items",
         label: "Hàng hoá trong kho",
         href: "/inventory/items",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
+        requiredPermission: "inventory.read",
       },
       {
         value: "inventory-stock-in",
         label: "Nhập kho",
         href: "/inventory/stock-in",
         icon: <ArrowUpTrayIcon className="w-4 h-4" />,
+        requiredPermission: "inventory.create",
       },
       {
         value: "inventory-exports",
         label: "Phiếu xuất kho",
         href: "/inventory/exports",
         icon: <ArrowDownTrayIcon className="w-4 h-4" />,
+        requiredPermission: "inventory.read",
       },
       {
         value: "inventory-low-stock",
         label: "Cảnh báo tồn kho",
         href: "/inventory/low-stock",
         icon: <AdjustmentsHorizontalIcon className="w-4 h-4" />,
+        requiredPermission: "inventory.read",
       },
       {
         value: "inventory-movements",
         label: "Nhật ký hoạt động",
         href: "/inventory/movements",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "inventory.read",
       },
       {
         value: "inventory-suppliers",
         label: "Nhà cung cấp",
         href: "/inventory/suppliers",
         icon: <BuildingStorefrontIcon className="w-4 h-4" />,
+        requiredPermission: "suppliers.read",
       },
     ],
   },
@@ -226,24 +244,28 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     label: "Khuyến mãi",
     icon: <TicketIcon className="w-5 h-5" />,
     dividerAfter: true,
+    requiredPermission: "promotions.read",
     children: [
       {
         value: "promotions-list",
         label: "Tất cả khuyến mãi",
         href: "/promotions",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "promotions.read",
       },
       {
         value: "promotions-new",
         label: "Thêm khuyến mãi",
         href: "/promotions/new",
         icon: <PlusIcon className="w-4 h-4" />,
+        requiredPermission: "promotions.create",
       },
       {
         value: "flash-sales",
         label: "Flash Sales",
         href: "/promotions/flash-sales",
         icon: <BoltIcon className="w-4 h-4" />,
+        requiredPermission: "flash-sales.read",
       },
     ],
   },
@@ -260,28 +282,28 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
         label: "Báo cáo",
         href: "/reports",
         icon: <ChartBarIcon className="w-4 h-4" />,
-        requiredRoles: ["admin"],
+        requiredPermission: "reports.read",
       },
       {
         value: "support",
         label: "Hỗ trợ khách hàng",
         href: "/support",
         icon: <ChatBubbleLeftRightIcon className="w-4 h-4" />,
-        requiredRoles: ["admin", "cskh"],
+        requiredPermission: "support.read",
       },
       {
         value: "contact-messages",
         label: "Liên hệ khách hàng",
         href: "/contact-messages",
         icon: <EnvelopeIcon className="w-4 h-4" />,
-        requiredRoles: ["admin", "cskh", "staff"],
+        requiredPermission: "support.read",
       },
       {
         value: "reviews",
         label: "Đánh giá sản phẩm",
         href: "/reviews",
         icon: <StarIcon className="w-4 h-4" />,
-        requiredRoles: ["admin", "cskh"],
+        requiredPermission: "reviews.read",
       },
     ],
   },
@@ -291,49 +313,56 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "content",
     label: "Nội dung",
     icon: <DocumentTextIcon className="w-5 h-5" />,
-    requiredRoles: ["admin", "staff"],
+    requiredPermission: "cms.read",
     children: [
       {
         value: "content-media",
         label: "Thư viện Media",
         href: "/content/media",
         icon: <PhotoIcon className="w-4 h-4" />,
+        requiredPermission: "media.read",
       },
       {
         value: "content-banners",
         label: "Banner",
         href: "/content/banners",
         icon: <RectangleStackIcon className="w-4 h-4" />,
+        requiredPermission: "cms.read",
       },
       {
         value: "content-pages",
         label: "Trang tĩnh",
         href: "/content/pages",
         icon: <DocumentTextIcon className="w-4 h-4" />,
+        requiredPermission: "cms.read",
       },
       {
         value: "content-announcements",
         label: "Thông báo & Popup",
         href: "/content/announcements",
         icon: <MegaphoneIcon className="w-4 h-4" />,
+        requiredPermission: "cms.read",
       },
       {
         value: "content-navigation",
         label: "Điều hướng Menu",
         href: "/content/navigation",
         icon: <Bars3Icon className="w-4 h-4" />,
+        requiredPermission: "cms.read",
       },
       {
         value: "content-homepage",
         label: "Trang chủ",
         href: "/content/homepage",
         icon: <HomeIcon className="w-4 h-4" />,
+        requiredPermission: "cms.read",
       },
       {
         value: "content-faq",
         label: "FAQ",
         href: "/content/faq",
         icon: <QuestionMarkCircleIcon className="w-4 h-4" />,
+        requiredPermission: "cms.read",
       },
     ],
   },
@@ -343,25 +372,28 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "buildpc",
     label: "Build PC",
     icon: <CpuChipIcon className="w-5 h-5" />,
-    requiredRoles: ["admin", "staff"],
+    requiredPermission: "build-pc.read",
     children: [
       {
         value: "buildpc-slots",
         label: "Khe linh kiện",
         href: "/content/buildpc/slots",
         icon: <WrenchScrewdriverIcon className="w-4 h-4" />,
+        requiredPermission: "build-pc.read",
       },
       {
         value: "buildpc-rules",
         label: "Quy tắc tương thích",
         href: "/content/buildpc/rules",
         icon: <ShieldCheckIcon className="w-4 h-4" />,
+        requiredPermission: "build-pc.read",
       },
       {
         value: "buildpc-builds",
         label: "Build đã lưu",
         href: "/content/buildpc/builds",
         icon: <ListBulletIcon className="w-4 h-4" />,
+        requiredPermission: "build-pc.read",
       },
     ],
   },
@@ -371,19 +403,20 @@ const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     value: "system",
     label: "Hệ thống",
     icon: <Cog6ToothIcon className="w-5 h-5" />,
-    requiredRoles: ["admin"],
     children: [
       {
         value: "audit-logs",
         label: "Nhật ký hoạt động",
         href: "/audit-logs",
         icon: <ClipboardDocumentListIcon className="w-4 h-4" />,
+        requiredPermission: "audit-logs.read",
       },
       {
         value: "settings-notifications",
         label: "Thông báo hệ thống",
         href: "/settings/notifications",
         icon: <BellIcon className="w-4 h-4" />,
+        requiredPermission: "notifications.read",
       },
     ],
   },
@@ -403,7 +436,7 @@ function AdminLogo() {
 
 function AdminLayoutInner({ children }: { children: ReactNode }) {
   const { mobileOpen, setMobileOpen } = useSidebar();
-  const { state: authState, logout } = useAuth();
+  const { state: authState, logout, hasPermission } = useAuth();
   const router = useRouter();
 
   const currentUser = authState.user;
@@ -413,6 +446,9 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
     roles: currentUser?.roles ?? ["staff"],
     avatarUrl: currentUser?.avatar ?? undefined,
   };
+  // Primary role drives the legacy `requiredRoles` fallback inside the sidebar;
+  // permission-based items (the majority) go through `hasPermission` instead.
+  const primaryRole = currentUser?.roles?.[0] ?? "";
 
   async function handleSignOut() {
     try {
@@ -430,7 +466,8 @@ function AdminLayoutInner({ children }: { children: ReactNode }) {
       <div className="hidden lg:flex lg:shrink-0">
         <AdminSidebar
           items={ADMIN_NAV_ITEMS}
-          userRole="admin"
+          userRole={primaryRole}
+          hasPermission={hasPermission}
           header={<AdminLogo />}
         />
       </div>

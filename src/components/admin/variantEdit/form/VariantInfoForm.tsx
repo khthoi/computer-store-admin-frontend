@@ -8,6 +8,7 @@ export interface VariantInfoFormValue {
   name: string;
   sku: string;
   weight: string;
+  warrantyMonths: string;
 }
 
 interface VariantInfoFormProps {
@@ -57,6 +58,18 @@ export function VariantInfoForm({ value, onChange, errors = {} }: VariantInfoFor
           placeholder="e.g. 1.85"
           helperText="Để trống nếu không áp dụng."
           errorMessage={errors.weight}
+        />
+
+        <Input
+          label="Thời gian bảo hành (tháng)"
+          type="number"
+          min={0}
+          step={1}
+          value={value.warrantyMonths}
+          onChange={set("warrantyMonths")}
+          placeholder="e.g. 24"
+          helperText="Để trống nếu không áp dụng."
+          errorMessage={errors.warrantyMonths}
         />
       </div>
     </div>

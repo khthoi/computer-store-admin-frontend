@@ -287,6 +287,8 @@ export interface UpdateVariantDetailPayload {
   salePrice?: number;
   status?: ProductVariantDetail["status"];
   description?: string;
+  warrantyPolicy?: string | null;
+  warrantyMonths?: number | null;
   specificationGroups?: ProductVariantDetail["specificationGroups"];
   media?: ProductVariantDetail["media"];
 }
@@ -303,6 +305,8 @@ export async function updateVariantDetail(
   if (data.salePrice !== undefined)     body.giaBan = data.salePrice;
   if (data.weight !== undefined)        body.trongLuong = data.weight;
   if (data.description !== undefined)   body.moTaChiTiet = data.description;
+  if (data.warrantyPolicy !== undefined) body.chinhSachBaoHanh = data.warrantyPolicy;
+  if (data.warrantyMonths !== undefined) body.thoiGianBaoHanh = data.warrantyMonths;
   if (data.status !== undefined)        body.trangThai = detailStatusToDb(data.status);
 
   if (Object.keys(body).length > 0) {
@@ -363,6 +367,8 @@ export interface CreateVariantDetailPayload {
   salePrice: number;
   status: DetailVariantStatus;
   description?: string;
+  warrantyPolicy?: string | null;
+  warrantyMonths?: number | null;
   specificationGroups?: SpecificationGroup[];
   media?: VariantMedia[];
 }
@@ -383,6 +389,8 @@ export async function createVariantDetail(
         ...(data.weight != null && { trongLuong: data.weight }),
         trangThai: detailStatusToDb(data.status),
         ...(data.description && { moTaChiTiet: data.description }),
+        ...(data.warrantyPolicy && { chinhSachBaoHanh: data.warrantyPolicy }),
+        ...(data.warrantyMonths != null && { thoiGianBaoHanh: data.warrantyMonths }),
       }),
     }
   );
@@ -562,7 +570,6 @@ function detailStatusToDb(status: DetailVariantStatus): string {
   const map: Record<DetailVariantStatus, string> = {
     visible: "HienThi",
     hidden: "An",
-    out_of_stock: "HetHang",
   };
   return map[status];
 }

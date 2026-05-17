@@ -43,9 +43,10 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
   // ── Section state ─────────────────────────────────────────────────────────
 
   const [info, setInfo] = useState<VariantInfoFormValue>({
-    name:   "",
-    sku:    "",
-    weight: "",
+    name:           "",
+    sku:            "",
+    weight:         "",
+    warrantyMonths: "",
   });
 
   const [pricing, setPricing] = useState<PricingStatusFormValue>({
@@ -55,9 +56,10 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
     isDefault:     false,
   });
 
-  const [description, setDescription] = useState("");
-  const [specs, setSpecs]             = useState<SpecificationGroup[]>(specTemplate);
-  const [media, setMedia]             = useState<VariantMedia[]>([]);
+  const [description, setDescription]       = useState("");
+  const [warrantyPolicy, setWarrantyPolicy] = useState("");
+  const [specs, setSpecs]                   = useState<SpecificationGroup[]>(specTemplate);
+  const [media, setMedia]                   = useState<VariantMedia[]>([]);
 
   const [errors, setErrors]   = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -88,6 +90,8 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
         name:                info.name.trim(),
         sku:                 info.sku.trim(),
         weight:              info.weight !== "" ? parseFloat(info.weight) : null,
+        warrantyMonths:      info.warrantyMonths !== "" ? parseInt(info.warrantyMonths, 10) : null,
+        warrantyPolicy:      warrantyPolicy || null,
         originalPrice:       parseFloat(pricing.originalPrice),
         salePrice:           parseFloat(pricing.salePrice),
         status:              pricing.status,
@@ -166,7 +170,7 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
           <VariantInfoForm
             value={info}
             onChange={setInfo}
-            errors={{ name: errors.name, sku: errors.sku, weight: errors.weight }}
+            errors={{ name: errors.name, sku: errors.sku, weight: errors.weight, warrantyMonths: errors.warrantyMonths }}
           />
           <PricingStatusForm
             value={pricing}
@@ -187,6 +191,19 @@ export function VariantFormPage({ productId, productName, specTemplate = [] }: V
               onChange={setDescription}
               placeholder="Write the variant description…"
               minHeight={240}
+            />
+          </div>
+
+          {/* Warranty policy */}
+          <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
+              Chính sách bảo hành
+            </h2>
+            <RichTextEditor
+              value={warrantyPolicy}
+              onChange={setWarrantyPolicy}
+              placeholder="Nhập chính sách bảo hành cho phiên bản này…"
+              minHeight={200}
             />
           </div>
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeftIcon } from "@heroicons/react/24/outline";
@@ -16,6 +17,14 @@ import type { Product, ProductVariantDetail, SpecificationGroup, VariantMedia } 
 import type { VariantInfoFormValue } from "./VariantInfoForm";
 import type { PricingStatusFormValue } from "./PricingStatusForm";
 
+const RichTextEditor = dynamic(
+  () => import("@/src/components/editor").then((m) => ({ default: m.RichTextEditor })),
+  {
+    ssr: false,
+    loading: () => <div className="h-48 animate-pulse rounded-lg bg-secondary-100" />,
+  }
+);
+
 // ─── VariantEditPage ──────────────────────────────────────────────────────────
 
 interface VariantEditPageProps {
@@ -30,9 +39,10 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
   // ── Section state ─────────────────────────────────────────────────────────
 
   const [info, setInfo] = useState<VariantInfoFormValue>({
-    name:   variant.name,
-    sku:    variant.sku,
-    weight: variant.weight !== undefined ? String(variant.weight) : "",
+    name:           variant.name,
+    sku:            variant.sku,
+    weight:         variant.weight !== undefined ? String(variant.weight) : "",
+    warrantyMonths: variant.warrantyMonths != null ? String(variant.warrantyMonths) : "",
   });
 
   const [pricing, setPricing] = useState<PricingStatusFormValue>({
@@ -42,9 +52,10 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
     isDefault:     variant.isDefault ?? false,
   });
 
-  const [description, setDescription] = useState(variant.description);
-  const [specs, setSpecs]             = useState<SpecificationGroup[]>(variant.specificationGroups);
-  const [media, setMedia]             = useState<VariantMedia[]>(variant.media);
+  const [description, setDescription]       = useState(variant.description);
+  const [warrantyPolicy, setWarrantyPolicy] = useState(variant.warrantyPolicy ?? "");
+  const [specs, setSpecs]                   = useState<SpecificationGroup[]>(variant.specificationGroups);
+  const [media, setMedia]                   = useState<VariantMedia[]>(variant.media);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
@@ -75,6 +86,8 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
         name:                info.name.trim(),
         sku:                 info.sku.trim(),
         weight:              info.weight !== "" ? parseFloat(info.weight) : null,
+        warrantyMonths:      info.warrantyMonths !== "" ? parseInt(info.warrantyMonths, 10) : null,
+        warrantyPolicy:      warrantyPolicy || null,
         originalPrice:       parseFloat(pricing.originalPrice),
         salePrice:           parseFloat(pricing.salePrice),
         status:              pricing.status,
@@ -162,7 +175,7 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
           <VariantInfoForm
             value={info}
             onChange={setInfo}
-            errors={{ name: errors.name, sku: errors.sku, weight: errors.weight }}
+            errors={{ name: errors.name, sku: errors.sku, weight: errors.weight, warrantyMonths: errors.warrantyMonths }}
           />
           <PricingStatusForm
             value={pricing}
@@ -178,6 +191,19 @@ export function VariantEditPage({ product, variant }: VariantEditPageProps) {
             description={description}
             onChange={setDescription}
           />
+
+          {/* Warranty policy */}
+          <div className="rounded-xl border border-secondary-200 bg-white p-6 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-secondary-500">
+              Chính sách bảo hành
+            </h2>
+            <RichTextEditor
+              value={warrantyPolicy}
+              onChange={setWarrantyPolicy}
+              placeholder="Nhập chính sách bảo hành cho phiên bản này…"
+              minHeight={200}
+            />
+          </div>
 
           {/* Specifications */}
           <SpecificationEditor groups={specs} onChange={setSpecs} />

@@ -29,16 +29,29 @@ export interface AdminNavItem {
   dividerAfter?: boolean;
   children?: AdminNavItem[];
   /**
-   * If provided, the item is only visible to users whose role is in this array.
-   * Omitting the prop (or passing an empty array) shows the item to all roles.
+   * Permission code required to see this item (e.g. "orders.read").
+   * Takes precedence over `requiredRoles` when both are set.
+   * Omit to show to everyone.
+   */
+  requiredPermission?: string;
+  /**
+   * Legacy role-based visibility — kept for items not yet migrated to
+   * `requiredPermission`. If `requiredPermission` is set, this is ignored.
    */
   requiredRoles?: string[];
 }
 
 export interface AdminSidebarProps {
   items: AdminNavItem[];
-  /** Current authenticated user's role (used for visibility checks) */
+  /** Current authenticated user's role (used for legacy `requiredRoles` checks). */
   userRole?: string;
+  /**
+   * Permission predicate from the auth store. When provided, items with
+   * `requiredPermission` are filtered through this callback. If absent, items
+   * with `requiredPermission` are always visible (back-compat for callers
+   * that have not yet wired up RBAC).
+   */
+  hasPermission?: (permission: string) => boolean;
   /** Logo/branding area */
   header?: ReactNode;
   /** User info / sign-out area */
@@ -51,18 +64,27 @@ export interface AdminSidebarProps {
 interface SidebarInternalCtx {
   collapsed: boolean;
   userRole: string;
+  hasPermission?: (permission: string) => boolean;
   allLeafHrefs: string[];
 }
 
 const InternalCtx = createContext<SidebarInternalCtx>({
   collapsed: false,
   userRole: "",
+  hasPermission: undefined,
   allLeafHrefs: [],
 });
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function isAllowed(item: AdminNavItem, userRole: string): boolean {
+function isAllowed(
+  item: AdminNavItem,
+  userRole: string,
+  hasPermission?: (p: string) => boolean
+): boolean {
+  if (item.requiredPermission) {
+    return hasPermission ? hasPermission(item.requiredPermission) : true;
+  }
   if (!item.requiredRoles || item.requiredRoles.length === 0) return true;
   return item.requiredRoles.includes(userRole);
 }
@@ -125,7 +147,7 @@ function hasActiveDescendant(
 // ─── NavItem ──────────────────────────────────────────────────────────────────
 
 function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
-  const { collapsed, userRole, allLeafHrefs } = useContext(InternalCtx);
+  const { collapsed, userRole, hasPermission, allLeafHrefs } = useContext(InternalCtx);
   const pathname = usePathname();
 
   const hasChildren = !!item.children?.length;
@@ -138,7 +160,7 @@ function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
     if (childActive) setOpen(true);
   }, [childActive]);
 
-  const visibleChildren = item.children?.filter((c) => isAllowed(c, userRole));
+  const visibleChildren = item.children?.filter((c) => isAllowed(c, userRole, hasPermission));
 
   // Indentation by depth level
   const pl = depth === 0 ? "pl-3" : depth === 1 ? "pl-8" : "pl-12";
@@ -256,17 +278,18 @@ function NavItem({ item, depth = 0 }: { item: AdminNavItem; depth?: number }) {
 export function AdminSidebar({
   items,
   userRole = "",
+  hasPermission,
   header,
   footer,
   className = "",
 }: AdminSidebarProps) {
   const { collapsed, toggle } = useSidebar();
 
-  const visibleItems = items.filter((item) => isAllowed(item, userRole));
+  const visibleItems = items.filter((item) => isAllowed(item, userRole, hasPermission));
   const allLeafHrefs = collectLeafHrefs(items);
 
   return (
-    <InternalCtx.Provider value={{ collapsed, userRole, allLeafHrefs }}>
+    <InternalCtx.Provider value={{ collapsed, userRole, hasPermission, allLeafHrefs }}>
       <aside
         className={[
           "flex flex-col bg-secondary-900 text-white transition-all duration-200 h-full",

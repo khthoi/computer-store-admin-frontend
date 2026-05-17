@@ -17,6 +17,8 @@ export interface ProductVariant {
   updatedAt: string;
   /** True for the single variant shown by default on listing/product cards */
   isDefault?: boolean;
+  /** thoiGianBaoHanh — số tháng bảo hành */
+  warrantyMonths?: number | null;
 }
 
 export type CreatorRole = "Admin" | "Editor" | "Staff";
@@ -64,7 +66,7 @@ export type VariantStatus = ProductVariant["status"];
 
 // ─── Variant detail types (richer model for the variant detail page) ──────────
 
-export type DetailVariantStatus = "visible" | "hidden" | "out_of_stock";
+export type DetailVariantStatus = "visible" | "hidden";
 export type MediaType = "main" | "gallery";
 
 export interface VariantMedia {
@@ -149,6 +151,10 @@ export interface ProductVariantDetail {
   updatedAt: string;
   /** moTaChiTiet — full HTML from Quill */
   description: string;
+  /** chinhSachBaoHanh — full HTML from Quill */
+  warrantyPolicy: string | null;
+  /** thoiGianBaoHanh — số tháng bảo hành */
+  warrantyMonths: number | null;
   specificationGroups: SpecificationGroup[];
   media: VariantMedia[];
 }
