@@ -576,59 +576,59 @@ export function StockInDetailClient({
                 const batches = initialBatches[li.variantId] ?? [];
                 return (
                   <div key={li.id}>
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <Tooltip content={li.productName} placement="top">
-                            <Link
-                              href={`/products/${li.productId}`}
-                              className="truncate font-semibold text-secondary-900 hover:text-primary-600 hover:underline"
-                            >
-                              {li.productName}
-                            </Link>
-                          </Tooltip>
-                          {li.quantityDamaged > 0 && (
-                            <Badge variant="error" size="sm">{li.quantityDamaged} hỏng</Badge>
-                          )}
-                          {li.quantityShort > 0 && (
-                            <Badge variant="warning" size="sm">{li.quantityShort} thiếu</Badge>
-                          )}
-                        </div>
-                        <div className="mt-0.5 flex items-center gap-2">
-                          <Tooltip content={li.variantName} placement="top">
-                            <Link
-                              href={`/products/${li.productId}/variants/${li.variantId}`}
-                              className="text-sm text-secondary-500 hover:text-primary-500 hover:underline"
-                            >
-                              {li.variantName}
-                            </Link>
-                          </Tooltip>
-                          <span className="text-secondary-300">·</span>
-                          <span className="font-mono text-xs text-secondary-400">{li.sku}</span>
-                        </div>
+                    <div className="mb-3 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <Tooltip content={li.productName} placement="top">
+                          <Link
+                            href={`/products/${li.productId}`}
+                            className="truncate font-semibold text-secondary-900 hover:text-primary-600 hover:underline"
+                          >
+                            {li.productName}
+                          </Link>
+                        </Tooltip>
+                        {li.quantityDamaged > 0 && (
+                          <Badge variant="error" size="sm">{li.quantityDamaged} hỏng</Badge>
+                        )}
+                        {li.quantityShort > 0 && (
+                          <Badge variant="warning" size="sm">{li.quantityShort} thiếu</Badge>
+                        )}
                       </div>
-                      <Link
-                        href={`/inventory/items/${li.variantId}/batches`}
-                        className="inline-flex items-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-1.5 text-xs font-medium text-secondary-600 transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
-                      >
-                        <ArchiveBoxIcon className="h-3.5 w-3.5" />
-                        Xem tất cả lô hàng
-                      </Link>
+                      <div className="mt-0.5 flex items-center gap-2">
+                        <Tooltip content={li.variantName} placement="top">
+                          <Link
+                            href={`/products/${li.productId}/variants/${li.variantId}`}
+                            className="text-sm text-secondary-500 hover:text-primary-500 hover:underline"
+                          >
+                            {li.variantName}
+                          </Link>
+                        </Tooltip>
+                        <span className="text-secondary-300">·</span>
+                        <span className="font-mono text-xs text-secondary-400">{li.sku}</span>
+                      </div>
                     </div>
 
-                    {batches.length > 0 ? (
-                      <div className="grid grid-cols-7 gap-3">
-                        {batches.map((batch) => (
-                          <div key={batch.id} className="col-span-6">
-                            <BatchCard batch={batch} lineItem={li} />
-                          </div>
-                        ))}
+                    <div className="grid grid-cols-7 gap-3">
+                      <div className="col-span-6 space-y-3">
+                        {batches.length > 0 ? (
+                          batches.map((batch) => (
+                            <BatchCard key={batch.id} batch={batch} lineItem={li} />
+                          ))
+                        ) : (
+                          <p className="rounded-lg border border-dashed border-secondary-200 py-4 text-center text-sm text-secondary-400">
+                            Chưa có lô hàng nào được ghi nhận.
+                          </p>
+                        )}
                       </div>
-                    ) : (
-                      <p className="rounded-lg border border-dashed border-secondary-200 py-4 text-center text-sm text-secondary-400">
-                        Chưa có lô hàng nào được ghi nhận.
-                      </p>
-                    )}
+                      <div className="col-span-1 flex items-center justify-center">
+                        <Link
+                          href={`/inventory/items/${li.variantId}/batches`}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-secondary-200 bg-white px-3 py-1.5 text-xs font-medium text-secondary-600 text-center transition-colors hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700"
+                        >
+                          <ArchiveBoxIcon className="h-3.5 w-3.5 shrink-0" />
+                          Xem tất cả lô hàng
+                        </Link>
+                      </div>
+                    </div>
                   </div>
                 );
               })}

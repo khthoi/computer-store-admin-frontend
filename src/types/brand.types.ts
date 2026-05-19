@@ -8,6 +8,7 @@ export interface ThuongHieu {
   slug: string;
   description: string;
   websiteUrl: string;
+  countryOfOrigin: string;
   logoUrl?: string;
   logoAlt?: string;
   active: boolean;

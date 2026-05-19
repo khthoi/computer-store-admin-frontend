@@ -57,6 +57,7 @@ export async function createBrand(data: BrandFormData): Promise<ThuongHieu> {
       ...(data.logoUrl ? { logo: data.logoUrl } : {}),
       ...(data.logoAlt ? { logoAlt: data.logoAlt } : {}),
       ...(data.websiteUrl ? { websiteUrl: data.websiteUrl } : {}),
+      ...(data.countryOfOrigin ? { xuatXu: data.countryOfOrigin } : {}),
     }),
   });
 }
@@ -75,6 +76,7 @@ export async function updateBrand(
       ...(data.logoUrl !== undefined ? { logo: data.logoUrl } : {}),
       ...(data.logoAlt !== undefined ? { logoAlt: data.logoAlt || null } : {}),
       ...(data.websiteUrl !== undefined ? { websiteUrl: data.websiteUrl || undefined } : {}),
+      ...(data.countryOfOrigin !== undefined ? { xuatXu: data.countryOfOrigin || null } : {}),
     }),
   });
 }

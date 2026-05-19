@@ -39,7 +39,7 @@ function toFormData(brand: ThuongHieu): Partial<BrandFormData> {
     slug: brand.slug,
     description: brand.description,
     websiteUrl: brand.websiteUrl,
-    countryOfOrigin: "",
+    countryOfOrigin: brand.countryOfOrigin ?? "",
     active: brand.active,
     logoUrl: brand.logoUrl,
   };
